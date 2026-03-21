@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import AppShell from "../../components/app-shell";
 import { supabase } from "../../../lib/supabase-browser";
 import { resolveAvatarUrl } from "../../../lib/avatar";
@@ -16,6 +16,7 @@ const pipelineStages = [
 ];
 
 type PipelineResult = {
+  summary?: { summary?: string } | string;
   entities?: Array<{
     name: string;
     fields?: Array<{
@@ -125,6 +126,7 @@ export default function DashboardPage() {
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarDisplayUrl, setAvatarDisplayUrl] = useState<string | null>(null);
   const [plan, setPlan] = useState<PlanSummary | null>(null);
+  const summaryRef = useRef<HTMLDivElement | null>(null);
 
   const getAccessToken = async () => {
     const { data } = await supabase.auth.getSession();
@@ -153,7 +155,6 @@ export default function DashboardPage() {
 
       const authHeaders = getAuthHeaders(token);
       const summaryRes = await fetch(`${apiBaseUrl}/dashboard/summary`, { headers: authHeaders });
-
       if (summaryRes.ok) {
         const data = await summaryRes.json();
         setSummary(data);
@@ -171,7 +172,7 @@ export default function DashboardPage() {
         const data = await planRes.json();
         setPlan(data);
       }
-    } catch (error) {
+    } catch {
       setProfileEmail("Profile unavailable");
     }
   };
@@ -234,7 +235,7 @@ export default function DashboardPage() {
       setResult(pipeline.result || null);
       setStatus("Completed");
       await loadDashboard();
-    } catch (error) {
+    } catch {
       setStatus("Error - check backend server");
     }
   };
@@ -261,10 +262,7 @@ export default function DashboardPage() {
       const ext = file.name.split(".").pop() || "jpg";
       const path = `${userId}/avatar-${Date.now()}.${ext}`;
 
-      const uploadRes = await supabase.storage.from("avatars").upload(path, file, {
-        upsert: true
-      });
-
+      const uploadRes = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
       if (uploadRes.error) {
         throw uploadRes.error;
       }
@@ -284,16 +282,16 @@ export default function DashboardPage() {
       setProfile(data);
       setAvatarDisplayUrl(await resolveAvatarUrl(data.avatar_url));
       setStatus("Profile photo updated");
-    } catch (error) {
+    } catch {
       setStatus("Avatar upload failed. Ensure 'avatars' bucket exists in Supabase.");
     } finally {
       setAvatarUploading(false);
     }
   };
 
+  const entities = result?.entities || [];
   const endpoints = result?.endpoints || [];
   const rules = result?.rules || [];
-  const entities = result?.entities || [];
   const relationships = result?.relationships || [];
   const joinTables = result?.join_tables || [];
   const codeSkeleton = result?.code_skeleton;
@@ -312,7 +310,7 @@ export default function DashboardPage() {
       const extractedCreateStatements = text.match(/CREATE\s+TABLE[\s\S]*?(?=(?:CREATE\s+TABLE)|$)/gi);
       if (extractedCreateStatements?.length) {
         return extractedCreateStatements
-          .map((statement) => statement.replace(/[\],'"]+$/g, "").trim())
+          .map((statement) => statement.replace(/[\],'\"]+$/g, "").trim())
           .join(";\n\n");
       }
     }
@@ -321,57 +319,6 @@ export default function DashboardPage() {
   };
 
   const migrationSqlText = normalizeSqlText(migrationSql);
-  const isStarterLimitReached =
-    (plan?.plan_name || "Starter").toLowerCase() === "starter" &&
-    (plan?.runs_used_this_month || 0) >= (plan?.monthly_run_limit || 3);
-
-  const downloadTextFile = (filename: string, content: string) => {
-    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = filename;
-    link.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const exportJson = () => {
-    const payload = JSON.stringify(result || {}, null, 2);
-    downloadTextFile("baxel-blueprint.json", payload);
-  };
-
-  const exportOpenApi = () => {
-    const lines = [
-      "openapi: 3.0.3",
-      "info:",
-      "  title: Baxel Generated API",
-      "  version: 1.0.0",
-      "paths:"
-    ];
-
-    (endpoints || []).forEach((endpoint) => {
-      const method = endpoint.method.toLowerCase();
-      lines.push(`  ${endpoint.path}:`);
-      lines.push(`    ${method}:`);
-      lines.push(`      summary: ${endpoint.desc || "Generated endpoint"}`);
-      lines.push("      responses:");
-      lines.push("        '200':");
-      lines.push("          description: Success");
-      if ((endpoint.errors || []).length) {
-        lines.push("      x-domain-errors:");
-        (endpoint.errors || []).forEach((errorCode) => {
-          lines.push(`        - ${errorCode}`);
-        });
-      }
-    });
-
-    downloadTextFile("baxel-openapi.yaml", lines.join("\n"));
-  };
-
-  const exportSql = () => {
-    downloadTextFile("baxel-migration.sql", migrationSqlText || "-- No SQL generated yet.");
-  };
-
   const normalizedRules = (rules.length ? rules : [
     "Every entity needs a primary key",
     "Many-to-many requires a join table",
@@ -380,7 +327,6 @@ export default function DashboardPage() {
     if (typeof rule === "string") {
       return { name: rule, type: "rule", trigger_condition: "" };
     }
-
     return {
       name: rule.name || "Rule",
       type: rule.type || "rule",
@@ -388,7 +334,75 @@ export default function DashboardPage() {
     };
   });
 
-  // Fix ISSUE 4: map normalized constraints to compact UI chips for readable schema rows.
+  const isStarterLimitReached =
+    (plan?.plan_name || "Starter").toLowerCase() === "starter" &&
+    (plan?.runs_used_this_month || 0) >= (plan?.monthly_run_limit || 3);
+
+  const isCompletedRun = status === "Completed" && !!result;
+  const triggerCount = normalizedRules.filter((rule) => !!rule.trigger_condition).length;
+  const resourceCount = new Set(
+    endpoints
+      .map((endpoint) => {
+        const parts = endpoint.path.split("/").filter(Boolean);
+        return parts.find((part) => !part.startsWith("{")) || parts[0] || "root";
+      })
+      .filter(Boolean)
+  ).size;
+  const migrationTableCount = (migrationSqlText.match(/create\s+table/gi) || []).length;
+
+  const summaryText = typeof result?.summary === "string"
+    ? result.summary
+    : result?.summary?.summary || "";
+  const normalizedSnippet = summaryText
+    ? summaryText.replace(/\s+/g, " ").trim().slice(0, 72)
+    : (specTitle || "Spec summary").slice(0, 72);
+
+  const stageInsights: Record<string, string> = {
+    "Spec cleanup": isCompletedRun
+      ? `Normalized: ${normalizedSnippet}${normalizedSnippet.length >= 72 ? "..." : ""}`
+      : "Schema normalized and ready",
+    "Entities & relations": isCompletedRun
+      ? `Found ${entities.length} entities, ${relationships.length} relationships`
+      : "Entity extraction pending",
+    "Model proposal": isCompletedRun
+      ? `Proposed schema: ${entities.length} tables, ${joinTables.length} join tables`
+      : "Schema proposal pending",
+    "API surface": isCompletedRun
+      ? `Generated ${endpoints.length} endpoints across ${resourceCount || 0} resources`
+      : "Endpoint generation pending",
+    "Business rules": isCompletedRun
+      ? `Captured ${normalizedRules.length} business rules and ${triggerCount} triggers`
+      : "Rule extraction pending",
+    "Code skeleton": isCompletedRun
+      ? `Skeleton ready: ${entities.length} models, ${entities.length} routers, ${entities.length} services`
+      : "Skeleton generation pending",
+  };
+
+  const endpointByEntity = entities
+    .map((entity) => {
+      const key = entity.name.toLowerCase();
+      const count = endpoints.filter((endpoint) => endpoint.path.toLowerCase().includes(key)).length;
+      return { entity: entity.name, count };
+    })
+    .sort((a, b) => b.count - a.count);
+  const topEndpointEntity = endpointByEntity.find((item) => item.count > 0);
+
+  const liveInsightText = isCompletedRun
+    ? (
+        topEndpointEntity
+          ? `${projectName || "This project"} has ${entities.length} entities. Largest surface: ${topEndpointEntity.entity} with ${topEndpointEntity.count} API endpoints. ${joinTables.length} join tables detected${triggerCount ? ` and ${triggerCount} trigger rules captured.` : "."}`
+          : `${projectName || "This project"} pipeline complete - ${entities.length} entities, ${endpoints.length} endpoints generated.`
+      )
+    : status;
+
+  const keyEntities = entities.slice(0, 5).map((entity) => entity.name);
+  const keyEntitiesMore = Math.max(0, entities.length - keyEntities.length);
+
+  useEffect(() => {
+    if (!isCompletedRun) return;
+    summaryRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [isCompletedRun, result]);
+
   const renderConstraintChip = (constraint: string, index: number) => {
     const normalized = constraint.toLowerCase();
     let label = normalized.toUpperCase();
@@ -406,350 +420,363 @@ export default function DashboardPage() {
     );
   };
 
+  const downloadTextFile = (filename: string, content: string) => {
+    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportJson = () => {
+    downloadTextFile("baxel-blueprint.json", JSON.stringify(result || {}, null, 2));
+  };
+
+  const exportOpenApi = () => {
+    const lines = [
+      "openapi: 3.0.3",
+      "info:",
+      "  title: Baxel Generated API",
+      "  version: 1.0.0",
+      "paths:"
+    ];
+
+    endpoints.forEach((endpoint) => {
+      const method = endpoint.method.toLowerCase();
+      lines.push(`  ${endpoint.path}:`);
+      lines.push(`    ${method}:`);
+      lines.push(`      summary: ${endpoint.desc || "Generated endpoint"}`);
+      lines.push("      responses:");
+      lines.push("        '200':");
+      lines.push("          description: Success");
+      if ((endpoint.errors || []).length) {
+        lines.push("      x-domain-errors:");
+        (endpoint.errors || []).forEach((errorCode) => lines.push(`        - ${errorCode}`));
+      }
+    });
+
+    downloadTextFile("baxel-openapi.yaml", lines.join("\n"));
+  };
+
+  const exportSql = () => {
+    downloadTextFile("baxel-migration.sql", migrationSqlText || "-- No SQL generated yet.");
+  };
+
   return (
     <AppShell>
-      <div className="grid gap-6 lg:grid-cols-[1.4fr_0.6fr]">
-        <section className="glass rounded-3xl p-8 reveal">
-          <p className="label">Pipeline builder</p>
-          <div className="mt-6 grid gap-4 md:grid-cols-2">
-            {pipelineStages.map((stage) => (
-              <div key={stage} className="rounded-2xl border border-dune/20 bg-white/70 p-4">
-                <p className="text-xs uppercase tracking-[0.2em] text-dune">{status}</p>
-                <p className="mt-3 text-sm font-medium text-ink">{stage}</p>
-              </div>
-            ))}
-          </div>
-          <div className="mt-6 rounded-2xl bg-ink p-4 text-bone">
-            <p className="text-xs uppercase tracking-[0.2em]">Live insight</p>
-            <p className="mt-3 text-sm">
-              {status === "Completed"
-                ? "Pipeline complete. Review entities, APIs, and rules below."
-                : status}
-            </p>
-          </div>
-        </section>
-
-        <section className="glass rounded-3xl p-8 reveal reveal-delay-1">
-          <p className="label">Run a spec</p>
-          <div className="mt-4 rounded-2xl border border-dune/20 bg-white/70 p-4">
-            <p className="text-[11px] uppercase tracking-[0.2em] text-dune">STARTER TEMPLATES</p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {starterTemplates.map((template) => (
-                <button
-                  key={template.label}
-                  className="rounded-full border border-dune/30 px-3 py-1 text-xs text-ink"
-                  onClick={() => {
-                    setProjectName(template.projectName);
-                    setSpecTitle(template.specTitle);
-                    setSpecContent(template.specContent);
-                  }}
-                >
-                  {template.label}
-                </button>
+      <div className="grid gap-6 lg:grid-cols-[1.35fr_0.65fr]">
+        <div className="space-y-6">
+          <section className="glass rounded-3xl p-8 reveal">
+            <p className="label">Pipeline builder</p>
+            <div className="mt-6 grid gap-4 md:grid-cols-2">
+              {pipelineStages.map((stage) => (
+                <div key={stage} className="rounded-2xl border border-dune/20 bg-white/70 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-dune">{status}</p>
+                  <p className="mt-3 text-sm font-medium text-ink">{stage}</p>
+                  <p className="mt-2 text-xs text-dune">{stageInsights[stage] || "Stage insight unavailable"}</p>
+                </div>
               ))}
             </div>
-          </div>
-          <div className="mt-6 space-y-4 text-sm text-dune">
-            <div>
-              <label className="text-xs uppercase tracking-[0.2em] text-dune">Project name</label>
-              <input
-                className="mt-2 w-full rounded-2xl border border-dune/20 bg-white/70 px-4 py-3 text-sm"
-                value={projectName}
-                onChange={(event) => setProjectName(event.target.value)}
-                placeholder="Atlas Marketplace"
-              />
+            <div className="mt-6 rounded-2xl bg-ink p-4 text-bone">
+              <p className="text-xs uppercase tracking-[0.2em]">Live insight</p>
+              <p className="mt-3 text-sm">{liveInsightText}</p>
             </div>
-            <div>
-              <label className="text-xs uppercase tracking-[0.2em] text-dune">Spec title</label>
-              <input
-                className="mt-2 w-full rounded-2xl border border-dune/20 bg-white/70 px-4 py-3 text-sm"
-                value={specTitle}
-                onChange={(event) => setSpecTitle(event.target.value)}
-                placeholder="Marketplace spec"
-              />
-            </div>
-            <div>
-              <label className="text-xs uppercase tracking-[0.2em] text-dune">Spec content</label>
-              <textarea
-                className="mt-2 h-32 w-full rounded-2xl border border-dune/20 bg-white/70 px-4 py-3 text-sm"
-                value={specContent}
-                onChange={(event) => setSpecContent(event.target.value)}
-                placeholder="Users can list products, buyers place orders, and admins verify listings."
-              />
-            </div>
-            <button
-              className="w-full rounded-full bg-ink px-4 py-3 text-sm text-bone"
-              onClick={runPipeline}
-            >
-              Run pipeline
-            </button>
-            {isStarterLimitReached ? (
-              <p className="rounded-xl border border-amber-300/70 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-                You&apos;ve used {plan?.runs_used_this_month || 3}/{plan?.monthly_run_limit || 3} runs this month. Upgrade to Studio for unlimited runs. {" "}
-                <Link href="/pricing" className="underline">
-                  View pricing
-                </Link>
-              </p>
-            ) : null}
-          </div>
-        </section>
-      </div>
+          </section>
 
-      <section className="mt-6 grid gap-6 md:grid-cols-3">
-        {[
-          { title: "Projects", value: `${summary?.projects_count ?? 0}` },
-          { title: "Specs", value: `${summary?.specs_count ?? 0}` },
-          { title: "Pipeline runs", value: `${summary?.pipeline_runs_count ?? 0}` }
-        ].map((card) => (
-          <div key={card.title} className="glass rounded-3xl p-6 reveal">
-            <p className="label">{card.title}</p>
-            <p className="mt-3 text-2xl font-semibold text-ink">{card.value}</p>
-          </div>
-        ))}
-      </section>
+          {isCompletedRun ? (
+            <>
+              <section ref={summaryRef} className="space-y-4">
+                <details className="glass rounded-2xl p-4">
+                  <summary className="cursor-pointer text-sm font-semibold text-ink">
+                    Your spec: "{specTitle || "Untitled spec"}"
+                  </summary>
+                  <p className="mt-3 whitespace-pre-wrap text-sm text-dune">{specContent || "No spec content provided."}</p>
+                </details>
 
-      <section className="mt-6">
-        <div className="glass rounded-3xl p-6 reveal">
-          <p className="label">Signed-in profile</p>
-          <div className="mt-3 flex items-center gap-4">
-            {avatarDisplayUrl ? (
-              <img src={avatarDisplayUrl} alt="Profile" className="h-14 w-14 rounded-full object-cover" />
-            ) : (
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-ink text-bone">
-                {profileEmail.slice(0, 1).toUpperCase()}
-              </div>
-            )}
-            <div>
-              <p className="text-lg font-semibold text-ink">{profile?.full_name || profileEmail}</p>
-              <p className="text-xs text-dune">@{profile?.username || "set-username"}</p>
-            </div>
-          </div>
-          <div className="mt-4">
-            <label className="rounded-full border border-dune/40 px-4 py-2 text-sm cursor-pointer inline-block">
-              {avatarUploading ? "Uploading..." : "Upload profile photo"}
-              <input type="file" accept="image/*" className="hidden" onChange={uploadAvatar} />
-            </label>
-          </div>
-        </div>
-      </section>
+                <div className="rounded-3xl border border-dune/20 bg-white p-8 shadow-[0_24px_60px_rgba(15,15,15,0.12)]" style={{ animation: "fadeUp 420ms ease-out" }}>
+                  <p className="label">Pipeline reveal</p>
+                  <h2 className="mt-2 text-3xl font-semibold text-ink">Baxel understood your spec</h2>
+                  <p className="mt-4 text-base text-dune">From:</p>
+                  <p className="mt-1 rounded-xl border border-dune/20 bg-bone/80 px-4 py-3 text-lg font-medium text-ink">
+                    "{specTitle || "Untitled spec"}"
+                  </p>
+                  <div className="mt-5 flex flex-wrap gap-3 text-sm text-dune">
+                    <span className="rounded-full border border-dune/30 bg-white px-4 py-2">{entities.length} entities</span>
+                    <span className="rounded-full border border-dune/30 bg-white px-4 py-2">{endpoints.length} API endpoints</span>
+                    <span className="rounded-full border border-dune/30 bg-white px-4 py-2">{normalizedRules.length} business rules</span>
+                    <span className="rounded-full border border-dune/30 bg-white px-4 py-2">{relationships.length} relationships</span>
+                    <span className="rounded-full border border-dune/30 bg-white px-4 py-2">{joinTables.length} join tables</span>
+                  </div>
+                  <div className="mt-5">
+                    <p className="text-sm text-dune">Key entities</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {keyEntities.map((entity) => (
+                        <span key={entity} className="rounded-full border border-dune/30 bg-bone px-3 py-1 text-xs text-ink">
+                          {entity}
+                        </span>
+                      ))}
+                      {keyEntitiesMore > 0 ? (
+                        <span className="rounded-full border border-dune/30 bg-white px-3 py-1 text-xs text-dune">
+                          + {keyEntitiesMore} more
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+              </section>
 
-      <section className="mt-6 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="glass rounded-3xl p-8 reveal">
-          <p className="label">Active projects</p>
-          <div className="mt-6 space-y-3">
-            {(summary?.recent_projects?.length
-              ? summary.recent_projects
-              : [{ id: "draft-project", name: projectName, created_at: "" }]).map((project, index) => (
-              <div
-                key={`${project.id}-${project.name}-${index}`}
-                className="flex items-center justify-between rounded-2xl border border-dune/20 bg-white/70 px-4 py-3"
-              >
-                <span className="text-sm font-medium text-ink">{project.name}</span>
-                <span className="text-xs uppercase tracking-[0.2em] text-dune">Review</span>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="glass rounded-3xl p-8 reveal reveal-delay-2">
-          <p className="label">ERD canvas</p>
-          <div className="mt-6 grid gap-3 md:grid-cols-2">
-            {(entities.length
-              ? entities
-              : [
-                  {
-                    name: "Project",
-                    fields: [
-                      { name: "id", type: "uuid", constraints: ["primary_key"] },
-                      { name: "name", type: "text", constraints: ["not_null"] },
-                      { name: "created_at", type: "timestamptz", constraints: ["not_null"] }
-                    ]
-                  },
-                  {
-                    name: "Spec",
-                    fields: [
-                      { name: "id", type: "uuid", constraints: ["primary_key"] },
-                      { name: "project_id", type: "uuid", constraints: ["foreign_key", "not_null"] },
-                      { name: "content", type: "text", constraints: ["not_null"] }
-                    ]
-                  }
-                ]
-            ).map((entity, index) => (
-              <div key={`${entity.name}-${index}`} className="rounded-2xl border border-dune/20 bg-white/70 p-4">
-                <p className="text-sm font-semibold text-ink">{entity.name}</p>
-                <div className="mt-2 space-y-1">
-                  {(entity.fields?.length
-                    ? entity.fields
-                    : [{ name: "id", type: "uuid", constraints: ["primary_key"] }]
-                  ).map((field, fieldIndex) => (
-                    <div key={`${entity.name}-${field.name}-${fieldIndex}`} className="flex flex-wrap items-center gap-2 text-xs text-dune">
-                      <span className="font-semibold text-ink">{field.name}</span>
-                      <span className="rounded-full bg-ink px-2 py-0.5 text-[10px] uppercase tracking-[0.08em] text-bone">
-                        {field.type}
-                      </span>
-                      {(field.constraints || []).map((constraint, constraintIndex) =>
-                        renderConstraintChip(constraint, constraintIndex)
-                      )}
+              <section className="glass rounded-3xl border-t-4 border-ink p-8 reveal">
+                <div className="flex items-center gap-2">
+                  <p className="label">ERD canvas</p>
+                  <span className="rounded-full border border-dune/30 bg-white px-2 py-0.5 text-[11px] text-dune">{entities.length} entities</span>
+                </div>
+                <div className="mt-6 grid gap-3 md:grid-cols-2">
+                  {entities.map((entity, index) => (
+                    <div key={`${entity.name}-${index}`} className="rounded-2xl border border-dune/20 bg-white/70 p-4">
+                      <p className="text-sm font-semibold text-ink">{entity.name}</p>
+                      <div className="mt-2 space-y-1">
+                        {(entity.fields?.length ? entity.fields : [{ name: "id", type: "uuid", constraints: ["primary_key"] }]).map((field, fieldIndex) => (
+                          <div key={`${entity.name}-${field.name}-${fieldIndex}`} className="flex flex-wrap items-center gap-2 text-xs text-dune">
+                            <span className="font-semibold text-ink">{field.name}</span>
+                            <span className="rounded-full bg-ink px-2 py-0.5 text-[10px] uppercase tracking-[0.08em] text-bone">{field.type}</span>
+                            {(field.constraints || []).map((constraint, constraintIndex) => renderConstraintChip(constraint, constraintIndex))}
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   ))}
                 </div>
-              </div>
-            ))}
-          </div>
-          <div className="mt-4 rounded-2xl border border-dune/20 bg-white/70 p-4">
-            <p className="text-xs uppercase tracking-[0.2em] text-dune">Relationships</p>
-            {relationships.length ? (
-              <div className="mt-2 space-y-1">
-                {relationships.map((item, index) => (
-                  <p key={`${item}-${index}`} className="text-xs text-dune">
-                    {item}
-                  </p>
-                ))}
-              </div>
-            ) : (
-              <p className="mt-2 text-xs text-dune">No relationships identified.</p>
-            )}
-          </div>
-        </div>
-      </section>
+              </section>
 
-      <section className="mt-6">
-        <div className="glass rounded-3xl p-8 reveal">
-          <p className="label">Join tables</p>
-          <div className="mt-4 space-y-3">
-            {joinTables.length ? joinTables.map((table, index) => (
-              <div key={`${table.name}-${index}`} className="rounded-2xl border border-dune/20 bg-white/70 p-4">
-                <p className="text-sm font-semibold text-ink">{table.name}</p>
-                <p className="mt-1 text-xs text-dune">
-                  {table.left_entity} <span className="mx-1">&lt;-&gt;</span> {table.right_entity}
-                </p>
-                <p className="mt-1 text-xs text-dune">{table.purpose}</p>
-                <div className="mt-2 space-y-1">
-                  {(table.fields || []).map((field, fieldIndex) => (
-                    <p key={`${table.name}-${field}-${fieldIndex}`} className="text-xs text-dune">
-                      {field}
-                    </p>
+              <section className="glass rounded-3xl border-t border-dune/20 p-8 reveal">
+                <div className="grid gap-6 lg:grid-cols-2">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="label">Relationships</p>
+                      <span className="rounded-full border border-dune/30 bg-white px-2 py-0.5 text-[11px] text-dune">{relationships.length}</span>
+                    </div>
+                    <div className="mt-4 space-y-2">
+                      {relationships.length ? relationships.map((item, index) => (
+                        <p key={`${item}-${index}`} className="rounded-xl border border-dune/20 bg-white/70 px-3 py-2 text-xs text-dune">
+                          {item}
+                        </p>
+                      )) : <p className="text-xs text-dune">No relationships identified.</p>}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="label">Join tables</p>
+                      <span className="rounded-full border border-dune/30 bg-white px-2 py-0.5 text-[11px] text-dune">{joinTables.length}</span>
+                    </div>
+                    <div className="mt-4 space-y-3">
+                      {joinTables.length ? joinTables.map((table, index) => (
+                        <div key={`${table.name}-${index}`} className="rounded-2xl border border-dune/20 bg-white/70 p-4">
+                          <p className="text-sm font-semibold text-ink">{table.name}</p>
+                          <p className="mt-1 text-xs text-dune">{table.left_entity} <span className="mx-1">&lt;-&gt;</span> {table.right_entity}</p>
+                          <p className="mt-1 text-xs text-dune">{table.purpose}</p>
+                        </div>
+                      )) : <p className="text-xs text-dune">No join tables required.</p>}
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <section className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+                <div className="glass rounded-3xl border-t border-dune/20 p-8 reveal">
+                  <div className="flex items-center gap-2">
+                    <p className="label">Business rules</p>
+                    <span className="rounded-full border border-dune/30 bg-white px-2 py-0.5 text-[11px] text-dune">{normalizedRules.length} rules</span>
+                  </div>
+                  <div className="mt-6 space-y-3">
+                    {normalizedRules.map((rule, index) => (
+                      <div key={`${rule.name}-${index}`} className="rounded-2xl border border-dune/20 bg-white/70 p-4">
+                        <p className="text-sm font-semibold text-ink">{rule.name}</p>
+                        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-dune">
+                          <span className="rounded-full border border-dune/20 bg-white px-2 py-0.5 uppercase tracking-[0.08em]">{rule.type}</span>
+                          {rule.trigger_condition ? <span className="rounded-full border border-dune/20 bg-white px-2 py-0.5">Trigger: {rule.trigger_condition}</span> : null}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="glass rounded-3xl border-t-2 border-dune/30 p-8 reveal reveal-delay-1">
+                  <div className="flex items-center gap-2">
+                    <p className="label">API surface</p>
+                    <span className="rounded-full border border-dune/30 bg-white px-2 py-0.5 text-[11px] text-dune">{endpoints.length} endpoints</span>
+                  </div>
+                  <div className="mt-6 space-y-3">
+                    {endpoints.map((api, index) => (
+                      <div key={`${api.method}-${api.path}-${index}`} className="rounded-2xl border border-dune/20 bg-white/70 p-4">
+                        <div className="flex items-center gap-3">
+                          <span className="code-pill">{api.method}</span>
+                          <span className="text-sm font-medium text-ink">{api.path}</span>
+                        </div>
+                        <p className="mt-2 text-xs text-dune">{api.desc}</p>
+                        {!!api.errors?.length ? <p className="mt-1 text-[11px] text-dune/90">Errors: {api.errors.join(" | ")}</p> : null}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </section>
+
+              <section className="grid gap-6 lg:grid-cols-2">
+                <div className="glass rounded-3xl border-t border-dune/20 p-8 reveal">
+                  <p className="label">Code skeleton</p>
+                  <div className="mt-4 space-y-3">
+                    <div className="rounded-2xl border border-dune/20 bg-white/70 p-4">
+                      <p className="text-xs uppercase tracking-[0.2em] text-dune">Models</p>
+                      <pre className="mt-2 whitespace-pre-wrap text-xs text-ink">{codeSkeleton?.models || "No models generated yet."}</pre>
+                    </div>
+                    <div className="rounded-2xl border border-dune/20 bg-white/70 p-4">
+                      <p className="text-xs uppercase tracking-[0.2em] text-dune">Routers</p>
+                      <pre className="mt-2 whitespace-pre-wrap text-xs text-ink">{codeSkeleton?.routers || "No routers generated yet."}</pre>
+                    </div>
+                    <div className="rounded-2xl border border-dune/20 bg-white/70 p-4">
+                      <p className="text-xs uppercase tracking-[0.2em] text-dune">Services</p>
+                      <pre className="mt-2 whitespace-pre-wrap text-xs text-ink">{codeSkeleton?.services || "No services generated yet."}</pre>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="glass rounded-3xl border-t-2 border-dune/30 p-8 reveal reveal-delay-1">
+                  <div className="flex items-center gap-2">
+                    <p className="label">Migration SQL</p>
+                    <span className="rounded-full border border-dune/30 bg-white px-2 py-0.5 text-[11px] text-dune">{migrationTableCount} tables</span>
+                  </div>
+                  <div className="mt-4 rounded-2xl border border-dune/20 bg-white/70 p-4">
+                    <pre className="whitespace-pre-wrap text-xs text-ink">{migrationSqlText || "No SQL migration generated yet."}</pre>
+                  </div>
+                </div>
+              </section>
+
+              <section className="glass rounded-3xl border-t border-dune/20 p-6 reveal">
+                <p className="label">Exports</p>
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <button className="rounded-full bg-ink px-4 py-2 text-sm text-bone" onClick={exportJson}>Export JSON</button>
+                  <button className="rounded-full border border-dune/40 px-4 py-2 text-sm" onClick={exportOpenApi}>Export OpenAPI YAML</button>
+                  <button className="rounded-full border border-dune/40 px-4 py-2 text-sm" onClick={exportSql}>Export SQL</button>
+                </div>
+              </section>
+
+              <section className="glass rounded-3xl border-t border-dune/20 p-8 reveal">
+                <p className="label">Recent pipeline runs</p>
+                <div className="mt-6 space-y-3">
+                  {(summary?.recent_pipeline_runs?.length
+                    ? summary.recent_pipeline_runs
+                    : [{ id: "N/A", status: "No runs yet", created_at: "" }]
+                  ).map((run) => (
+                    <div key={run.id} className="flex items-center justify-between rounded-2xl border border-dune/20 bg-white/70 px-4 py-3">
+                      <div>
+                        <p className="text-sm font-medium text-ink">{run.spec_title || run.id}</p>
+                        <p className="text-xs text-dune">
+                          {run.project_name ? `${run.project_name} • ` : ""}
+                          {run.created_at ? new Date(run.created_at).toLocaleString() : ""}
+                        </p>
+                      </div>
+                      <span className="text-xs uppercase tracking-[0.2em] text-dune">{run.status}</span>
+                    </div>
                   ))}
                 </div>
-              </div>
-            )) : <p className="text-xs text-dune">No join tables required.</p>}
-          </div>
+              </section>
+            </>
+          ) : null}
         </div>
-      </section>
 
-      <section className="mt-6 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-        <div className="glass rounded-3xl p-8 reveal">
-          <p className="label">Business rules</p>
-          <div className="mt-6 space-y-3">
-            {normalizedRules.map((rule, index) => (
-              <div key={`${rule.name}-${index}`} className="rounded-2xl border border-dune/20 bg-white/70 p-4">
-                <p className="text-sm font-semibold text-ink">{rule.name}</p>
-                <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-dune">
-                  <span className="rounded-full border border-dune/20 bg-white px-2 py-0.5 uppercase tracking-[0.08em]">
-                    {rule.type}
-                  </span>
-                  {rule.trigger_condition && (
-                    <span className="rounded-full border border-dune/20 bg-white px-2 py-0.5">
-                      Trigger: {rule.trigger_condition}
-                    </span>
-                  )}
-                </div>
+        <aside className="space-y-4">
+          <section className="glass rounded-3xl p-8 reveal reveal-delay-1">
+            <p className="label">Run a spec</p>
+            <div className="mt-4 rounded-2xl border border-dune/20 bg-white/70 p-4">
+              <p className="text-[11px] uppercase tracking-[0.2em] text-dune">STARTER TEMPLATES</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {starterTemplates.map((template) => (
+                  <button
+                    key={template.label}
+                    className="rounded-full border border-dune/30 px-3 py-1 text-xs text-ink"
+                    onClick={() => {
+                      setProjectName(template.projectName);
+                      setSpecTitle(template.specTitle);
+                      setSpecContent(template.specContent);
+                    }}
+                  >
+                    {template.label}
+                  </button>
+                ))}
               </div>
-            ))}
-          </div>
-        </div>
-        <div className="glass rounded-3xl p-8 reveal reveal-delay-1">
-          <p className="label">API surface</p>
-          <div className="mt-6 space-y-3">
-            {(endpoints.length ? endpoints : [
-              { method: "POST", path: "/projects", desc: "Create a project" },
-              { method: "POST", path: "/specs", desc: "Upload new PRD" },
-              { method: "GET", path: "/projects/{id}", desc: "Project summary" },
-              { method: "POST", path: "/pipelines/run", desc: "Run pipeline" }
-            ]).map((api, index) => (
-              <div key={`${api.method}-${api.path}-${index}`} className="rounded-2xl border border-dune/20 bg-white/70 p-4">
-                <div className="flex items-center gap-3">
-                  <span className="code-pill">{api.method}</span>
-                  <span className="text-sm font-medium text-ink">{api.path}</span>
-                </div>
-                <p className="mt-2 text-xs text-dune">{api.desc}</p>
-                {!!api.errors?.length && (
-                  <p className="mt-1 text-[11px] text-dune/90">Errors: {api.errors.join(" | ")}</p>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="mt-6 grid gap-6 lg:grid-cols-2">
-        <div className="glass rounded-3xl p-8 reveal">
-          <p className="label">Code skeleton</p>
-          <div className="mt-4 space-y-3">
-            <div className="rounded-2xl border border-dune/20 bg-white/70 p-4">
-              <p className="text-xs uppercase tracking-[0.2em] text-dune">Models</p>
-              <pre className="mt-2 whitespace-pre-wrap text-xs text-ink">{codeSkeleton?.models || "No models generated yet."}</pre>
             </div>
-            <div className="rounded-2xl border border-dune/20 bg-white/70 p-4">
-              <p className="text-xs uppercase tracking-[0.2em] text-dune">Routers</p>
-              <pre className="mt-2 whitespace-pre-wrap text-xs text-ink">{codeSkeleton?.routers || "No routers generated yet."}</pre>
-            </div>
-            <div className="rounded-2xl border border-dune/20 bg-white/70 p-4">
-              <p className="text-xs uppercase tracking-[0.2em] text-dune">Services</p>
-              <pre className="mt-2 whitespace-pre-wrap text-xs text-ink">{codeSkeleton?.services || "No services generated yet."}</pre>
-            </div>
-          </div>
-        </div>
-
-        <div className="glass rounded-3xl p-8 reveal reveal-delay-1">
-          <p className="label">Migration SQL</p>
-          <div className="mt-4 rounded-2xl border border-dune/20 bg-white/70 p-4">
-            <pre className="whitespace-pre-wrap text-xs text-ink">{migrationSqlText || "No SQL migration generated yet."}</pre>
-          </div>
-        </div>
-      </section>
-
-      <section className="mt-6">
-        <div className="glass rounded-3xl p-6 reveal">
-          <p className="label">Exports</p>
-          <div className="mt-4 flex flex-wrap gap-3">
-            <button className="rounded-full bg-ink px-4 py-2 text-sm text-bone" onClick={exportJson}>
-              Export JSON
-            </button>
-            <button className="rounded-full border border-dune/40 px-4 py-2 text-sm" onClick={exportOpenApi}>
-              Export OpenAPI YAML
-            </button>
-            <button className="rounded-full border border-dune/40 px-4 py-2 text-sm" onClick={exportSql}>
-              Export SQL
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <section className="mt-6">
-        <div className="glass rounded-3xl p-8 reveal">
-          <p className="label">Recent pipeline runs</p>
-          <div className="mt-6 space-y-3">
-            {(summary?.recent_pipeline_runs?.length
-              ? summary.recent_pipeline_runs
-              : [{ id: "N/A", status: "No runs yet", created_at: "" }]
-            ).map((run) => (
-              <div
-                key={run.id}
-                className="flex items-center justify-between rounded-2xl border border-dune/20 bg-white/70 px-4 py-3"
-              >
-                <div>
-                  <p className="text-sm font-medium text-ink">{run.spec_title || run.id}</p>
-                  <p className="text-xs text-dune">
-                    {run.project_name ? `${run.project_name} • ` : ""}
-                    {run.created_at ? new Date(run.created_at).toLocaleString() : ""}
-                  </p>
-                </div>
-                <span className="text-xs uppercase tracking-[0.2em] text-dune">{run.status}</span>
+            <div className="mt-6 space-y-4 text-sm text-dune">
+              <div>
+                <label className="text-xs uppercase tracking-[0.2em] text-dune">Project name</label>
+                <input className="mt-2 w-full rounded-2xl border border-dune/20 bg-white/70 px-4 py-3 text-sm" value={projectName} onChange={(event) => setProjectName(event.target.value)} placeholder="Atlas Marketplace" />
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
+              <div>
+                <label className="text-xs uppercase tracking-[0.2em] text-dune">Spec title</label>
+                <input className="mt-2 w-full rounded-2xl border border-dune/20 bg-white/70 px-4 py-3 text-sm" value={specTitle} onChange={(event) => setSpecTitle(event.target.value)} placeholder="Marketplace spec" />
+              </div>
+              <div>
+                <label className="text-xs uppercase tracking-[0.2em] text-dune">Spec content</label>
+                <textarea className="mt-2 h-32 w-full rounded-2xl border border-dune/20 bg-white/70 px-4 py-3 text-sm" value={specContent} onChange={(event) => setSpecContent(event.target.value)} placeholder="Users can list products, buyers place orders, and admins verify listings." />
+              </div>
+              <button className="w-full rounded-full bg-ink px-4 py-3 text-sm text-bone" onClick={runPipeline}>Run pipeline</button>
+              {isStarterLimitReached ? (
+                <p className="rounded-xl border border-amber-300/70 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                  You&apos;ve used {plan?.runs_used_this_month || 3}/{plan?.monthly_run_limit || 3} runs this month. Upgrade to Studio for unlimited runs. <Link href="/pricing" className="underline">View pricing</Link>
+                </p>
+              ) : null}
+            </div>
+          </section>
+
+          <section className="glass rounded-2xl p-4">
+            <p className="label">Stats</p>
+            <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs text-dune">
+              <div className="rounded-xl border border-dune/20 bg-white/70 px-2 py-2"><p className="text-base font-semibold text-ink">{summary?.projects_count ?? 0}</p><p>Projects</p></div>
+              <div className="rounded-xl border border-dune/20 bg-white/70 px-2 py-2"><p className="text-base font-semibold text-ink">{summary?.specs_count ?? 0}</p><p>Specs</p></div>
+              <div className="rounded-xl border border-dune/20 bg-white/70 px-2 py-2"><p className="text-base font-semibold text-ink">{summary?.pipeline_runs_count ?? 0}</p><p>Runs</p></div>
+            </div>
+          </section>
+
+          <section className="glass rounded-2xl p-4">
+            <p className="label">Signed-in profile</p>
+            <div className="mt-3 flex items-center gap-3">
+              {avatarDisplayUrl ? (
+                <img src={avatarDisplayUrl} alt="Profile" className="h-10 w-10 rounded-full object-cover" />
+              ) : (
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-ink text-xs text-bone">
+                  {profileEmail.slice(0, 1).toUpperCase()}
+                </div>
+              )}
+              <div>
+                <p className="text-sm font-semibold text-ink">{profile?.full_name || profileEmail}</p>
+                <p className="text-xs text-dune">@{profile?.username || "set-username"}</p>
+              </div>
+            </div>
+            <div className="mt-3">
+              <label className="inline-block cursor-pointer rounded-full border border-dune/40 px-3 py-1.5 text-xs">
+                {avatarUploading ? "Uploading..." : "Upload photo"}
+                <input type="file" accept="image/*" className="hidden" onChange={uploadAvatar} />
+              </label>
+            </div>
+          </section>
+
+          <section className="glass rounded-2xl p-4">
+            <p className="label">Active projects</p>
+            <div className="mt-3 space-y-2">
+              {(summary?.recent_projects?.length
+                ? summary.recent_projects
+                : [{ id: "draft-project", name: projectName || "No recent project", created_at: "" }])
+                .slice(0, 6)
+                .map((project, index) => (
+                  <div key={`${project.id}-${project.name}-${index}`} className="rounded-xl border border-dune/20 bg-white/70 px-3 py-2">
+                    <p className="truncate text-xs font-medium text-ink">{project.name}</p>
+                    <p className="text-[11px] text-dune">{project.created_at ? new Date(project.created_at).toLocaleDateString() : "-"}</p>
+                  </div>
+                ))}
+            </div>
+          </section>
+        </aside>
+      </div>
     </AppShell>
   );
 }
