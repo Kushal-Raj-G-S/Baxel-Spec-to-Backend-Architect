@@ -1,11 +1,13 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "../../lib/supabase-browser";
 import { resolveAvatarUrl } from "../../lib/avatar";
+import logoImage from "../logo.png";
 
 const appLinks = [
   { label: "Dashboard", href: "/app/dashboard" },
@@ -16,6 +18,7 @@ const appLinks = [
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const cachedPlanLabel = typeof window !== "undefined" ? window.localStorage.getItem("baxel:plan-label") : null;
   const rootRef = useRef<HTMLDivElement | null>(null);
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
   const profileDropdownRef = useRef<HTMLDivElement | null>(null);
@@ -34,6 +37,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [isDomReady, setIsDomReady] = useState(false);
   const [isAuthChecked, setIsAuthChecked] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [planLabel, setPlanLabel] = useState<string | null>(cachedPlanLabel);
+  const [isPlanLoading, setIsPlanLoading] = useState(!cachedPlanLabel);
 
   useEffect(() => {
     const root = rootRef.current;
@@ -160,6 +165,38 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }, [apiBaseUrl]);
 
   useEffect(() => {
+    const loadPlan = async () => {
+      if (!cachedPlanLabel) {
+        setIsPlanLoading(true);
+      }
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData.session?.access_token;
+        if (!token) return;
+
+        const response = await fetch(`${apiBaseUrl}/profile/plan`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        if (!response.ok) return;
+        const plan = await response.json();
+        const nextPlanLabel = plan.plan_name || "Starter";
+        setPlanLabel(nextPlanLabel);
+        if (typeof window !== "undefined") {
+          window.localStorage.setItem("baxel:plan-label", nextPlanLabel);
+        }
+      } catch {
+        // Keep cached plan badge when plan endpoint is unavailable.
+      } finally {
+        setIsPlanLoading(false);
+      }
+    };
+
+    loadPlan();
+  }, [apiBaseUrl]);
+
+  useEffect(() => {
     const checkAuth = async () => {
       const { data } = await supabase.auth.getSession();
       const session = data.session;
@@ -221,9 +258,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <header className="relative z-40 border-b border-dune/15 bg-white/70">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-6">
           <Link href="/" className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-ink text-bone">B</div>
+            <Image src={logoImage} alt="Baxel logo" className="h-9 w-9 rounded-2xl object-cover" priority />
             <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-dune">Baxel</p>
+              <div className="flex items-center gap-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-dune">Baxel</p>
+                <span className="rounded-full border border-dune/30 bg-white px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-ink">
+                  {planLabel || (isPlanLoading ? "Loading" : "Plan")}
+                </span>
+              </div>
               <p className="text-sm text-ink">{displayName}</p>
             </div>
           </Link>
