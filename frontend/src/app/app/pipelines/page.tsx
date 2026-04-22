@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import AppShell from "../../components/app-shell";
 import { supabase } from "../../../lib/supabase-browser";
@@ -86,6 +87,12 @@ export default function PipelinesPage() {
                   <div className="flex items-center gap-4">
                     <span className="text-xs uppercase tracking-[0.2em] text-dune">{run.status}</span>
                     <span className="text-xs text-dune">{formatDuration(run.duration_seconds)}</span>
+                    <Link
+                      href={`/app/dashboard?run=${encodeURIComponent(run.id)}&project=${encodeURIComponent(run.project_name || "Saved project")}&spec=${encodeURIComponent(run.spec_title || "Untitled spec")}`}
+                      className="rounded-full border border-dune/30 px-3 py-1 text-xs text-ink"
+                    >
+                      Open output
+                    </Link>
                   </div>
                 </div>
               </div>

@@ -41,9 +41,14 @@ def get_my_plan(user=Depends(get_current_user)):
         today = datetime.utcnow().date().isoformat()
         return PlanSummary(
             plan_name="Starter",
+            plan_code="starter",
             status="active",
-            monthly_run_limit=3,
+            monthly_run_limit=9,
             runs_used_this_month=0,
+            monthly_project_limit=3,
+            projects_used_this_month=0,
+            runs_per_project_limit=3,
+            idea_char_limit=1000,
             billing_period=f"{today} to {today}",
             manage_url=None,
         )

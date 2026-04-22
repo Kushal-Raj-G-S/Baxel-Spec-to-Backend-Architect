@@ -228,16 +228,37 @@ def get_public_metrics() -> PublicMetrics:
 
 def get_plan_summary(user_id: str | None = None) -> PlanSummary:
     now = datetime.utcnow()
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    projects_used_this_month = len([project for project in _projects.values() if project.created_at >= month_start])
     return PlanSummary(
         plan_name="Starter",
+        plan_code="starter",
         status="active",
-        monthly_run_limit=3,
+        monthly_run_limit=9,
         runs_used_this_month=len(_pipelines),
+        monthly_project_limit=3,
+        projects_used_this_month=projects_used_this_month,
+        runs_per_project_limit=3,
+        idea_char_limit=1000,
         billing_period=f"{now.date().isoformat()} to {now.date().isoformat()}",
         period_start=now,
         period_end=now,
         manage_url=None,
     )
+
+
+def enforce_project_pipeline_limit(project_id: str | None, user_id: str | None = None) -> None:
+    if not project_id:
+        return
+
+    plan = get_plan_summary(user_id=user_id)
+    per_project_limit = max(1, int(plan.runs_per_project_limit or 1))
+    project_runs = len([run_id for run_id, mapped_project_id in _pipeline_project_map.items() if mapped_project_id == project_id])
+    if project_runs >= per_project_limit:
+        raise RuntimeError(
+            f"Per-project pipeline limit reached for {plan.plan_name}: "
+            f"project runs {project_runs}/{per_project_limit}. Upgrade required."
+        )
 
 
 def create_share_token(run_id: str, user_id: str | None = None) -> ShareTokenResponse | None:

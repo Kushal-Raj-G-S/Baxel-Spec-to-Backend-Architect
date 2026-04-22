@@ -28,7 +28,19 @@ export default function AuthCallbackPage() {
         return;
       }
 
-      router.replace("/app/dashboard");
+      const userId = data.session.user?.id;
+      if (!userId) {
+        setErrorMessage("No authenticated user found after callback.");
+        return;
+      }
+
+      const { data: preference } = await supabase
+        .from("user_preferences")
+        .select("user_id")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      router.replace(preference ? "/app/dashboard" : "/onboarding");
     };
 
     run();

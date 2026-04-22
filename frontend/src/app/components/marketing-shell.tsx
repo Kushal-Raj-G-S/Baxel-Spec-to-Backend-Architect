@@ -1,147 +1,113 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import AnimatedBackground from "./animated-background";
+import { motion, useScroll, useTransform } from "framer-motion";
 
 const navLinks = [
-  { label: "Features", href: "/features" },
-  { label: "Pricing", href: "/pricing" },
-  { label: "About", href: "/about" },
-  { label: "Blog", href: "/blog" }
+  { label: "Overview", href: "/" },
+  { label: "Technology", href: "/features" },
+  { label: "Pipeline", href: "/pipeline" },
+  { label: "Specs", href: "/docs" },
+  { label: "Pricing", href: "/pricing" }
 ];
 
 export default function MarketingShell({ children }: { children: React.ReactNode }) {
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
-    let frame = 0;
-    const onScroll = () => {
-      if (frame) return;
-      frame = window.requestAnimationFrame(() => {
-        document.documentElement.style.setProperty("--scroll-y", `${window.scrollY}`);
-        frame = 0;
-      });
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 50);
     };
-
-    const root = rootRef.current;
-    let active: HTMLElement | null = null;
-
-    const onMove = (event: MouseEvent) => {
-      if (!root) return;
-      const rect = root.getBoundingClientRect();
-      const x = ((event.clientX - rect.left) / rect.width) * 100;
-      const y = ((event.clientY - rect.top) / rect.height) * 100;
-      root.style.setProperty("--mx", `${x}%`);
-      root.style.setProperty("--my", `${y}%`);
-
-      const target = (event.target as HTMLElement | null)?.closest(".magnetic") as HTMLElement | null;
-      if (active && active !== target) {
-        active.style.setProperty("--tx", "0px");
-        active.style.setProperty("--ty", "0px");
-      }
-      active = target;
-      if (!target) return;
-      const targetRect = target.getBoundingClientRect();
-      const localX = ((event.clientX - targetRect.left) / targetRect.width) * 100;
-      const localY = ((event.clientY - targetRect.top) / targetRect.height) * 100;
-      target.style.setProperty("--mx", `${localX}%`);
-      target.style.setProperty("--my", `${localY}%`);
-      target.style.setProperty("--tx", `${(localX - 50) / 6}px`);
-      target.style.setProperty("--ty", `${(localY - 50) / 6}px`);
-    };
-
-    const onClick = (event: MouseEvent) => {
-      const target = (event.target as HTMLElement | null)?.closest(".ripple") as HTMLElement | null;
-      if (!target) return;
-      const rect = target.getBoundingClientRect();
-      const ink = document.createElement("span");
-      ink.className = "ripple-ink";
-      ink.style.left = `${event.clientX - rect.left - 60}px`;
-      ink.style.top = `${event.clientY - rect.top - 60}px`;
-      target.appendChild(ink);
-      window.setTimeout(() => ink.remove(), 700);
-    };
-
-    window.addEventListener("scroll", onScroll);
-    root?.addEventListener("mousemove", onMove);
-    root?.addEventListener("click", onClick);
-
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      root?.removeEventListener("mousemove", onMove);
-      root?.removeEventListener("click", onClick);
-      if (frame) {
-        window.cancelAnimationFrame(frame);
-      }
-    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   return (
-    <div ref={rootRef} className="baxel-shell cursor-reactive">
-      <div className="orb-wrap">
-        <div className="orb sun" />
-        <div className="orb mint" />
-        <div className="orb sand" />
-        <div className="sparkle" style={{ top: "18%", left: "12%" }} />
-        <div className="sparkle" style={{ top: "64%", right: "14%" }} />
-      </div>
+    <div ref={rootRef} className="min-h-screen text-[#0b0d12] selection:bg-[#C2D68C]/30 relative">
+      <AnimatedBackground />
       <header
-        className="pointer-events-auto"
-        style={{
-          position: "fixed",
-          top: "12px",
-          left: "50%",
-          transform: "translateX(-50%)",
-          width: "min(94vw, 72rem)",
-          zIndex: 9999
-        }}
+        className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[95%] max-w-4xl rounded-full backdrop-blur-2xl border transition-all duration-500 ${
+          isScrolled 
+            ? "bg-[#1F261D]/70 border-white/20 py-2.5 shadow-2xl" 
+            : "bg-[#1F261D]/60 border-white/10 py-2.5 shadow-lg"
+        }`}
       >
-        <div className="flex w-full items-center justify-between gap-4 rounded-full border border-white/45 bg-white/25 px-5 py-3 shadow-[0_16px_40px_rgba(15,15,15,0.18)] backdrop-blur-2xl transition">
-          <Link href="/" className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-ink text-bone">B</div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-dune">Baxel</p>
-              <p className="text-sm text-ink">Spec-to-Backend</p>
-            </div>
+        <div className="mx-auto flex items-center justify-between px-6">
+          <Link href="/" className="flex items-center gap-3 group">
+            <Image src="/logo.png" alt="Baxel Logo" width={24} height={24} className="rounded-md object-cover" />
+            <p className="text-sm font-semibold tracking-tight text-white/90 group-hover:text-white transition-colors">
+              Baxel
+            </p>
           </Link>
-          <nav className="hidden items-center gap-6 text-sm text-dune lg:flex">
+          
+          <nav className="hidden items-center gap-8 lg:flex">
             {navLinks.map((link) => (
-              <Link key={link.href} href={link.href} className="nav-link hover:text-ink transition">
+              <Link 
+                key={link.href} 
+                href={link.href} 
+                className="text-[13px] font-medium text-white/60 hover:text-white transition-colors"
+              >
                 {link.label}
               </Link>
             ))}
           </nav>
-          <div className="flex items-center gap-3">
+          
+          <div className="flex items-center gap-4">
             <Link
               href="/auth"
-              className="rounded-full border border-white/40 px-4 py-2 text-sm text-ink/80 transition hover:text-ink hover:border-white/60 ripple"
+              className="text-[13px] font-medium text-white/70 hover:text-white transition-colors"
             >
               Sign in
             </Link>
-            <Link href="/auth" className="rounded-full bg-ink px-4 py-2 text-sm text-bone btn-glow ripple">
-              Start free
+            <Link 
+              href="/auth" 
+              className="rounded-full bg-[#C2D68C] px-5 py-2 text-[13px] font-medium text-[#1F261D] shadow-[0_0_15px_rgba(194,214,140,0.3)] transition-transform hover:scale-105"
+            >
+              Experience Baxel
             </Link>
           </div>
         </div>
       </header>
-      <div className="h-24" />
-      {children}
-      <footer className="mx-auto mt-16 w-full max-w-6xl px-6 pb-10">
-        <div className="glass flex flex-col gap-6 rounded-3xl p-8 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="label">Baxel / Spec-to-Backend</p>
-            <p className="mt-3 text-sm text-dune">
-              Turn unclear product intent into production-ready backend architecture.
+      
+      {/* Remove top padding because we want the Canvas to be edge-to-edge */}
+      <div className="flex flex-col relative z-10">
+        {children}
+      </div>
+
+      <footer className="w-full bg-[#1F261D] text-white border-t border-black/10 mt-16 relative z-10 rounded-t-[3rem] px-8 py-16">
+        <div className="mx-auto max-w-6xl flex flex-col md:flex-row justify-between gap-12">
+          <div className="max-w-sm">
+            <div className="flex items-center gap-3 mb-4">
+              <Image src="/logo.png" alt="Baxel Logo" width={28} height={28} className="rounded-md object-cover" />
+              <p className="text-lg font-semibold tracking-tight">Baxel</p>
+            </div>
+            <p className="text-sm text-white/60 leading-relaxed">
+              Turn messy product specs into production-ready backend architecture in minutes. Stop writing boilerplate, start building features.
             </p>
+            <p className="mt-8 text-xs text-white/40">© {new Date().getFullYear()} Baxel Inc. All rights reserved.</p>
           </div>
-          <div className="flex flex-wrap gap-3 text-sm text-dune">
-            <Link href="/security" className="transition hover:text-ink">Security</Link>
-            <Link href="/roadmap" className="transition hover:text-ink">Roadmap</Link>
-            <Link href="/status" className="transition hover:text-ink">Status</Link>
-            <Link href="/docs" className="transition hover:text-ink">Docs</Link>
+          
+          <div className="flex gap-16">
+            <div className="flex flex-col gap-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-[#C2D68C]">Product</p>
+              <Link href="/pricing" className="text-sm text-white/60 hover:text-white transition-colors">Pricing</Link>
+              <Link href="/auth" className="text-sm text-white/60 hover:text-white transition-colors">Sign In</Link>
+              <Link href="/auth" className="text-sm text-white/60 hover:text-white transition-colors">Start Free</Link>
+            </div>
+            <div className="flex flex-col gap-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-[#C2D68C]">Resources</p>
+              <Link href="/docs" className="text-sm text-white/60 hover:text-white transition-colors">Documentation</Link>
+              <Link href="/blog" className="text-sm text-white/60 hover:text-white transition-colors">Blog</Link>
+              <Link href="/status" className="text-sm text-white/60 hover:text-white transition-colors">System Status</Link>
+            </div>
           </div>
         </div>
       </footer>
     </div>
   );
 }
+

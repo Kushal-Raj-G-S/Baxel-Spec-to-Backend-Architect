@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.core.config import settings
+from app.core.plan_guard import assert_plan_allows_access
 from app.core.security import get_current_user
 from app.schemas import SharedRunResponse, ShareTokenResponse
 from app.storage.repo import create_share_token, get_shared_run_by_token
@@ -11,6 +12,7 @@ router = APIRouter(prefix="/runs", tags=["runs"])
 @router.get("/{run_id}/share", response_model=ShareTokenResponse)
 def get_share_token_for_run(run_id: str, user=Depends(get_current_user)):
     user_id = user.get("sub") if settings.auth_enabled else None
+    assert_plan_allows_access(user_id)
     shared = create_share_token(run_id=run_id, user_id=user_id)
     if not shared:
         raise HTTPException(status_code=404, detail="Run not found")

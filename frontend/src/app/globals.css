@@ -14,8 +14,20 @@
 body {
   margin: 0;
   font-family: var(--font-display), sans-serif;
-  background: #f2f0ea;
+  background-color: #FAE0BD;
   color: #0b0d12;
+}
+
+@keyframes blob {
+  0% { transform: translate(0px, 0px) scale(1); }
+  33% { transform: translate(40px, -60px) scale(1.1); }
+  66% { transform: translate(-30px, 30px) scale(0.9); }
+  100% { transform: translate(0px, 0px) scale(1); }
+}
+
+.animate-blob {
+  animation: blob 15s infinite alternate ease-in-out;
+  will-change: transform;
 }
 
 @keyframes fadeUp {
@@ -73,17 +85,17 @@ body {
 .baxel-shell {
   position: relative;
   min-height: 100vh;
-  background-image: linear-gradient(120deg, rgba(247, 231, 206, 0.8), rgba(242, 240, 234, 0.8) 45%, rgba(201, 242, 234, 0.8)),
-    radial-gradient(circle at 1px 1px, rgba(15, 15, 15, 0.12) 1px, transparent 0);
+  background-image: linear-gradient(120deg, rgba(247, 231, 206, 0.5), rgba(235, 233, 224, 0.8) 45%, rgba(201, 242, 234, 0.5)),
+    radial-gradient(circle at 1px 1px, rgba(15, 15, 15, 0.05) 1px, transparent 0);
   background-size: auto, 18px 18px;
   overflow: visible;
 }
 
 .glass {
-  background: rgba(255, 255, 255, 0.78);
+  background: rgba(255, 255, 255, 0.6);
   border: 1px solid rgba(15, 15, 15, 0.08);
-  box-shadow: 0 24px 60px rgba(15, 15, 15, 0.08);
-  backdrop-filter: blur(10px);
+  box-shadow: 0 24px 60px rgba(15, 15, 15, 0.04);
+  backdrop-filter: blur(16px);
 }
 
 .label {
@@ -96,8 +108,9 @@ body {
 
 .code-pill {
   font-family: var(--font-mono), monospace;
-  background: #0b0d12;
-  color: #f2f0ea;
+  background: rgba(11, 13, 18, 0.05);
+  color: #0b0d12;
+  border: 1px solid rgba(11, 13, 18, 0.1);
   padding: 0.35rem 0.6rem;
   border-radius: 999px;
   font-size: 0.75rem;

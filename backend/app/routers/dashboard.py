@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 
 from app.core.config import settings
+from app.core.plan_guard import assert_plan_allows_access
 from app.core.security import get_current_user
 from app.schemas import DashboardSummary, PublicMetrics
 from app.storage.repo import get_dashboard_summary, get_public_metrics
@@ -11,6 +12,7 @@ router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 @router.get("/summary", response_model=DashboardSummary)
 def dashboard_summary(user=Depends(get_current_user)):
     user_id = user.get("sub") if settings.auth_enabled else None
+    assert_plan_allows_access(user_id)
     return get_dashboard_summary(user_id=user_id)
 
 

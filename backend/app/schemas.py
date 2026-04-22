@@ -100,9 +100,14 @@ class PublicMetrics(BaseModel):
 
 class PlanSummary(BaseModel):
     plan_name: str = "Starter"
+    plan_code: str = "starter"
     status: str = "active"
-    monthly_run_limit: int = 3
+    monthly_run_limit: int = 9
     runs_used_this_month: int = 0
+    monthly_project_limit: int = 3
+    projects_used_this_month: int = 0
+    runs_per_project_limit: int = 3
+    idea_char_limit: int = 1000
     billing_period: str | None = None
     period_start: datetime | None = None
     period_end: datetime | None = None

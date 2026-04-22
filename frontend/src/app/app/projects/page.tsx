@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import AppShell from "../../components/app-shell";
 import { supabase } from "../../../lib/supabase-browser";
@@ -212,6 +213,12 @@ export default function ProjectsPage() {
                           >
                             View output
                           </button>
+                          <Link
+                            className="rounded-full border border-dune/30 px-3 py-1 text-xs text-ink"
+                            href={`/app/dashboard?run=${encodeURIComponent(run.id)}&project=${encodeURIComponent(item.project.name)}&spec=${encodeURIComponent(run.spec_title || "Untitled spec")}`}
+                          >
+                            Open in dashboard
+                          </Link>
                           <button
                             className="rounded-full border border-dune/30 px-3 py-1 text-xs text-ink"
                             onClick={() => createShareLink(run.id)}

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import AppShell from "../../components/app-shell";
 import { supabase } from "../../../lib/supabase-browser";
@@ -182,7 +182,7 @@ const fallbackEntities = [
   }
 ];
 
-export default function DashboardPage() {
+function DashboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const apiBaseUrl = useMemo(
@@ -1172,5 +1172,13 @@ export default function DashboardPage() {
         </aside>
       </div>
     </AppShell>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={<AppShell><div className="p-10 text-dune">Loading workspace...</div></AppShell>}>
+      <DashboardContent />
+    </Suspense>
   );
 }

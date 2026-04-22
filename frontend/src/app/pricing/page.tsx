@@ -1,48 +1,31 @@
 import MarketingShell from "../components/marketing-shell";
-
-const tiers = [
-  {
-    name: "Starter",
-    price: "$0",
-    desc: "Best for personal projects and student teams.",
-    perks: ["1 workspace", "3 specs / month", "Basic pipeline", "Community support"],
-    checkoutUrl: process.env.NEXT_PUBLIC_BILLING_STARTER_URL || "/auth"
-  },
-  {
-    name: "Studio",
-    price: "$24",
-    desc: "For indie teams shipping production backends.",
-    perks: ["5 workspaces", "Unlimited specs", "Version diffs", "Export templates"],
-    checkoutUrl: process.env.NEXT_PUBLIC_BILLING_STUDIO_URL || "mailto:billing@baxel.app?subject=Studio%20Plan"
-  },
-  {
-    name: "Scale",
-    price: "$120",
-    desc: "For product orgs managing multiple teams.",
-    perks: ["SAML SSO", "Audit trails", "Custom models", "Priority support"],
-    checkoutUrl: process.env.NEXT_PUBLIC_BILLING_SCALE_URL || "mailto:billing@baxel.app?subject=Scale%20Plan"
-  }
-];
+import { pricingPlans } from "../../lib/pricing-plans";
 
 export default function PricingPage() {
   return (
     <MarketingShell>
-      <main className="mx-auto w-full max-w-6xl px-6 pb-16">
-        <section className="glass rounded-3xl p-10 reveal magnetic">
-          <p className="label">Pricing</p>
-          <h1 className="mt-4 text-3xl font-semibold text-ink md:text-4xl">
+      <main className="mx-auto w-full max-w-6xl px-6 pb-16 relative z-10">
+        <section className="rounded-[2.5rem] bg-[#1F261D] border border-black/5 shadow-2xl p-10 reveal magnetic">
+          <p className="text-xs uppercase tracking-[0.2em] text-[#C2D68C]">Pricing</p>
+          <h1 className="mt-4 text-3xl font-semibold text-white md:text-4xl">
             Pick a plan that matches your build cadence.
           </h1>
-          <div className="mt-8 grid gap-6 md:grid-cols-3">
-            {tiers.map((tier) => (
-              <div key={tier.name} className="rounded-3xl border border-dune/20 bg-white/70 p-6 reveal reveal-delay-1 magnetic">
-                <p className="text-xs uppercase tracking-[0.2em] text-dune">{tier.name}</p>
-                <p className="mt-4 text-3xl font-semibold text-ink">{tier.price}</p>
-                <p className="mt-2 text-sm text-dune">{tier.desc}</p>
-                <ul className="mt-4 space-y-2 text-sm text-ink">
+          <p className="mt-3 text-sm text-white/60">
+            A project is your product workspace. A pipeline run is one generation attempt inside a project, so a single project can have many runs.
+          </p>
+          <div className="mt-8 grid gap-6 md:grid-cols-2 xl:grid-cols-5">
+            {pricingPlans.map((tier) => (
+              <div key={tier.code} className={`rounded-3xl border bg-white/5 p-6 reveal reveal-delay-1 magnetic ${tier.featured ? "border-[#C2D68C]/50 shadow-[0_0_30px_rgba(194,214,140,0.15)]" : "border-white/5"}`}>
+                <p className="text-xs uppercase tracking-[0.2em] text-white/50">{tier.name}</p>
+                <p className="mt-4 text-3xl font-semibold text-white">
+                  {tier.priceLabel}
+                  {tier.inrPriceLabel ? <span className="ml-2 text-base font-medium text-white/40">/ {tier.inrPriceLabel}</span> : null}
+                </p>
+                <p className="mt-2 text-sm text-white/60">{tier.desc}</p>
+                <ul className="mt-4 space-y-2 text-sm text-white/80">
                   {tier.perks.map((perk) => (
                     <li key={perk} className="flex items-center gap-2">
-                      <span className="h-1.5 w-1.5 rounded-full bg-ember" />
+                      <span className="h-1.5 w-1.5 rounded-full bg-[#C2D68C]" />
                       {perk}
                     </li>
                   ))}
@@ -51,7 +34,7 @@ export default function PricingPage() {
                   href={tier.checkoutUrl}
                   target={tier.checkoutUrl.startsWith("http") ? "_blank" : "_self"}
                   rel="noreferrer"
-                  className="mt-6 block w-full rounded-full bg-ink px-4 py-2 text-center text-sm text-bone ripple"
+                  className={`mt-6 block w-full rounded-full px-4 py-2 text-center text-sm font-semibold transition hover:scale-105 ${tier.featured ? "bg-[#C2D68C] text-[#1F261D] shadow-[0_0_15px_rgba(194,214,140,0.3)]" : "border border-white/20 text-white hover:bg-white/10"}`}
                 >
                   Choose {tier.name}
                 </a>

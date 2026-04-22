@@ -7,6 +7,8 @@ import { supabase } from "../../lib/supabase-browser";
 
 type AuthMode = "signin" | "signup" | "magic";
 
+import MarketingShell from "../components/marketing-shell";
+
 export default function AuthPage() {
   const router = useRouter();
   const [mode, setMode] = useState<AuthMode>("signin");
@@ -15,7 +17,6 @@ export default function AuthPage() {
   const [workspaceName, setWorkspaceName] = useState("Baxel Studio");
   const [statusMessage, setStatusMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const rootRef = useRef<HTMLDivElement | null>(null);
 
   const redirectTo = typeof window !== "undefined" ? `${window.location.origin}/auth/callback` : undefined;
 
@@ -81,74 +82,18 @@ export default function AuthPage() {
     }
   };
 
-  useEffect(() => {
-    const root = rootRef.current;
-    if (!root) return;
-    let active: HTMLElement | null = null;
-    const onMove = (event: MouseEvent) => {
-      const rect = root.getBoundingClientRect();
-      const x = ((event.clientX - rect.left) / rect.width) * 100;
-      const y = ((event.clientY - rect.top) / rect.height) * 100;
-      root.style.setProperty("--mx", `${x}%`);
-      root.style.setProperty("--my", `${y}%`);
-
-      const target = (event.target as HTMLElement | null)?.closest(".magnetic") as HTMLElement | null;
-      if (active && active !== target) {
-        active.style.setProperty("--tx", "0px");
-        active.style.setProperty("--ty", "0px");
-      }
-      active = target;
-      if (!target) return;
-      const targetRect = target.getBoundingClientRect();
-      const localX = ((event.clientX - targetRect.left) / targetRect.width) * 100;
-      const localY = ((event.clientY - targetRect.top) / targetRect.height) * 100;
-      target.style.setProperty("--mx", `${localX}%`);
-      target.style.setProperty("--my", `${localY}%`);
-      target.style.setProperty("--tx", `${(localX - 50) / 6}px`);
-      target.style.setProperty("--ty", `${(localY - 50) / 6}px`);
-    };
-    const onClick = (event: MouseEvent) => {
-      const target = (event.target as HTMLElement | null)?.closest(".ripple") as HTMLElement | null;
-      if (!target) return;
-      const rect = target.getBoundingClientRect();
-      const ink = document.createElement("span");
-      ink.className = "ripple-ink";
-      ink.style.left = `${event.clientX - rect.left - 60}px`;
-      ink.style.top = `${event.clientY - rect.top - 60}px`;
-      target.appendChild(ink);
-      window.setTimeout(() => ink.remove(), 700);
-    };
-    root.addEventListener("mousemove", onMove);
-    root.addEventListener("click", onClick);
-    return () => {
-      root.removeEventListener("mousemove", onMove);
-      root.removeEventListener("click", onClick);
-    };
-  }, []);
-
   return (
-    <div ref={rootRef} className="baxel-shell min-h-screen cursor-reactive">
-      <div className="mx-auto w-full max-w-5xl px-6 pt-8">
-        <div className="flex items-center">
-          <Link
-            href="/"
-            className="inline-flex rounded-full border border-dune/40 bg-white/80 px-4 py-2 text-sm text-ink transition hover:bg-white"
-          >
-            Back to home
-          </Link>
-        </div>
-      </div>
-
-      <main className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-6 pb-14 pt-4 lg:flex-row">
-        <section className="glass flex-1 rounded-3xl p-10 reveal magnetic">
-          <p className="label">Welcome</p>
-          <h1 className="mt-4 text-3xl font-semibold text-ink">
+    <MarketingShell>
+      <main className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-6 pb-14 pt-24 lg:flex-row relative z-10">
+        <section className="flex-1 rounded-[2.5rem] bg-[#1F261D] border border-black/5 shadow-2xl p-10 reveal magnetic">
+          <p className="text-xs uppercase tracking-[0.2em] text-[#C2D68C]">Welcome</p>
+          <h1 className="mt-4 text-3xl font-semibold text-white">
             {mode === "signup" ? "Create your Baxel account." : "Sign in to continue designing."}
           </h1>
-          <p className="mt-3 text-sm text-dune">
+          <p className="mt-3 text-sm text-white/60">
             Use your product doc, generate a backend blueprint, and push a code skeleton to your repo.
           </p>
-          <div className="mt-6 grid grid-cols-3 rounded-full border border-dune/20 bg-white/70 p-1 text-[0.65rem] uppercase tracking-[0.2em] magnetic">
+          <div className="mt-6 grid grid-cols-3 rounded-full border border-white/10 bg-white/5 p-1 text-[0.65rem] uppercase tracking-[0.2em] magnetic">
             {[
               { key: "signin", label: "Sign in" },
               { key: "signup", label: "Sign up" },
@@ -156,8 +101,8 @@ export default function AuthPage() {
             ].map((tab) => (
               <button
                 key={tab.key}
-                className={`rounded-full px-3 py-2 ripple ${
-                  mode === tab.key ? "bg-ink text-bone" : "text-dune"
+                className={`rounded-full px-3 py-2 transition-colors ${
+                  mode === tab.key ? "bg-[#C2D68C] text-[#1F261D] font-bold shadow-sm" : "text-white/60 hover:text-white"
                 }`}
                 onClick={() => setMode(tab.key as AuthMode)}
                 type="button"
@@ -168,30 +113,30 @@ export default function AuthPage() {
           </div>
           <div className="mt-6 flex flex-col gap-3">
             <button
-              className="rounded-full bg-ink px-4 py-2 text-sm text-bone ripple"
+              className="rounded-full bg-white/10 hover:bg-white/20 transition-colors border border-white/5 px-4 py-3 text-sm text-white font-medium"
               onClick={() => signInWithProvider("google")}
               type="button"
             >
               Continue with Google
             </button>
             <button
-              className="rounded-full border border-dune/40 px-4 py-2 text-sm ripple"
+              className="rounded-full bg-white/10 hover:bg-white/20 transition-colors border border-white/5 px-4 py-3 text-sm text-white font-medium"
               onClick={() => signInWithProvider("github")}
               type="button"
             >
               Continue with Github
             </button>
           </div>
-          <div className="my-6 flex items-center gap-4 text-xs text-dune">
-            <span className="h-px w-full bg-dune/20" />
+          <div className="my-6 flex items-center gap-4 text-xs text-white/40">
+            <span className="h-px w-full bg-white/10" />
             Or
-            <span className="h-px w-full bg-dune/20" />
+            <span className="h-px w-full bg-white/10" />
           </div>
           <form className="space-y-4" onSubmit={handleAuthSubmit}>
             <div>
-              <label className="text-xs uppercase tracking-[0.2em] text-dune">Email</label>
+              <label className="text-xs uppercase tracking-[0.2em] text-white/50">Email</label>
               <input
-                className="mt-2 w-full rounded-2xl border border-dune/20 bg-white/70 px-4 py-3 text-sm"
+                className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-[#C2D68C]"
                 placeholder="you@company.com"
                 type="email"
                 value={email}
@@ -200,9 +145,9 @@ export default function AuthPage() {
             </div>
             {mode !== "magic" && (
               <div>
-                <label className="text-xs uppercase tracking-[0.2em] text-dune">Password</label>
+                <label className="text-xs uppercase tracking-[0.2em] text-white/50">Password</label>
                 <input
-                  className="mt-2 w-full rounded-2xl border border-dune/20 bg-white/70 px-4 py-3 text-sm"
+                  className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-[#C2D68C]"
                   type="password"
                   placeholder="••••••••"
                   value={password}
@@ -212,9 +157,9 @@ export default function AuthPage() {
             )}
             {mode === "signup" && (
               <div>
-                <label className="text-xs uppercase tracking-[0.2em] text-dune">Workspace name</label>
+                <label className="text-xs uppercase tracking-[0.2em] text-white/50">Workspace name</label>
                 <input
-                  className="mt-2 w-full rounded-2xl border border-dune/20 bg-white/70 px-4 py-3 text-sm"
+                  className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-[#C2D68C]"
                   placeholder="Baxel Studio"
                   value={workspaceName}
                   onChange={(event) => setWorkspaceName(event.target.value)}
@@ -222,37 +167,38 @@ export default function AuthPage() {
               </div>
             )}
             {mode === "signin" && (
-              <div className="flex items-center justify-between text-xs text-dune">
-                <label className="flex items-center gap-2">
-                  <input type="checkbox" className="h-4 w-4 rounded border-dune/40" />
+              <div className="flex items-center justify-between text-xs text-white/50">
+                <label className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors">
+                  <input type="checkbox" className="h-4 w-4 rounded border-white/20 bg-white/5 accent-[#C2D68C]" />
                   Remember me
                 </label>
-                <span>Forgot password?</span>
+                <span className="cursor-pointer hover:text-white transition-colors">Forgot password?</span>
               </div>
             )}
-            <button className="w-full rounded-full bg-ink px-4 py-3 text-sm text-bone ripple" disabled={isSubmitting}>
+            <button className="w-full rounded-full bg-[#C2D68C] px-4 py-3 text-sm font-bold text-[#1F261D] shadow-[0_0_15px_rgba(194,214,140,0.3)] transition hover:scale-[1.02]" disabled={isSubmitting}>
               {mode === "signup" ? "Create account" : mode === "magic" ? "Send magic link" : "Sign in"}
             </button>
-            {statusMessage && <p className="text-xs text-dune">{statusMessage}</p>}
+            {statusMessage && <p className="text-xs text-[#C2D68C]">{statusMessage}</p>}
           </form>
         </section>
-        <aside className="glass flex-1 rounded-3xl p-10 reveal reveal-delay-1 magnetic">
-          <p className="label">Preview</p>
-          <h2 className="mt-4 text-2xl font-semibold text-ink">After auth, you land on the dashboard.</h2>
-          <p className="mt-3 text-sm text-dune">
+        
+        <aside className="flex-1 rounded-[2.5rem] bg-[#1F261D] border border-black/5 shadow-2xl p-10 reveal reveal-delay-1 magnetic">
+          <p className="text-xs uppercase tracking-[0.2em] text-[#C2D68C]">Preview</p>
+          <h2 className="mt-4 text-2xl font-semibold text-white">After auth, you land on the dashboard.</h2>
+          <p className="mt-3 text-sm text-white/60">
             Track pipeline runs, update ERDs, and export code bundles from one workspace.
           </p>
           <Link
             href="/app/dashboard"
-            className="mt-6 inline-flex rounded-full border border-dune/40 px-4 py-2 text-sm ripple"
+            className="mt-6 inline-flex rounded-full border border-white/20 bg-white/5 hover:bg-white/10 px-5 py-2.5 text-sm font-medium text-white transition-colors"
           >
             Go to dashboard
           </Link>
-          <div className="mt-8 rounded-2xl border border-dune/20 bg-white/70 p-5 magnetic">
-            <p className="text-xs uppercase tracking-[0.2em] text-dune">New here?</p>
-            <p className="mt-3 text-sm text-ink">Create a workspace and invite teammates in minutes.</p>
+          <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-6 magnetic">
+            <p className="text-xs uppercase tracking-[0.2em] text-[#C2D68C]">New here?</p>
+            <p className="mt-3 text-sm text-white">Create a workspace and invite teammates in minutes.</p>
             <button
-              className="mt-4 rounded-full bg-ink px-4 py-2 text-sm text-bone ripple"
+              className="mt-4 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-[#1F261D] transition hover:scale-[1.02]"
               onClick={() => setMode("signup")}
               type="button"
             >
@@ -261,6 +207,6 @@ export default function AuthPage() {
           </div>
         </aside>
       </main>
-    </div>
+    </MarketingShell>
   );
 }

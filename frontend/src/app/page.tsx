@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import MarketingShell from "./components/marketing-shell";
+import { pricingPlans } from "../lib/pricing-plans";
+import ScrollytellingSphere from "./components/scrollytelling-sphere";
 
 const highlights = [
   {
@@ -40,6 +42,14 @@ export default function Home() {
   ]);
   const carouselRef = useRef<HTMLDivElement | null>(null);
   const [metricIndex, setMetricIndex] = useState(0);
+  const [pipelineStep, setPipelineStep] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setPipelineStep((prev) => (prev + 1) % 7);
+    }, 1500);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -88,37 +98,29 @@ export default function Home() {
 
   return (
     <MarketingShell>
-      <main className="mx-auto flex w-full max-w-6xl flex-col gap-16 px-6 pb-16">
-        <section className="grid gap-10 md:grid-cols-[1.1fr_0.9fr]">
-          <div className="space-y-6 reveal">
-            <p className="label">Baxel / Spec-to-Backend</p>
-            <h1 className="text-4xl font-semibold leading-tight md:text-6xl">
-              Turn messy PRDs into production-ready backend blueprints.
-            </h1>
-            <p className="max-w-xl text-base text-dune md:text-lg">
-              Baxel translates product intent into structured data models, APIs, and rules you can ship.
-            </p>
-            <div className="flex flex-wrap gap-3">
-              <Link href="/auth" className="rounded-full bg-ink px-5 py-2 text-sm text-bone btn-glow ripple">
-                Start with a spec
-              </Link>
-              <Link href="/features" className="rounded-full border border-dune/40 px-5 py-2 text-sm hover-rise ripple">
-                Explore features
-              </Link>
+      <ScrollytellingSphere />
+      
+      <main className="mx-auto flex w-full max-w-6xl flex-col gap-16 px-6 pb-16 pt-24 relative z-10">
+        
+        {/* We can keep the live pipeline box as a visual element, but the main hero is now the scrollytelling */}
+        <section className="relative overflow-hidden rounded-[2.5rem] p-8 md:p-12 border border-black/5 bg-[#1F261D] shadow-2xl reveal hover-rise magnetic">
+          <div className="grid gap-10 md:grid-cols-[1.1fr_0.9fr]">
+            <div className="space-y-6">
+              <p className="text-xs uppercase tracking-[0.2em] text-[#C2D68C]">Live pipeline</p>
+              <h2 className="text-3xl font-semibold leading-tight text-white md:text-4xl">
+                See the extraction in real-time.
+              </h2>
+              <p className="max-w-xl text-base text-white/60 md:text-lg">
+                As you type, Baxel translates your product intent into structured data models, APIs, and rules.
+              </p>
+              <div className="flex flex-wrap gap-3 text-xs uppercase tracking-[0.2em] text-white/50">
+                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">No-code-ready</span>
+                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">Traceable</span>
+                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">Supabase-friendly</span>
+              </div>
             </div>
-            <div className="glass inline-flex items-center gap-3 rounded-full px-5 py-2 text-sm hover-rise magnetic">
-              <span className="code-pill">Groq</span>
-              <span>Pipeline ready</span>
-            </div>
-            <div className="flex flex-wrap gap-3 text-xs uppercase tracking-[0.25em] text-dune">
-              <span className="rounded-full border border-dune/30 px-3 py-1">No-code-ready</span>
-              <span className="rounded-full border border-dune/30 px-3 py-1">Traceable</span>
-              <span className="rounded-full border border-dune/30 px-3 py-1">Supabase-friendly</span>
-            </div>
-          </div>
-          <div className="glass relative overflow-hidden rounded-3xl p-8 reveal reveal-delay-1 hover-rise magnetic">
-            <p className="label">Live pipeline</p>
-            <div className="mt-6 space-y-3">
+            
+            <div className="space-y-3">
               {[
                 "Spec cleanup",
                 "Entities & relations",
@@ -126,96 +128,140 @@ export default function Home() {
                 "API surface",
                 "Business rules",
                 "Code skeleton"
-              ].map((item, index) => (
-                <div
-                  key={item}
-                  className="flex items-center justify-between rounded-2xl border border-dune/20 bg-white/70 px-4 py-3"
-                >
-                  <span className="text-sm font-medium text-ink">{item}</span>
-                  <span className="text-xs uppercase tracking-[0.2em] text-dune">
-                    {index < 2 ? "done" : "queued"}
-                  </span>
+              ].map((item, index) => {
+                let status = "QUEUED";
+                let statusColor = "text-white/30";
+                
+                if (index < pipelineStep) {
+                  status = "DONE";
+                  statusColor = "text-[#C2D68C]"; // Pistachio
+                } else if (index === pipelineStep) {
+                  status = "PROCESSING";
+                  statusColor = "text-[#869E58] animate-pulse"; // Moss green blinking
+                }
+                
+                return (
+                  <div
+                    key={item}
+                    className={`flex items-center justify-between rounded-2xl border transition-all duration-500 px-4 py-3 ${
+                      index === pipelineStep 
+                        ? 'border-[#869E58]/40 bg-[#869E58]/10' 
+                        : 'border-white/5 bg-white/5'
+                    }`}
+                  >
+                    <span className="text-sm font-medium text-white/90">{item}</span>
+                    <span className={`text-[10px] sm:text-xs uppercase tracking-[0.2em] ${statusColor} transition-colors duration-500`}>
+                      {status}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          <div className="pointer-events-none absolute -right-10 -top-10 h-64 w-64 rounded-full bg-[#869E58]/20 blur-[100px] floaty" />
+          <div className="pointer-events-none absolute bottom-6 right-6 h-32 w-32 rounded-full bg-[#C2D68C]/20 blur-[80px]" />
+        </section>
+
+        {/* Replaced Live Metrics with Ecosystem */}
+        <section className="relative overflow-hidden rounded-[2.5rem] p-8 md:p-12 border border-black/5 bg-[#1F261D] shadow-2xl reveal hover-rise magnetic">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
+            <div className="max-w-md">
+              <p className="text-xs uppercase tracking-[0.2em] text-[#C2D68C]">Ecosystem</p>
+              <h2 className="mt-3 text-3xl font-semibold text-white">Works with your modern stack.</h2>
+              <p className="mt-4 text-base text-white/60 leading-relaxed">
+                Baxel doesn't reinvent the wheel. It exports standardized, clean code using the frameworks you already know and trust.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-4 max-w-sm md:justify-end">
+              {['Next.js', 'React', 'FastAPI', 'Node.js', 'PostgreSQL', 'Supabase', 'Tailwind', 'TypeScript'].map(tech => (
+                <div key={tech} className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white/80 transition-colors hover:bg-white/10 hover:text-white">
+                  {tech}
                 </div>
               ))}
             </div>
-            <div className="mt-6 rounded-2xl bg-ink p-4 text-bone">
-              <p className="text-xs uppercase tracking-[0.2em]">Latest insight</p>
-              <p className="mt-3 text-sm">Missing SLA targets detected. Suggest adding NFRs.</p>
-            </div>
-            <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-ember/30 blur-3xl floaty" />
-            <div className="pointer-events-none absolute bottom-6 right-6 h-24 w-24 rounded-full bg-mint/30 blur-2xl" />
-          </div>
-        </section>
-
-        <section className="glass rounded-3xl p-8 reveal hover-rise glass-carousel magnetic">
-          <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="label">Live metrics</p>
-              <h2 className="mt-3 text-2xl font-semibold text-ink">A glass carousel of momentum.</h2>
-              <p className="mt-2 text-sm text-dune">Animated proof points as your spec flows through Baxel.</p>
-            </div>
-            <div className="rounded-full border border-dune/30 px-4 py-2 text-xs uppercase tracking-[0.2em] text-dune">
-              Auto-cycling
-            </div>
-          </div>
-          <div ref={carouselRef} className="mt-6 glass-carousel-track">
-            {metrics.map((metric) => (
-              <div key={metric.label} className="metric-card magnetic">
-                <p className="text-xs uppercase tracking-[0.2em] text-dune">{metric.label}</p>
-                <p className="mt-3 text-3xl font-semibold text-ink">{metric.value}</p>
-                <p className="mt-2 text-xs text-dune">Updated just now</p>
-              </div>
-            ))}
           </div>
         </section>
 
         <section className="grid gap-6 md:grid-cols-3">
           {highlights.map((item) => (
-            <div key={item.title} className="glass rounded-3xl p-6 reveal reveal-delay-1 hover-rise magnetic">
-              <p className="label">{item.title}</p>
-              <p className="mt-4 text-sm text-dune">{item.desc}</p>
+            <div key={item.title} className="relative overflow-hidden rounded-[2.5rem] border border-black/5 bg-[#1F261D] shadow-2xl p-8 reveal reveal-delay-1 hover-rise magnetic">
+              <div className="h-10 w-10 rounded-full bg-white/5 flex items-center justify-center mb-6 border border-white/10">
+                <div className="h-3 w-3 rounded-full bg-[#C2D68C]" />
+              </div>
+              <p className="text-lg font-semibold tracking-wide text-white">{item.title}</p>
+              <p className="mt-4 text-sm text-white/60 leading-relaxed">{item.desc}</p>
             </div>
           ))}
         </section>
 
         <section className="grid gap-8 lg:grid-cols-[1.3fr_0.7fr]">
-          <div className="glass rounded-3xl p-8 reveal hover-rise magnetic">
-            <p className="label">How it works</p>
-            <div className="mt-6 grid gap-4 md:grid-cols-2">
+          <div className="relative overflow-hidden rounded-[2.5rem] border border-black/5 bg-[#1F261D] shadow-2xl p-8 md:p-12 reveal hover-rise magnetic">
+            <p className="text-xs uppercase tracking-[0.2em] text-[#C2D68C]">How it works</p>
+            <div className="mt-8 grid gap-4 md:grid-cols-2">
               {steps.map((step, index) => (
-                <div key={step} className="rounded-2xl border border-dune/20 bg-white/70 p-4">
-                  <p className="text-xs uppercase tracking-[0.2em] text-dune">Step {index + 1}</p>
-                  <p className="mt-3 text-sm font-medium text-ink">{step}</p>
+                <div key={step} className="rounded-2xl border border-white/5 bg-white/5 p-5">
+                  <p className="text-xs uppercase tracking-[0.2em] text-white/40">Step {index + 1}</p>
+                  <p className="mt-3 text-sm font-medium text-white/90">{step}</p>
                 </div>
               ))}
             </div>
           </div>
-          <div className="glass rounded-3xl p-8 reveal reveal-delay-2 hover-rise magnetic">
-            <p className="label">Outputs</p>
-            <div className="mt-6 space-y-4 text-sm text-dune">
-              <p>Interactive ERD with validation hints.</p>
-              <p>Endpoint catalog with error shapes.</p>
-              <p>Version diffs with migration notes.</p>
-              <p>Code bundles for FastAPI or Node.</p>
+          <div className="relative overflow-hidden rounded-[2.5rem] border border-black/5 bg-[#1F261D] shadow-2xl p-8 md:p-12 reveal reveal-delay-2 hover-rise magnetic">
+            <p className="text-xs uppercase tracking-[0.2em] text-[#C2D68C]">Outputs</p>
+            <div className="mt-8 space-y-6 text-sm text-white/60">
+              <p className="flex items-center gap-4"><span className="h-2 w-2 rounded-full bg-[#C2D68C] shadow-[0_0_10px_#C2D68C]" />Interactive ERD with validation hints.</p>
+              <p className="flex items-center gap-4"><span className="h-2 w-2 rounded-full bg-[#C2D68C] shadow-[0_0_10px_#C2D68C]" />Endpoint catalog with error shapes.</p>
+              <p className="flex items-center gap-4"><span className="h-2 w-2 rounded-full bg-[#C2D68C] shadow-[0_0_10px_#C2D68C]" />Version diffs with migration notes.</p>
+              <p className="flex items-center gap-4"><span className="h-2 w-2 rounded-full bg-[#C2D68C] shadow-[0_0_10px_#C2D68C]" />Code bundles for FastAPI or Node.</p>
             </div>
           </div>
         </section>
 
-        <section className="glass rounded-3xl p-8 reveal hover-rise magnetic">
-          <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+        <section className="relative overflow-hidden rounded-[2.5rem] border border-black/5 bg-[#1F261D] shadow-2xl p-8 md:p-12 reveal hover-rise magnetic">
+          <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between relative z-10">
             <div>
-              <p className="label">Ready to prototype?</p>
-              <h2 className="mt-3 text-2xl font-semibold text-ink">Build a backend architecture in minutes.</h2>
-              <p className="mt-2 text-sm text-dune">Drop a spec and walk away with a blueprint and code starter.</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-[#C2D68C]">Ready to prototype?</p>
+              <h2 className="mt-3 text-3xl font-semibold text-white">Build a backend architecture in minutes.</h2>
+              <p className="mt-2 text-base text-white/60">Drop a spec and walk away with a blueprint and code starter.</p>
             </div>
-            <div className="flex flex-wrap gap-3">
-              <Link href="/auth" className="rounded-full bg-ink px-5 py-2 text-sm text-bone btn-glow ripple">
+            <div className="flex flex-wrap gap-4">
+              <Link href="/auth" className="rounded-full bg-[#C2D68C] px-8 py-3 text-sm font-semibold text-[#1F261D] shadow-[0_0_20px_rgba(194,214,140,0.4)] transition hover:scale-105">
                 Start free
               </Link>
-              <Link href="/pricing" className="rounded-full border border-dune/40 px-5 py-2 text-sm hover-rise ripple">
+              <Link href="/pricing" className="rounded-full border border-white/20 bg-white/5 backdrop-blur-md px-8 py-3 text-sm font-semibold text-white transition hover:bg-white/10">
                 View pricing
               </Link>
             </div>
+          </div>
+          <div className="pointer-events-none absolute -left-20 -bottom-20 h-64 w-64 rounded-full bg-[#869E58]/20 blur-[100px]" />
+        </section>
+
+        <section className="relative overflow-hidden rounded-[2.5rem] border border-black/5 bg-[#1F261D] shadow-2xl p-8 md:p-12 reveal hover-rise magnetic">
+          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-[#C2D68C]">Pricing plans</p>
+              <h2 className="mt-3 text-3xl font-semibold text-white">Choose a lane and scale when needed.</h2>
+              <p className="mt-2 text-base text-white/60">Limits are enforced monthly by projects and pipeline runs.</p>
+            </div>
+            <Link href="/pricing" className="rounded-full border border-white/20 px-6 py-2.5 text-sm font-medium text-white/80 hover:text-white hover:bg-white/5 transition">
+              Compare details
+            </Link>
+          </div>
+
+          <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+            {pricingPlans.map((plan) => (
+              <div key={plan.code} className={`rounded-3xl border bg-white/5 p-6 ${plan.featured ? "border-[#C2D68C]/50 shadow-[0_0_30px_rgba(194,214,140,0.1)]" : "border-white/5"}`}>
+                <p className="text-xs uppercase tracking-[0.2em] text-white/50">{plan.name}</p>
+                <p className="mt-3 text-3xl font-semibold text-white">
+                  {plan.priceLabel}
+                  {plan.inrPriceLabel ? <span className="ml-2 text-sm font-medium text-white/40">/ {plan.inrPriceLabel}</span> : null}
+                </p>
+                <div className="mt-6 space-y-3">
+                  <p className="text-sm text-white/70 flex items-center gap-2"><span className="text-[#C2D68C]">✓</span> {plan.perks[0]}</p>
+                  <p className="text-sm text-white/70 flex items-center gap-2"><span className="text-[#C2D68C]">✓</span> {plan.perks[1]}</p>
+                </div>
+              </div>
+            ))}
           </div>
         </section>
       </main>

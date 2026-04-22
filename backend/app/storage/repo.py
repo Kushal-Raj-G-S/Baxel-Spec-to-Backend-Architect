@@ -18,6 +18,10 @@ from app.schemas import (
 )
 
 
+class PlanLimitExceededError(RuntimeError):
+    pass
+
+
 def _use_supabase() -> bool:
     return bool(settings.supabase_url and settings.supabase_service_role_key)
 
@@ -122,6 +126,46 @@ def get_plan_summary(user_id: str | None = None) -> PlanSummary:
     if _use_supabase():
         return supabase.get_plan_summary(user_id=user_id)
     return memory.get_plan_summary(user_id=user_id)
+
+
+def enforce_plan_limits(user_id: str | None = None) -> None:
+    if not user_id:
+        return
+
+    plan = get_plan_summary(user_id=user_id)
+    status = (plan.status or "active").lower()
+    project_limit_hit = plan.monthly_project_limit >= 0 and plan.projects_used_this_month >= plan.monthly_project_limit
+    run_limit_hit = plan.monthly_run_limit >= 0 and plan.runs_used_this_month >= plan.monthly_run_limit
+    if status != "active" or project_limit_hit or run_limit_hit:
+        raise PlanLimitExceededError(
+            f"Plan limit reached for {plan.plan_name}: "
+            f"projects {plan.projects_used_this_month}/{plan.monthly_project_limit}, "
+            f"runs {plan.runs_used_this_month}/{plan.monthly_run_limit}. Upgrade required."
+        )
+
+
+def enforce_project_creation_limit(user_id: str | None = None) -> None:
+    if not user_id:
+        return
+
+    plan = get_plan_summary(user_id=user_id)
+    status = (plan.status or "active").lower()
+    project_limit_hit = plan.monthly_project_limit >= 0 and plan.projects_used_this_month >= plan.monthly_project_limit
+    if status != "active" or project_limit_hit:
+        raise PlanLimitExceededError(
+            f"Project limit reached for {plan.plan_name}: "
+            f"projects {plan.projects_used_this_month}/{plan.monthly_project_limit}. "
+            "Upgrade required."
+        )
+
+
+def enforce_project_pipeline_limit(project_id: str | None, user_id: str | None = None) -> None:
+    if not user_id or not project_id:
+        return
+
+    if _use_supabase():
+        return supabase.enforce_project_pipeline_limit(project_id=project_id, user_id=user_id)
+    return memory.enforce_project_pipeline_limit(project_id=project_id, user_id=user_id)
 
 
 def create_share_token(run_id: str, user_id: str | None = None) -> ShareTokenResponse | None:
