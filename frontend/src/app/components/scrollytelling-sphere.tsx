@@ -5,7 +5,7 @@ import React, { useEffect, useRef, useState } from "react";
 const FRAME_COUNT = 240;
 const FRAME_CACHE_RADIUS = 10;
 const FRAME_CACHE_EVICT_RADIUS = 24;
-const SMOOTHING_FACTOR = 0.16;
+const SMOOTHING_FACTOR = 0.10;
 const SMOOTHING_EPSILON = 0.0005;
 
 export default function ScrollytellingSphere() {
