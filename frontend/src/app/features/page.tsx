@@ -30,20 +30,20 @@ const features = [
 export default function FeaturesPage() {
   return (
     <MarketingShell>
-      <main className="mx-auto w-full max-w-6xl px-6 pb-16">
-        <section className="glass rounded-3xl p-10 reveal magnetic">
-          <p className="label">Features</p>
-          <h1 className="mt-4 text-3xl font-semibold text-ink md:text-4xl">
+      <main className="mx-auto w-full max-w-6xl px-6 pb-16 pt-32 relative z-10">
+        <section className="rounded-[2.5rem] bg-[#1F261D] border border-black/5 shadow-2xl p-10 reveal magnetic">
+          <p className="text-xs uppercase tracking-[0.2em] text-[#C2D68C]">Technology</p>
+          <h1 className="mt-4 text-3xl font-semibold text-white md:text-4xl">
             Everything you need to go from spec to backend in one flow.
           </h1>
-          <p className="mt-4 max-w-2xl text-sm text-dune">
+          <p className="mt-4 max-w-2xl text-sm text-white/60">
             Baxel compresses weeks of architecture thinking into a guided, auditable workflow.
           </p>
           <div className="mt-8 grid gap-4 md:grid-cols-2">
             {features.map((item) => (
-              <div key={item.title} className="rounded-2xl border border-dune/20 bg-white/70 p-5 reveal reveal-delay-1 magnetic">
-                <p className="text-sm font-semibold text-ink">{item.title}</p>
-                <p className="mt-2 text-sm text-dune">{item.desc}</p>
+              <div key={item.title} className="rounded-2xl border border-white/5 bg-white/5 p-6 reveal reveal-delay-1 magnetic transition-colors hover:bg-white/10">
+                <p className="text-sm font-semibold text-white">{item.title}</p>
+                <p className="mt-2 text-sm text-white/60">{item.desc}</p>
               </div>
             ))}
           </div>

@@ -4,7 +4,7 @@ import { pricingPlans } from "../../lib/pricing-plans";
 export default function PricingPage() {
   return (
     <MarketingShell>
-      <main className="mx-auto w-full max-w-6xl px-6 pb-16 relative z-10">
+      <main className="mx-auto w-full max-w-6xl px-6 pb-16 pt-32 relative z-10">
         <section className="rounded-[2.5rem] bg-[#1F261D] border border-black/5 shadow-2xl p-10 reveal magnetic">
           <p className="text-xs uppercase tracking-[0.2em] text-[#C2D68C]">Pricing</p>
           <h1 className="mt-4 text-3xl font-semibold text-white md:text-4xl">
@@ -24,9 +24,9 @@ export default function PricingPage() {
                 <p className="mt-2 text-sm text-white/60">{tier.desc}</p>
                 <ul className="mt-4 space-y-2 text-sm text-white/80">
                   {tier.perks.map((perk) => (
-                    <li key={perk} className="flex items-center gap-2">
-                      <span className="h-1.5 w-1.5 rounded-full bg-[#C2D68C]" />
-                      {perk}
+                    <li key={perk} className="flex items-start gap-2">
+                      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#C2D68C] mt-1.5" />
+                      <span>{perk}</span>
                     </li>
                   ))}
                 </ul>

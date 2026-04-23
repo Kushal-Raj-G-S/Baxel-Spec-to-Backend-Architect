@@ -1,104 +1,234 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { useScroll, useMotionValueEvent } from "framer-motion";
 
 const FRAME_COUNT = 240;
+const FRAME_CACHE_RADIUS = 10;
+const FRAME_CACHE_EVICT_RADIUS = 24;
+const SMOOTHING_FACTOR = 0.16;
+const SMOOTHING_EPSILON = 0.0005;
 
 export default function ScrollytellingSphere() {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [images, setImages] = useState<HTMLImageElement[]>([]);
-  const [imagesLoaded, setImagesLoaded] = useState(0);
+  const frameCacheRef = useRef<Map<number, HTMLImageElement>>(new Map());
+  const loadingFramesRef = useRef<Set<number>>(new Set());
+  const targetFrameRef = useRef(0);
   const [progress, setProgress] = useState(0);
+  const [initialFrameReady, setInitialFrameReady] = useState(false);
+  const [bufferedFrameCount, setBufferedFrameCount] = useState(0);
+  const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0, pixelRatio: 1 });
   const [mounted, setMounted] = useState(false);
+  const lastDrawnFrameRef = useRef<number>(-1);
+  const targetProgressRef = useRef(0);
+  const smoothedProgressRef = useRef(0);
+  const renderRafRef = useRef<number | null>(null);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Preload images
-  useEffect(() => {
-    const loadedImages: HTMLImageElement[] = [];
-    let loadedCount = 0;
+  const loadFrame = (index: number) => {
+    if (index < 0 || index >= FRAME_COUNT) return;
 
-    for (let i = 1; i <= FRAME_COUNT; i++) {
-      const img = new Image();
-      const paddedIndex = i.toString().padStart(3, "0");
-      img.src = `/3d-frames/ezgif-frame-${paddedIndex}.jpg`;
-      img.onload = () => {
-        loadedCount++;
-        setImagesLoaded(loadedCount);
-      };
-      loadedImages.push(img);
+    const cache = frameCacheRef.current;
+    const loading = loadingFramesRef.current;
+    if (cache.has(index) || loading.has(index)) return;
+
+    loading.add(index);
+    const img = new Image();
+    img.decoding = "async";
+    img.fetchPriority = "low";
+    const paddedIndex = (index + 1).toString().padStart(3, "0");
+    img.src = `/3d-frames/ezgif-frame-${paddedIndex}.jpg`;
+
+    img.onload = () => {
+      loading.delete(index);
+      cache.set(index, img);
+      setBufferedFrameCount(cache.size);
+
+      if (index === 0) {
+        setInitialFrameReady(true);
+      }
+    };
+
+    img.onerror = () => {
+      loading.delete(index);
+    };
+  };
+
+  const warmAndEvictFrames = (centerIndex: number) => {
+    for (let i = centerIndex - FRAME_CACHE_RADIUS; i <= centerIndex + FRAME_CACHE_RADIUS; i++) {
+      loadFrame(i);
     }
-    setImages(loadedImages);
+
+    const cache = frameCacheRef.current;
+    for (const [index, img] of cache.entries()) {
+      if (Math.abs(index - centerIndex) > FRAME_CACHE_EVICT_RADIUS) {
+        cache.delete(index);
+        img.src = "";
+      }
+    }
+
+    setBufferedFrameCount(cache.size);
+  };
+
+  useEffect(() => {
+    warmAndEvictFrames(0);
   }, []);
 
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ["start start", "end end"],
-  });
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
 
-  // Track progress strictly in state to avoid SSR overlap bugs
-  useMotionValueEvent(scrollYProgress, "change", (latest) => {
-    setProgress(latest);
-  });
+    let ticking = false;
+
+    const updateProgress = () => {
+      const rect = container.getBoundingClientRect();
+      const scrollRange = Math.max(1, rect.height - window.innerHeight);
+      const current = -rect.top;
+      const next = Math.min(1, Math.max(0, current / scrollRange));
+      setProgress(next);
+      ticking = false;
+    };
+
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(updateProgress);
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    updateProgress();
+
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || images.length < FRAME_COUNT) return;
+    if (!canvas) return;
 
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    const updateCanvasSize = () => {
+      const parent = canvas.parentElement;
+      if (!parent) return;
 
-    let animationFrameId: number;
+      const cssWidth = parent.clientWidth;
+      const cssHeight = parent.clientHeight;
+      // Prioritize smoothness: keep render resolution at CSS pixel size.
+      const pixelRatio = 1;
 
-    const render = () => {
-      // Use the raw scrollYProgress to drive the frame index smoothly
-      const currentProgress = scrollYProgress.get();
-      const index = Math.min(FRAME_COUNT - 1, Math.max(0, Math.round(currentProgress * (FRAME_COUNT - 1))));
-      const currentImage = images[index];
+      canvas.style.width = `${cssWidth}px`;
+      canvas.style.height = `${cssHeight}px`;
+      canvas.width = Math.max(1, Math.floor(cssWidth * pixelRatio));
+      canvas.height = Math.max(1, Math.floor(cssHeight * pixelRatio));
 
-      if (currentImage && currentImage.complete && canvas.width > 0) {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      setCanvasSize({ width: cssWidth, height: cssHeight, pixelRatio });
+    };
 
-        const hRatio = canvas.width / currentImage.width;
-        const vRatio = canvas.height / currentImage.height;
+    updateCanvasSize();
+    window.addEventListener("resize", updateCanvasSize);
+
+    return () => {
+      window.removeEventListener("resize", updateCanvasSize);
+    };
+  }, []);
+
+  useEffect(() => {
+    const centerIndex = Math.min(FRAME_COUNT - 1, Math.max(0, Math.round(progress * (FRAME_COUNT - 1))));
+    targetFrameRef.current = centerIndex;
+    warmAndEvictFrames(centerIndex);
+  }, [progress]);
+
+  useEffect(() => {
+    targetProgressRef.current = progress;
+
+    const canRender = initialFrameReady && canvasSize.width > 0 && canvasSize.height > 0;
+    if (!canRender || renderRafRef.current !== null) return;
+
+    const drawFrame = () => {
+      const canvas = canvasRef.current;
+      if (!canvas) {
+        renderRafRef.current = null;
+        return;
+      }
+
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        renderRafRef.current = null;
+        return;
+      }
+
+      const target = targetProgressRef.current;
+      const current = smoothedProgressRef.current;
+      const delta = target - current;
+      const nextProgress = Math.abs(delta) < SMOOTHING_EPSILON ? target : current + delta * SMOOTHING_FACTOR;
+      smoothedProgressRef.current = nextProgress;
+
+      const index = Math.min(FRAME_COUNT - 1, Math.max(0, Math.round(nextProgress * (FRAME_COUNT - 1))));
+      let currentImage = frameCacheRef.current.get(index);
+
+      if (!currentImage) {
+        for (let distance = 1; distance <= FRAME_CACHE_RADIUS; distance++) {
+          currentImage = frameCacheRef.current.get(index - distance) || frameCacheRef.current.get(index + distance);
+          if (currentImage) break;
+        }
+      }
+
+      if (currentImage && currentImage.complete && lastDrawnFrameRef.current !== index) {
+        const { width: cssWidth, height: cssHeight, pixelRatio } = canvasSize;
+
+        ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
+        ctx.clearRect(0, 0, cssWidth, cssHeight);
+
+        const hRatio = cssWidth / currentImage.width;
+        const vRatio = cssHeight / currentImage.height;
         const ratio = Math.max(hRatio, vRatio);
 
-        const centerShift_x = (canvas.width - currentImage.width * ratio) / 2;
-        // Added +60 to push the 3D frames a bit lower within the canvas
-        const centerShift_y = (canvas.height - currentImage.height * ratio) / 2 + 25;
+        const centerShiftX = (cssWidth - currentImage.width * ratio) / 2;
+        const centerShiftY = (cssHeight - currentImage.height * ratio) / 2 + 25;
 
         ctx.drawImage(
           currentImage,
-          0, 0, currentImage.width, currentImage.height,
-          centerShift_x, centerShift_y, currentImage.width * ratio, currentImage.height * ratio
+          0,
+          0,
+          currentImage.width,
+          currentImage.height,
+          centerShiftX,
+          centerShiftY,
+          currentImage.width * ratio,
+          currentImage.height * ratio
         );
+
+        lastDrawnFrameRef.current = index;
       }
 
-      animationFrameId = requestAnimationFrame(render);
-    };
+      const shouldContinue =
+        Math.abs(target - smoothedProgressRef.current) > SMOOTHING_EPSILON ||
+        !frameCacheRef.current.has(targetFrameRef.current);
 
-    render();
-
-    const resizeCanvas = () => {
-      const parent = canvas.parentElement;
-      if (parent) {
-        canvas.width = parent.clientWidth;
-        canvas.height = parent.clientHeight;
+      if (shouldContinue) {
+        renderRafRef.current = requestAnimationFrame(drawFrame);
+      } else {
+        renderRafRef.current = null;
       }
     };
 
-    window.addEventListener("resize", resizeCanvas);
-    resizeCanvas();
+    renderRafRef.current = requestAnimationFrame(drawFrame);
+  }, [progress, canvasSize, initialFrameReady, bufferedFrameCount]);
 
+  useEffect(() => {
     return () => {
-      cancelAnimationFrame(animationFrameId);
-      window.removeEventListener("resize", resizeCanvas);
+      if (renderRafRef.current !== null) {
+        cancelAnimationFrame(renderRafRef.current);
+      }
     };
-  }, [images, scrollYProgress]);
+  }, []);
 
   // Robust style calculators
   const getHeroStyle = () => {
@@ -157,10 +287,10 @@ export default function ScrollytellingSphere() {
         {/* Camouflaged 3D Section */}
         <div className="relative w-full max-w-6xl h-[70vh] rounded-[2rem] overflow-hidden bg-transparent">
           {/* Loader */}
-          {imagesLoaded < FRAME_COUNT && (
+          {!initialFrameReady && (
             <div className="absolute inset-0 z-50 flex items-center justify-center bg-transparent">
               <p className="text-black/60 tracking-widest uppercase text-sm font-semibold">
-                Loading Animation {Math.round((imagesLoaded / FRAME_COUNT) * 100)}%
+                Buffering 3D Frames ({bufferedFrameCount})
               </p>
             </div>
           )}
@@ -181,10 +311,10 @@ export default function ScrollytellingSphere() {
                 style={{ ...getHeroStyle(), transition: 'opacity 0.1s, transform 0.1s' }}
                 className={`absolute inset-0 flex flex-col items-center text-center ${progress > 0.2 ? 'pointer-events-none' : ''}`}
               >
-                <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-black mb-2">
+                <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-white mb-2">
                   Baxel Intelligence.
                 </h1>
-                <p className="text-base md:text-lg text-black/60 max-w-lg font-medium">
+                <p className="text-base md:text-lg text-white/60 max-w-lg font-medium">
                   Turn messy PRDs into production-ready backend blueprints.
                 </p>
               </div>
@@ -194,10 +324,10 @@ export default function ScrollytellingSphere() {
                 style={{ ...getSectionStyle(0.15, 0.2, 0.35, 0.4), transition: 'opacity 0.1s, transform 0.1s' }}
                 className="absolute inset-0 flex flex-col items-center text-center pointer-events-none"
               >
-                <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-black mb-3">
+                <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-white mb-3">
                   Deconstruct complexity.
                 </h2>
-                <p className="text-base text-black/70 max-w-lg font-medium">
+                <p className="text-base text-white/70 max-w-lg font-medium">
                   Every entity, relation, and constraint is automatically extracted and mapped perfectly.
                 </p>
               </div>
@@ -207,10 +337,10 @@ export default function ScrollytellingSphere() {
                 style={{ ...getSectionStyle(0.4, 0.45, 0.6, 0.65), transition: 'opacity 0.1s, transform 0.1s' }}
                 className="absolute inset-0 flex flex-col items-center text-center pointer-events-none"
               >
-                <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-black mb-3">
+                <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-white mb-3">
                   Intelligent pipeline.
                 </h2>
-                <p className="text-base text-black/70 max-w-lg font-medium">
+                <p className="text-base text-white/70 max-w-lg font-medium">
                   Multi-stage reasoning surfaces gaps and conflicts in real-time, keeping you in flow.
                 </p>
               </div>
@@ -220,10 +350,10 @@ export default function ScrollytellingSphere() {
                 style={{ ...getSectionStyle(0.65, 0.7, 0.8, 0.85), transition: 'opacity 0.1s, transform 0.1s' }}
                 className="absolute inset-0 flex flex-col items-center text-center pointer-events-none"
               >
-                <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-black mb-3">
+                <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-white mb-3">
                   Deployable output.
                 </h2>
-                <p className="text-base text-black/70 max-w-lg font-medium">
+                <p className="text-base text-white/70 max-w-lg font-medium">
                   Export comprehensive API definitions and Node.js skeletons instantly.
                 </p>
               </div>
@@ -233,15 +363,15 @@ export default function ScrollytellingSphere() {
                 style={{ ...getCTAStyle(), transition: 'opacity 0.1s, transform 0.1s' }}
                 className={`absolute inset-0 flex flex-col items-center text-center ${progress < 0.85 ? 'pointer-events-none' : 'pointer-events-auto'}`}
               >
-                <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-black mb-4">
+                <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-white mb-4">
                   Ship faster.
                 </h2>
-                <div className="flex gap-4">
-                  <a href="/auth" className="rounded-full bg-gradient-to-r from-[#0050FF] to-[#00D6FF] px-6 py-2.5 text-sm font-semibold text-white shadow-lg transition hover:scale-105">
+                <div className="flex gap-4 justify-center">
+                  <a href="/auth" className="rounded-full bg-[#C2D68C] px-6 py-2.5 text-sm font-semibold text-[#1F261D] shadow-[0_0_15px_rgba(194,214,140,0.3)] transition hover:scale-105">
                     Experience Baxel
                   </a>
-                  <a href="/features" className="rounded-full border border-black/10 bg-black/5 backdrop-blur-md px-6 py-2.5 text-sm font-semibold text-black transition hover:bg-black/10">
-                    View Features
+                  <a href="/pricing" className="rounded-full border border-white/20 bg-white/5 backdrop-blur-md px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10">
+                    View Pricing
                   </a>
                 </div>
               </div>

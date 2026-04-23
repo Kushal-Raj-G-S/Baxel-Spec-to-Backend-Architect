@@ -1,39 +1,42 @@
-# Baxel
+<div align="center">
+  <img src="frontend/public/logo.png" width="80" alt="Baxel Logo" />
+  <h1 align="center">Baxel</h1>
+  <p align="center">
+    <strong>From messy product specs to production-ready backend architecture in minutes.</strong>
+  </p>
+  <p align="center">
+    Stop writing boilerplate. Start building features.
+  </p>
+</div>
 
-Spec-to-backend system for turning raw product ideas into structured backend output: schema, API, rules, SQL, and implementation scaffolds.
+---
 
-## Why This Project Exists
+## 🚀 Overview
 
-Most AI coding tools start after architecture is already decided.
-Baxel focuses on the stage before coding: translating messy product intent into backend structure that teams can review, iterate, and ship.
+Baxel is an intelligent **Spec-to-Backend** system. Most AI coding tools start *after* architecture is already decided. Baxel focuses on the stage *before* coding: translating unstructured product intent into a structured backend blueprint that teams can review, iterate, and ship immediately.
 
-## Core Product Behavior
+## ✨ Key Features
 
-- Accepts product specs from the dashboard
-- Expands and normalizes the spec internally
-- Produces backend artifacts:
-	- entities and relationships
-	- endpoint surface
-	- business rules
-	- migration SQL
-	- code skeleton sections
-- Applies plan-aware output visibility and usage limits
-- Supports shareable run links
+- **🧠 Spec Intelligence:** Multi-agent reasoning pipeline that normalizes language, extracts actors, and defines constraints from raw text.
+- **🏗️ Visual Architecture:** Automatically generates an Entity-Relationship blueprint with relationship hints and data types.
+- **🔌 API Generator:** Drafts REST & OpenAPI endpoints complete with request payloads, response shapes, and error contracts.
+- **📜 Business Rules:** Surfaces invariants and compliance checks, highlighting conflicts or missing logic as actionable checklists.
+- **📦 Code Export:** Pushes generated, production-ready FastAPI or Node.js boilerplates with migrations, routing, and database integrations.
+- **🎨 Premium UX:** A stunning, modern dark-olive theme featuring smooth scroll-driven animations (Scrollytelling) and dynamic user experiences.
 
-## Monorepo Layout
+## 🛠️ Tech Stack
 
-- frontend: Next.js App Router UI
-- backend: FastAPI service and orchestration
-- backend/migrations: Supabase/Postgres SQL migrations
+### Frontend
+- **Framework:** Next.js (App Router), React
+- **Styling:** Tailwind CSS, Framer Motion (for fluid animations)
+- **Deployment:** Vercel (recommended)
 
-## Stack
+### Backend
+- **Framework:** FastAPI, Pydantic
+- **Database & Auth:** Supabase (PostgreSQL)
+- **AI/Orchestration:** Backend service pipeline (Groq / specialized LLM providers)
 
-- Frontend: Next.js, React, Tailwind CSS
-- Backend: FastAPI, Pydantic
-- Data/Auth/Storage: Supabase
-- Generation orchestration: backend service pipeline
-
-## Local Setup
+## 💻 Local Setup
 
 ### 1) Frontend
 
@@ -43,87 +46,56 @@ npm install
 npm run dev
 ```
 
-Create frontend/.env.local from frontend/.env.example and set NEXT_PUBLIC_API_BASE_URL.
+> **Note:** Create `frontend/.env.local` from `frontend/.env.example` and set `NEXT_PUBLIC_API_BASE_URL`.
 
 ### 2) Backend
 
 ```bash
 cd backend
 python -m venv .venv
-.venv\Scripts\activate
+# Activate virtual environment
+# Windows: .venv\Scripts\activate
+# Mac/Linux: source .venv/bin/activate
 pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
 
-Create backend/.env from backend/.env.example.
+> **Note:** Create `backend/.env` from `backend/.env.example`.
 
-## Required Environment Variables
+## ⚙️ Required Environment Variables
 
-Frontend:
+**Frontend:**
+- `NEXT_PUBLIC_API_BASE_URL`
+- `NEXT_PUBLIC_BILLING_STARTER_URL` ... and other plan URLs.
 
-- NEXT_PUBLIC_API_BASE_URL
-- NEXT_PUBLIC_BILLING_STARTER_URL
-- NEXT_PUBLIC_BILLING_CREATOR_URL
-- NEXT_PUBLIC_BILLING_STUDIO_URL
-- NEXT_PUBLIC_BILLING_GROWTH_URL
-- NEXT_PUBLIC_BILLING_ENTERPRISE_URL
+**Backend (common):**
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `SUPABASE_JWT_SECRET`
+- `AUTH_ENABLED`
+- `LOG_LEVEL`
+- `GROQ_API_KEY` (if using live model provider flow)
 
-Backend (common):
+## 🗄️ Database Migrations
 
-- SUPABASE_URL
-- SUPABASE_SERVICE_ROLE_KEY
-- SUPABASE_JWT_SECRET
-- AUTH_ENABLED
-- LOG_LEVEL
-- GROQ_API_KEY (if using live model provider flow)
+Apply SQL files in `backend/migrations` sequentially. At minimum, run all existing migrations in numeric order in your Supabase SQL editor to set up the necessary tables and policies.
 
-## Database Migrations
+## 💎 Pricing & Plan Model
 
-Apply SQL files in backend/migrations sequentially.
-At minimum, run all existing migrations in numeric order in your Supabase SQL editor.
+Supported plan codes: `starter`, `creator`, `studio`, `growth`, `enterprise`.
+Limits are enforced server-side, and generation routes will gracefully return HTTP 402 when the current plan's limits are reached.
 
-## Plan Model
-
-Supported plan codes:
-
-- starter
-- creator
-- studio
-- growth
-- enterprise
-
-Limits are enforced server-side, and generation routes return HTTP 402 when the current plan cannot proceed.
-
-## API Surface
-
-- /projects
-- /specs
-- /pipelines
-- /dashboard
-- /profile
-- /runs
-
-## Developer Notes
-
-- The frontend now avoids showing a fake Starter label during initial plan fetch.
-- Plan display is cache-assisted on client side for better perceived speed.
-- Locked preview messaging is intentionally starter-only.
-
-## Troubleshooting
-
-- 402 responses:
-	- check profile plan payload
-	- check monthly run/project counters
-	- verify plan override and subscription state
-- Avatar upload issues:
-	- ensure avatars storage bucket exists
-	- verify Supabase policies
-
-## Resume Value
+## 📈 Resume Value
 
 Baxel demonstrates full-stack ownership with real product constraints:
-
-- multi-tenant auth and profile management
-- plan-driven feature gating
+- Multi-tenant auth and profile management
+- Plan-driven feature gating and quota enforcement
 - AI pipeline orchestration with structured outputs
-- practical UX work around trust, latency, and fallback states
+- Premium frontend aesthetics with high-performance animations and dark-mode elegance
+- Practical UX work around trust, latency, and fallback states
+
+---
+
+<div align="center">
+  <p>Built with ❤️ for modern engineering teams.</p>
+</div>

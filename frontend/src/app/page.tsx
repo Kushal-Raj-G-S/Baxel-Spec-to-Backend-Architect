@@ -257,8 +257,8 @@ export default function Home() {
                   {plan.inrPriceLabel ? <span className="ml-2 text-sm font-medium text-white/40">/ {plan.inrPriceLabel}</span> : null}
                 </p>
                 <div className="mt-6 space-y-3">
-                  <p className="text-sm text-white/70 flex items-center gap-2"><span className="text-[#C2D68C]">✓</span> {plan.perks[0]}</p>
-                  <p className="text-sm text-white/70 flex items-center gap-2"><span className="text-[#C2D68C]">✓</span> {plan.perks[1]}</p>
+                  <p className="text-sm text-white/70 flex items-start gap-2"><span className="text-[#C2D68C] mt-[2px]">✓</span> <span>{plan.perks[0]}</span></p>
+                  <p className="text-sm text-white/70 flex items-start gap-2"><span className="text-[#C2D68C] mt-[2px]">✓</span> <span>{plan.perks[1]}</span></p>
                 </div>
               </div>
             ))}

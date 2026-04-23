@@ -14,15 +14,46 @@
 body {
   margin: 0;
   font-family: var(--font-display), sans-serif;
-  background-color: #FAE0BD;
-  color: #0b0d12;
+  background-color: #1F261D;
+  color: #FFFFFF;
+}
+
+/* Custom Animated Scrollbar */
+::-webkit-scrollbar {
+  width: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: #111510;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(194, 214, 140, 0.4);
+  border-radius: 6px;
+  border: 3px solid #111510;
+  transition: background 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(194, 214, 140, 0.9);
 }
 
 @keyframes blob {
-  0% { transform: translate(0px, 0px) scale(1); }
-  33% { transform: translate(40px, -60px) scale(1.1); }
-  66% { transform: translate(-30px, 30px) scale(0.9); }
-  100% { transform: translate(0px, 0px) scale(1); }
+  0% {
+    transform: translate(0px, 0px) scale(1);
+  }
+
+  33% {
+    transform: translate(40px, -60px) scale(1.1);
+  }
+
+  66% {
+    transform: translate(-30px, 30px) scale(0.9);
+  }
+
+  100% {
+    transform: translate(0px, 0px) scale(1);
+  }
 }
 
 .animate-blob {
@@ -35,6 +66,7 @@ body {
     opacity: 0;
     transform: translateY(18px);
   }
+
   100% {
     opacity: 1;
     transform: translateY(0);
@@ -42,10 +74,12 @@ body {
 }
 
 @keyframes floatSlow {
+
   0%,
   100% {
     transform: translateY(0px);
   }
+
   50% {
     transform: translateY(-12px);
   }
@@ -55,9 +89,11 @@ body {
   0% {
     transform: translate3d(0, 0, 0) scale(1);
   }
+
   50% {
     transform: translate3d(40px, -30px, 0) scale(1.08);
   }
+
   100% {
     transform: translate3d(0, 0, 0) scale(1);
   }
@@ -67,16 +103,19 @@ body {
   0% {
     background-position: 0% 50%;
   }
+
   100% {
     background-position: 100% 50%;
   }
 }
 
 @keyframes pulseGlow {
+
   0%,
   100% {
     box-shadow: 0 0 0 0 rgba(15, 15, 15, 0.12);
   }
+
   50% {
     box-shadow: 0 0 0 12px rgba(15, 15, 15, 0.05);
   }
@@ -210,12 +249,10 @@ body {
   content: "";
   position: absolute;
   inset: 0;
-  background: radial-gradient(
-    480px 320px at var(--mx) var(--my),
-    rgba(240, 93, 35, 0.22),
-    rgba(0, 194, 168, 0.16),
-    transparent 70%
-  );
+  background: radial-gradient(480px 320px at var(--mx) var(--my),
+      rgba(240, 93, 35, 0.22),
+      rgba(0, 194, 168, 0.16),
+      transparent 70%);
   opacity: 0.65;
   pointer-events: none;
   transition: opacity 200ms ease;
@@ -226,22 +263,20 @@ body {
   content: "";
   position: absolute;
   inset: 0;
-  background: radial-gradient(
-    320px 220px at calc(var(--mx) + 12%) calc(var(--my) + 10%),
-    rgba(15, 15, 15, 0.16),
-    transparent 60%
-  );
+  background: radial-gradient(320px 220px at calc(var(--mx) + 12%) calc(var(--my) + 10%),
+      rgba(15, 15, 15, 0.16),
+      transparent 60%);
   pointer-events: none;
   opacity: 0.6;
   z-index: 0;
 }
 
-.cursor-reactive > :not(.ui-overlay) {
+.cursor-reactive> :not(.ui-overlay) {
   position: relative;
   z-index: 1;
 }
 
-.cursor-reactive > .ui-overlay {
+.cursor-reactive>.ui-overlay {
   position: fixed;
   z-index: 120;
 }
@@ -316,6 +351,7 @@ body {
     transform: scale(0);
     opacity: 0.6;
   }
+
   100% {
     transform: scale(2.5);
     opacity: 0;
