@@ -162,24 +162,24 @@ export default function ProjectsPage() {
       <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <section className="glass rounded-3xl p-8">
           <p className="label">Projects history</p>
-          <p className="mt-2 text-sm text-dune">Stored projects, runs, and outputs from your account.</p>
+          <p className="mt-2 text-sm text-white/60">Stored projects, runs, and outputs from your account.</p>
 
           {status ? (
-            <div className="mt-6 rounded-2xl border border-dune/20 bg-white/70 px-4 py-3 text-sm text-dune">
+            <div className="mt-6 rounded-2xl border border-white/20 bg-white/5 px-4 py-3 text-sm text-white/80">
               {status}
             </div>
           ) : (
             <div className="mt-6 space-y-4">
               {projects.map((item) => (
-                <div key={item.project.id} className="rounded-2xl border border-dune/20 bg-white/70 p-4">
+                <div key={item.project.id} className="rounded-2xl border border-white/20 bg-white/5 p-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <p className="text-sm font-semibold text-ink">{item.project.name}</p>
+                      <p className="text-sm font-semibold text-white">{item.project.name}</p>
                       {item.project.description ? (
-                        <p className="mt-1 text-xs text-dune">{item.project.description}</p>
+                        <p className="mt-1 text-xs text-white/60">{item.project.description}</p>
                       ) : null}
                     </div>
-                    <p className="text-[11px] uppercase tracking-[0.16em] text-dune">
+                    <p className="text-[11px] uppercase tracking-[0.16em] text-white/60">
                       {item.specs_count} specs • {item.pipeline_runs_count} runs
                     </p>
                   </div>
@@ -189,18 +189,18 @@ export default function ProjectsPage() {
                       item.recent_runs.map((run) => (
                         <div
                           key={run.id}
-                          className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-dune/20 bg-bone/90 px-3 py-2"
+                          className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2"
                         >
                           <div>
-                            <p className="text-xs font-medium text-ink">
+                            <p className="text-xs font-medium text-white">
                               {run.spec_title || "Untitled spec"}
                             </p>
-                            <p className="text-[11px] text-dune">
+                            <p className="text-[11px] text-white/50">
                               {new Date(run.created_at).toLocaleString()} • {run.status}
                             </p>
                           </div>
                           <button
-                            className="rounded-full border border-dune/30 px-3 py-1 text-xs text-ink"
+                            className="rounded-full border border-white/20 bg-white/5 px-3 py-1 text-xs text-white transition hover:bg-white/10 hover:border-white/40"
                             onClick={() =>
                               setSelectedRun({
                                 projectName: item.project.name,
@@ -214,13 +214,13 @@ export default function ProjectsPage() {
                             View output
                           </button>
                           <Link
-                            className="rounded-full border border-dune/30 px-3 py-1 text-xs text-ink"
+                            className="rounded-full border border-white/20 bg-white/5 px-3 py-1 text-xs text-white transition hover:bg-white/10 hover:border-white/40"
                             href={`/app/dashboard?run=${encodeURIComponent(run.id)}&project=${encodeURIComponent(item.project.name)}&spec=${encodeURIComponent(run.spec_title || "Untitled spec")}`}
                           >
                             Open in dashboard
                           </Link>
                           <button
-                            className="rounded-full border border-dune/30 px-3 py-1 text-xs text-ink"
+                            className="rounded-full border border-white/20 bg-white/5 px-3 py-1 text-xs text-white transition hover:bg-white/10 hover:border-white/40"
                             onClick={() => createShareLink(run.id)}
                           >
                             Share
@@ -228,7 +228,7 @@ export default function ProjectsPage() {
                         </div>
                       ))
                     ) : (
-                      <p className="text-xs text-dune">No pipeline runs for this project yet.</p>
+                      <p className="text-xs text-white/40">No pipeline runs for this project yet.</p>
                     )}
                   </div>
                 </div>
@@ -240,46 +240,46 @@ export default function ProjectsPage() {
         <section className="glass rounded-3xl p-8">
           <p className="label">Saved output preview</p>
           {selectedRun ? (
-            <div className="mt-4 space-y-4 text-sm text-dune">
+            <div className="mt-4 space-y-4 text-sm text-white/80">
               <div>
-                <p className="text-ink font-semibold">{selectedRun.projectName}</p>
-                <p className="text-xs">{selectedRun.specTitle || "Untitled spec"}</p>
-                <p className="text-[11px]">{selectedRun.runLabel}</p>
+                <p className="text-[#C2D68C] font-semibold">{selectedRun.projectName}</p>
+                <p className="text-xs text-white">{selectedRun.specTitle || "Untitled spec"}</p>
+                <p className="text-[11px] text-white/50">{selectedRun.runLabel}</p>
               </div>
 
               {isLegacyRun ? (
-                <div className="rounded-xl border border-amber-300/70 bg-amber-50 p-3 text-xs text-amber-900">
+                <div className="rounded-xl border border-amber-300/20 bg-amber-500/5 p-3 text-xs text-amber-200">
                   This run predates full output capture. Re-run this spec to generate complete relationships and SQL.
                 </div>
               ) : null}
 
               <button
-                className="rounded-full border border-dune/30 px-4 py-2 text-xs text-ink"
+                className="rounded-full border border-white/20 bg-white/5 px-4 py-2 text-xs text-white transition hover:bg-white/10 hover:border-white/40"
                 onClick={() => createShareLink(selectedRun.runId)}
               >
                 Share this output
               </button>
-              {shareStatus ? <p className="text-xs text-dune">{shareStatus}</p> : null}
+              {shareStatus ? <p className="text-xs text-white/60">{shareStatus}</p> : null}
 
               <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-xl border border-dune/20 bg-white/70 p-3">
-                  <p className="text-[11px] uppercase tracking-[0.16em]">Entities</p>
-                  <p className="mt-2 text-lg font-semibold text-ink">{entities.length}</p>
+                <div className="rounded-xl border border-white/20 bg-white/5 p-3">
+                  <p className="text-[11px] uppercase tracking-[0.16em] text-white/40">Entities</p>
+                  <p className="mt-2 text-lg font-semibold text-white">{entities.length}</p>
                 </div>
-                <div className="rounded-xl border border-dune/20 bg-white/70 p-3">
-                  <p className="text-[11px] uppercase tracking-[0.16em]">Endpoints</p>
-                  <p className="mt-2 text-lg font-semibold text-ink">{endpoints.length}</p>
+                <div className="rounded-xl border border-white/20 bg-white/5 p-3">
+                  <p className="text-[11px] uppercase tracking-[0.16em] text-white/40">Endpoints</p>
+                  <p className="mt-2 text-lg font-semibold text-white">{endpoints.length}</p>
                 </div>
               </div>
 
-              <div className="rounded-xl border border-dune/20 bg-white/70 p-3">
-                <p className="text-[11px] uppercase tracking-[0.16em]">Relationships</p>
-                <p className="mt-2 text-xs text-ink">{relationships.join(" • ") || "No relationships captured for this run."}</p>
+              <div className="rounded-xl border border-white/20 bg-white/5 p-3">
+                <p className="text-[11px] uppercase tracking-[0.16em] text-white/40">Relationships</p>
+                <p className="mt-2 text-xs text-white">{relationships.join(" • ") || "No relationships captured for this run."}</p>
               </div>
 
-              <div className="rounded-xl border border-dune/20 bg-white/70 p-3">
-                <p className="text-[11px] uppercase tracking-[0.16em]">Rules</p>
-                <p className="mt-2 text-xs text-ink">
+              <div className="rounded-xl border border-white/20 bg-white/5 p-3">
+                <p className="text-[11px] uppercase tracking-[0.16em] text-white/40">Rules</p>
+                <p className="mt-2 text-xs text-white">
                   {rules.length
                     ? rules
                         .slice(0, 4)
@@ -289,15 +289,15 @@ export default function ProjectsPage() {
                 </p>
               </div>
 
-              <div className="rounded-xl border border-dune/20 bg-white/70 p-3">
-                <p className="text-[11px] uppercase tracking-[0.16em]">Migration SQL</p>
-                <pre className="mt-2 max-h-36 overflow-auto text-[11px] text-ink whitespace-pre-wrap">
+              <div className="rounded-xl border border-white/20 bg-white/5 p-3">
+                <p className="text-[11px] uppercase tracking-[0.16em] text-white/40">Migration SQL</p>
+                <pre className="mt-2 max-h-36 overflow-auto text-[11px] text-white/95 whitespace-pre-wrap font-mono">
                   {sqlText || "No SQL captured for this run."}
                 </pre>
               </div>
             </div>
           ) : (
-            <p className="mt-4 text-sm text-dune">
+            <p className="mt-4 text-sm text-white/60">
               Select any run from the left side to reopen that stored output.
             </p>
           )}

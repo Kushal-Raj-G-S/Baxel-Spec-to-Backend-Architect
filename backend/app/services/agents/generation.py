@@ -70,9 +70,9 @@ def get_instructor_client() -> Tuple[Any, bool]:
     Initializes and returns the instructor client.
     Returns (client, is_mock). If API key is missing, returns a mock indicator.
     
-    IMPORTANT: timeout=150 is set at the HTTP level so the underlying socket
-    closes after 150s even if asyncio.wait_for cancels the coroutine.
-    Without this, the executor thread keeps blocking indefinitely (OpenAI default = 600s).
+    IMPORTANT: timeout=360 is set at the HTTP level so the underlying socket
+    gives the 70B model enough time to generate a full spec (~180-300s typical).
+    Without this, the socket would close before the model finishes.
     """
     api_key = _load_api_key()
     if not api_key:
@@ -82,7 +82,7 @@ def get_instructor_client() -> Tuple[Any, bool]:
         client = OpenAI(
             api_key=api_key,
             base_url=LLM_BASE_URL,
-            timeout=150.0  # Hard HTTP-level timeout — prevents executor thread from blocking forever
+            timeout=360.0  # 6-minute socket timeout — gives 70B model full time to respond
         )
         instructor_client = instructor.from_openai(client)
         return instructor_client, False
@@ -148,15 +148,17 @@ async def run_architect_agent(
         
     loop = asyncio.get_running_loop()
     
-    # Run in executor to prevent blocking the event loop
-    # max_tokens=6000 caps output length — prevents runaway generation on large specs
+    # Run in executor to prevent blocking the event loop.
+    # The 70B model on NVIDIA API needs up to 300s for a full structured spec.
+    # max_retries=0: One clean call — no instructor retry loops.
+    # max_tokens=6000: Sufficient budget for 8+ tables and 15+ endpoints.
     spec = await loop.run_in_executor(
         None,
         lambda: client.chat.completions.create(
             model=LLM_MODEL,
             response_model=GeneratedArchitectureSpec,
-            max_retries=2,  # Reduced from 3 to save time on validation loops
-            max_tokens=8000,  # Increased: large input specs need more output budget for rich schemas
+            max_retries=0,  # No retries — avoids multiple 70B calls
+            max_tokens=6000,
             messages=[
                 {"role": "system", "content": "You are an expert principal software architect. Generate a HIGHLY DETAILED architecture spec matching the Pydantic schema. MINIMUM 8 database tables, MINIMUM 12 API endpoints. Every domain in the user's spec MUST have its own dedicated tables and endpoints. Never collapse multiple domains into a single table. Never produce placeholder or minimal output."},
                 {"role": "user", "content": prompt}
@@ -356,10 +358,12 @@ async def run_agent_swarm(
     """
     Orchestrates the multi-agent design pipeline.
     
-    Flow (optimized for speed):
-      1. Architect Agent (70B)        — single draft, 180s timeout
-      2. Concurrent gather (all 4)    — DBA + Security + PM (8B) + Anti-Fragility (70B), 60s timeout
-      3. Inject metadata              — always returns a complete spec
+    Flow:
+      1. Architect Agent (70B)        — single call, 360s timeout, RAISES on failure (no mock fallback)
+      2. Concurrent gather (all 4)    — DBA + Security + PM + Anti-Fragility (8B), 60s timeout
+      3. Inject metadata              — always returns a complete real spec
+    
+    Mock spec is ONLY used when NVIDIA_API_KEY is missing (true offline mode).
     """
     import datetime
     
@@ -373,12 +377,17 @@ async def run_agent_swarm(
     try:
         spec = await asyncio.wait_for(
             run_architect_agent(client, ir, rules, prompt_used, feedback_history=[]),
-            timeout=180.0
+            timeout=360.0  # 6 minutes — gives 70B model full time; if it still fails, report as failed (no mock)
         )
         logger.info("[Swarm] Phase 1 complete — Architect spec received.")
+    except asyncio.TimeoutError:
+        # Timeout after 360s means the NVIDIA API is overloaded — report as failed, do NOT silently return mock
+        logger.error("[Swarm] Architect Agent timed out after 360s. Reporting as failed.")
+        raise RuntimeError("LLM generation timed out after 6 minutes. Please retry — the NVIDIA API may be under load.")
     except Exception as e:
-        logger.error(f"[Swarm] Architect Agent failed: {e}. Falling back to mock spec.")
-        return generate_mock_spec(ir, rules, prompt_used, parent_spec_id, confidence_score, generation_status)
+        # Any other error (Pydantic validation, API error) — also report as failed, do NOT silently return mock
+        logger.error(f"[Swarm] Architect Agent failed: {e}. Reporting as failed.")
+        raise RuntimeError(f"LLM generation failed: {e}")
     
     # ── Phase 2: Concurrent Review Panel + Anti-Fragility ───────────────────
     # DBA, Security, PM → fast 8B model (compact prompts)

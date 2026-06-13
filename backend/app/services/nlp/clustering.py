@@ -11,8 +11,13 @@ class SemanticClusteringWrapper:
     def __init__(self):
         self.encoder = None
         self.initialized = False
+        self._init_attempted = False  # Prevent repeated failed model loads per process
         
     def initialize(self):
+        # Only attempt once per process — avoid hammering memory/disk on every request
+        if self._init_attempted:
+            return
+        self._init_attempted = True
         try:
             from sentence_transformers import SentenceTransformer
             # Using a lightweight, high-performance BGE model (120MB) 

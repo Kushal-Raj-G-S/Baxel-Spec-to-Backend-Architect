@@ -3,23 +3,16 @@ import logging
 import datetime
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, Field
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Response, BackgroundTasks
 
 from app.core.auth import get_current_user
 from app.services.nlp.pipeline import run_nlp_pipeline
 from app.services.agents.generation import run_agent_swarm
 from app.core.db import get_db
-from app.models.spec_db import SpecModel
+from app.models.spec_db import ProjectModel, SpecModel, PipelineRunModel, ProfileModel, PricingPlanModel
 from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
-
-# Global in-memory DB to store user sessions, projects, specs, and runs during runtime
-in_memory_db = {
-    "projects": [],
-    "specs": [],
-    "runs": []
-}
 
 # -------------------------------------------------------------
 # Request & Response Schemas
@@ -39,9 +32,67 @@ class PipelineRunRequest(BaseModel):
     stack: str = "fastapi+supabase"
     spec_content: str
 
+class ProfileUpdate(BaseModel):
+    username: Optional[str] = None
+    full_name: Optional[str] = None
+    avatar_url: Optional[str] = None
+
 # -------------------------------------------------------------
 # Helpers
 # -------------------------------------------------------------
+
+def save_run_in_background(
+    run_id: str,
+    project_id: str,
+    spec_id: str,
+    uid: str,
+    spec_content: str,
+    result: Dict[str, Any]
+):
+    from app.core.db import SessionLocal
+    db = SessionLocal()
+    try:
+        # Verify/ensure the spec exists in SQL Database
+        existing_spec = db.query(SpecModel).filter(SpecModel.id == spec_id).first()
+        if not existing_spec:
+            existing_spec = SpecModel(
+                id=spec_id,
+                project_id=project_id,
+                title="Generated Spec",
+                content=spec_content,
+                source_type="manual",
+                user_id=uid
+            )
+            db.add(existing_spec)
+            db.commit()
+            
+        new_run = PipelineRunModel(
+            id=run_id,
+            project_id=project_id,
+            spec_id=spec_id,
+            user_id=uid,
+            status="completed",
+            stages={
+                "stages": [
+                    {"name": stage, "completed": True, "timestamp": datetime.datetime.utcnow().isoformat()}
+                    for stage in [
+                        "Requirements & scope", "Domain model", "API surface", 
+                        "Workflows & states", "Data storage", "Security & compliance", 
+                        "Observability", "Reliability & DR", "Scaling & performance", "Deployment & DevOps"
+                    ]
+                ]
+            },
+            result=result,
+            completed_at=datetime.datetime.utcnow()
+        )
+        db.add(new_run)
+        db.commit()
+        logger.info(f"Successfully saved run {run_id} and spec {spec_id} to SQL database in the background.")
+    except Exception as db_err:
+        db.rollback()
+        logger.error(f"Failed to save generated spec or run to database in background: {db_err}")
+    finally:
+        db.close()
 
 def generate_code_skeleton(spec) -> Dict[str, str]:
     # Models skeleton
@@ -143,35 +194,144 @@ runs_router = APIRouter(prefix="/runs", tags=["runs"])
 
 # --- Profile Router ---
 @profile_router.get("/me")
-async def profile_me(user=Depends(get_current_user)):
+async def profile_me(user=Depends(get_current_user), db: Session = Depends(get_db)):
+    uid = user.get("sub")
+    email = user.get("email")
+    
+    # Try to find the profile in the database
+    profile = db.query(ProfileModel).filter(ProfileModel.id == uid).first()
+    if not profile:
+        profile = ProfileModel(
+            id=uid,
+            email=email,
+            username=email.split("@")[0] if email else "user",
+            full_name=email.split("@")[0].title() if email else "User",
+            plan_code="starter"  # Default plan is starter
+        )
+        try:
+            db.add(profile)
+            db.commit()
+            db.refresh(profile)
+        except Exception as e:
+            db.rollback()
+            logger.error(f"Failed to auto-create profile: {e}")
+            
     return {
-        "id": user.get("sub"),
-        "email": user.get("email"),
-        "username": user.get("email", "user").split("@")[0],
-        "full_name": user.get("email", "User").split("@")[0].title(),
-        "avatar_url": None
+        "id": profile.id if profile else uid,
+        "email": profile.email if profile else email,
+        "username": profile.username if profile else (email.split("@")[0] if email else "user"),
+        "full_name": profile.full_name if profile else (email.split("@")[0].title() if email else "User"),
+        "avatar_url": profile.avatar_url if profile else None,
+        "plan_code": profile.plan_code if profile else "starter"
+    }
+
+@profile_router.patch("/me")
+async def update_profile(
+    payload: ProfileUpdate, 
+    user=Depends(get_current_user), 
+    db: Session = Depends(get_db)
+):
+    uid = user.get("sub")
+    profile = db.query(ProfileModel).filter(ProfileModel.id == uid).first()
+    if not profile:
+        email = user.get("email")
+        profile = ProfileModel(
+            id=uid,
+            email=email,
+            username=payload.username or (email.split("@")[0] if email else "user"),
+            full_name=payload.full_name or (email.split("@")[0].title() if email else "User"),
+            plan_code="starter"
+        )
+        db.add(profile)
+    else:
+        if payload.username is not None:
+            if payload.username.strip():
+                existing = db.query(ProfileModel).filter(
+                    ProfileModel.username == payload.username.strip().lower(),
+                    ProfileModel.id != uid
+                ).first()
+                if existing:
+                    raise HTTPException(status_code=400, detail="Username is already taken")
+            profile.username = payload.username.strip().lower() or None
+        if payload.full_name is not None:
+            profile.full_name = payload.full_name.strip() or None
+        if payload.avatar_url is not None:
+            profile.avatar_url = payload.avatar_url.strip() or None
+            
+    profile.updated_at = datetime.datetime.utcnow()
+    
+    try:
+        db.commit()
+        db.refresh(profile)
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Failed to update profile: {e}")
+        raise HTTPException(status_code=500, detail="Failed to save profile changes")
+        
+    return {
+        "id": profile.id,
+        "email": profile.email,
+        "username": profile.username,
+        "full_name": profile.full_name,
+        "avatar_url": profile.avatar_url,
+        "plan_code": profile.plan_code
     }
 
 @profile_router.get("/plan")
-async def profile_plan(user=Depends(get_current_user)):
+async def profile_plan(user=Depends(get_current_user), db: Session = Depends(get_db)):
+    uid = user.get("sub")
+    runs_count = db.query(PipelineRunModel).filter(PipelineRunModel.user_id == uid).count()
+    projects_count = db.query(ProjectModel).filter(ProjectModel.user_id == uid).count()
+    
+    # Get user plan_code from profiles table
+    profile = db.query(ProfileModel).filter(ProfileModel.id == uid).first()
+    plan_code = (profile.plan_code or "starter") if profile else "starter"
+    
+    # Get plan details from pricing_plans table
+    plan = db.query(PricingPlanModel).filter(PricingPlanModel.code == plan_code).first()
+    if plan:
+        plan_name = f"{plan.display_name} Plan"
+        monthly_run_limit = plan.monthly_run_limit
+        monthly_project_limit = plan.monthly_project_limit
+    else:
+        # Fallback to starter plan limits
+        plan_name = "Starter Plan"
+        monthly_run_limit = 9
+        monthly_project_limit = 3
+        
+    char_limit_map = {
+        "starter": 1000,
+        "creator": 1500,
+        "studio": 3000,
+        "growth": 9000,
+        "enterprise": 15000
+    }
+    idea_char_limit = char_limit_map.get(plan_code.lower(), 1000)
+    
     return {
-        "plan_code": "studio",
-        "plan_name": "Studio Plan",
+        "plan_code": plan_code,
+        "plan_name": plan_name,
         "status": "active",
-        "monthly_run_limit": 100,
-        "runs_used_this_month": len([r for r in in_memory_db["runs"] if r.get("user_id") == user.get("sub")]),
-        "monthly_project_limit": 100,
-        "projects_used_this_month": len([p for p in in_memory_db["projects"] if p.get("user_id") == user.get("sub")]),
+        "monthly_run_limit": monthly_run_limit,
+        "runs_used_this_month": runs_count,
+        "monthly_project_limit": monthly_project_limit,
+        "projects_used_this_month": projects_count,
         "runs_per_project_limit": 100,
-        "idea_char_limit": 9000
+        "idea_char_limit": idea_char_limit,
+        "billing_period": None,
+        "period_start": None,
+        "period_end": None,
+        "manage_url": None
     }
 
 # --- Dashboard Router ---
 @dashboard_router.get("/summary")
-async def dashboard_summary(user=Depends(get_current_user)):
+async def dashboard_summary(user=Depends(get_current_user), db: Session = Depends(get_db)):
     uid = user.get("sub")
-    user_projects = [p for p in in_memory_db["projects"] if p.get("user_id") == uid]
-    user_runs = [r for r in in_memory_db["runs"] if r.get("user_id") == uid]
+    user_projects = db.query(ProjectModel).filter(ProjectModel.user_id == uid).all()
+    user_runs = db.query(PipelineRunModel).filter(PipelineRunModel.user_id == uid).all()
     
     # Enrich recent pipeline runs with spec_title and project_name
     enriched_runs = []
@@ -179,75 +339,190 @@ async def dashboard_summary(user=Depends(get_current_user)):
         spec_title = "Generated Specification"
         project_name = "Default Project"
         
-        spec = next((s for s in in_memory_db["specs"] if s["id"] == r["spec_id"]), None)
-        if spec:
-            spec_title = spec["title"]
+        if r.spec_id:
+            spec = db.query(SpecModel).filter(SpecModel.id == r.spec_id).first()
+            if spec:
+                spec_title = spec.title
             
-        proj = next((p for p in in_memory_db["projects"] if p["id"] == r["project_id"]), None)
+        proj = db.query(ProjectModel).filter(ProjectModel.id == r.project_id).first()
         if proj:
-            project_name = proj["name"]
+            project_name = proj.name
             
         enriched_runs.append({
-            "id": r["id"],
-            "status": r["status"],
-            "created_at": r["created_at"],
+            "id": r.id,
+            "status": r.status,
+            "created_at": r.created_at.isoformat() if isinstance(r.created_at, datetime.datetime) else str(r.created_at),
             "spec_title": spec_title,
             "project_name": project_name,
-            "spec_id": r["spec_id"]
+            "spec_id": r.spec_id
         })
         
     return {
         "projects_count": len(user_projects),
-        "specs_count": len([s for s in in_memory_db["specs"] if s.get("user_id") == uid]),
+        "specs_count": db.query(SpecModel).filter(SpecModel.user_id == uid).count(),
         "pipeline_runs_count": len(user_runs),
-        "recent_projects": user_projects[-5:],  # last 5 projects
-        "recent_pipeline_runs": enriched_runs[::-1]  # reverse to show newest first
+        "recent_projects": [
+            {
+                "id": p.id,
+                "name": p.name,
+                "created_at": p.created_at.isoformat() if isinstance(p.created_at, datetime.datetime) else str(p.created_at)
+            }
+            for p in user_projects[-5:]
+        ],
+        "recent_pipeline_runs": enriched_runs[::-1]
     }
 
 @dashboard_router.get("/public-metrics")
-async def dashboard_public_metrics():
+async def dashboard_public_metrics(db: Session = Depends(get_db)):
+    specs_count = db.query(SpecModel).count()
+    runs_count = db.query(PipelineRunModel).count()
     return {
-        "specs_processed": max(15, len(in_memory_db["specs"])),
-        "schemas_generated": max(12, len(in_memory_db["runs"])),
+        "specs_processed": max(15, specs_count),
+        "schemas_generated": max(12, runs_count),
         "api_endpoints": 96,
         "rules_captured": 45
     }
 
 # --- Projects Router ---
+@projects_router.get("/history")
+async def get_projects_history(user=Depends(get_current_user), db: Session = Depends(get_db)):
+    uid = user.get("sub")
+    user_projects = db.query(ProjectModel).filter(ProjectModel.user_id == uid).all()
+    
+    result = []
+    for project in user_projects:
+        specs_count = db.query(SpecModel).filter(SpecModel.project_id == project.id).count()
+        runs = db.query(PipelineRunModel).filter(
+            PipelineRunModel.project_id == project.id,
+            PipelineRunModel.status == "completed"
+        ).all()
+        
+        recent_runs = []
+        for r in runs:
+            spec_title = "Generated Specification"
+            if r.spec_id:
+                spec = db.query(SpecModel).filter(SpecModel.id == r.spec_id).first()
+                if spec:
+                    spec_title = spec.title
+                    
+            recent_runs.append({
+                "id": r.id,
+                "status": r.status,
+                "created_at": r.created_at.isoformat() if r.created_at else "",
+                "spec_id": r.spec_id,
+                "spec_title": spec_title,
+                "result": r.result
+            })
+            
+        result.append({
+            "project": {
+                "id": project.id,
+                "name": project.name,
+                "description": project.description,
+                "created_at": project.created_at.isoformat() if project.created_at else ""
+            },
+            "specs_count": specs_count,
+            "pipeline_runs_count": len(runs),
+            "recent_runs": recent_runs[::-1][:20]
+        })
+        
+    return result
+
 @projects_router.post("")
-async def create_project(payload: ProjectCreate, user=Depends(get_current_user)):
-    new_project = {
-        "id": str(uuid.uuid4()),
-        "name": payload.name,
-        "user_id": user.get("sub"),
-        "created_at": datetime.datetime.utcnow().isoformat()
+async def create_project(payload: ProjectCreate, user=Depends(get_current_user), db: Session = Depends(get_db)):
+    new_project = ProjectModel(
+        id=str(uuid.uuid4()),
+        name=payload.name,
+        user_id=user.get("sub")
+    )
+    db.add(new_project)
+    db.commit()
+    db.refresh(new_project)
+    return {
+        "id": new_project.id,
+        "name": new_project.name,
+        "user_id": new_project.user_id,
+        "created_at": new_project.created_at.isoformat()
     }
-    in_memory_db["projects"].append(new_project)
-    return new_project
 
 @projects_router.get("")
-async def list_projects(user=Depends(get_current_user)):
-    return [p for p in in_memory_db["projects"] if p.get("user_id") == user.get("sub")]
+async def list_projects(user=Depends(get_current_user), db: Session = Depends(get_db)):
+    uid = user.get("sub")
+    user_projects = db.query(ProjectModel).filter(ProjectModel.user_id == uid).all()
+    return [
+        {
+            "id": p.id,
+            "name": p.name,
+            "user_id": p.user_id,
+            "created_at": p.created_at.isoformat()
+        }
+        for p in user_projects
+    ]
 
 # --- Specs Router ---
 @specs_router.post("")
-async def create_spec(payload: SpecCreate, user=Depends(get_current_user)):
-    new_spec = {
-        "id": str(uuid.uuid4()),
-        "project_id": payload.project_id,
-        "title": payload.title,
-        "content": payload.content,
-        "user_id": user.get("sub"),
-        "created_at": datetime.datetime.utcnow().isoformat()
+async def create_spec(payload: SpecCreate, user=Depends(get_current_user), db: Session = Depends(get_db)):
+    new_spec = SpecModel(
+        id=str(uuid.uuid4()),
+        project_id=payload.project_id,
+        title=payload.title,
+        content=payload.content,
+        source_type="manual",
+        user_id=user.get("sub")
+    )
+    db.add(new_spec)
+    db.commit()
+    db.refresh(new_spec)
+    return {
+        "id": new_spec.id,
+        "project_id": new_spec.project_id,
+        "title": new_spec.title,
+        "content": new_spec.content,
+        "user_id": new_spec.user_id,
+        "created_at": new_spec.created_at.isoformat()
     }
-    in_memory_db["specs"].append(new_spec)
-    return new_spec
 
 # --- Pipelines Router ---
+@pipelines_router.get("/history")
+async def get_pipelines_history(user=Depends(get_current_user), db: Session = Depends(get_db)):
+    uid = user.get("sub")
+    user_runs = db.query(PipelineRunModel).filter(
+        PipelineRunModel.user_id == uid,
+        PipelineRunModel.status == "completed"
+    ).order_by(PipelineRunModel.created_at.desc()).all()
+    
+    result = []
+    for r in user_runs:
+        spec_title = "Generated Specification"
+        project_name = "Default Project"
+        
+        if r.spec_id:
+            spec = db.query(SpecModel).filter(SpecModel.id == r.spec_id).first()
+            if spec:
+                spec_title = spec.title
+                
+        proj = db.query(ProjectModel).filter(ProjectModel.id == r.project_id).first()
+        if proj:
+            project_name = proj.name
+            
+        result.append({
+            "id": r.id,
+            "status": r.status,
+            "created_at": r.created_at.isoformat() if r.created_at else "",
+            "completed_at": r.completed_at.isoformat() if r.completed_at else "",
+            "project_name": project_name,
+            "spec_title": spec_title,
+            "spec_id": r.spec_id,
+            "duration_seconds": 15
+        })
+        
+    return result
+
 @pipelines_router.post("/run")
 async def run_pipeline_job(
     payload: PipelineRunRequest, 
     response: Response, 
+    background_tasks: BackgroundTasks,
     user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -323,7 +598,7 @@ async def run_pipeline_job(
         "anti_fragility": spec.anti_fragility.model_dump() if spec.anti_fragility else None,
         "__meta": {
             "source": "nvidia",
-            "model": "meta/llama-3.1-70b-instruct",
+            "model": "meta/llama-3.3-70b-instruct",
             "spec_expansion": {
                 "original_chars": len(payload.spec_content),
                 "expanded_chars": len(payload.spec_content) * 3,
@@ -332,42 +607,20 @@ async def run_pipeline_job(
         }
     }
     
-    # Save the generated spec to DB for chatbot/history query
-    try:
-        existing_spec = db.query(SpecModel).filter(SpecModel.id == payload.spec_id).first()
-        if not existing_spec:
-            db_spec = SpecModel(
-                id=payload.spec_id,
-                parent_spec_id=None,
-                version=1,
-                prompt_used=payload.spec_content,
-                generated_json=spec.model_dump()
-            )
-            db.add(db_spec)
-            db.commit()
-            logger.info(f"Successfully saved spec {payload.spec_id} to SQL database.")
-        else:
-            existing_spec.generated_json = spec.model_dump()
-            db.commit()
-            logger.info(f"Successfully updated spec {payload.spec_id} in SQL database.")
-    except Exception as db_err:
-        logger.error(f"Failed to save generated spec to database: {db_err}")
-
-    # 4. Save the run history to in_memory_db
+    # Save the run history to SQL Database in the background
     run_id = str(uuid.uuid4())
-    new_run = {
-        "id": run_id,
-        "project_id": payload.project_id,
-        "spec_id": payload.spec_id,
-        "user_id": uid,
-        "status": "completed",
-        "result": result,
-        "created_at": datetime.datetime.utcnow().isoformat()
-    }
-    in_memory_db["runs"].append(new_run)
-    
+    background_tasks.add_task(
+        save_run_in_background,
+        run_id,
+        payload.project_id,
+        payload.spec_id,
+        uid,
+        payload.spec_content,
+        result
+    )
+        
     response.headers["x-baxel-generation-source"] = "nvidia"
-    response.headers["x-baxel-generation-model"] = "meta/llama-3.1-70b-instruct"
+    response.headers["x-baxel-generation-model"] = "meta/llama-3.3-70b-instruct"
     response.headers["x-baxel-plan-code"] = "studio"
     
     return {
@@ -377,12 +630,24 @@ async def run_pipeline_job(
     }
 
 @pipelines_router.get("/{pipeline_id}")
-async def get_pipeline_status(pipeline_id: str, user=Depends(get_current_user)):
+async def get_pipeline_status(pipeline_id: str, user=Depends(get_current_user), db: Session = Depends(get_db)):
     uid = user.get("sub")
-    run = next((r for r in in_memory_db["runs"] if r["id"] == pipeline_id and r["user_id"] == uid), None)
+    run = db.query(PipelineRunModel).filter(
+        PipelineRunModel.id == pipeline_id, 
+        PipelineRunModel.user_id == uid
+    ).first()
     if not run:
         raise HTTPException(status_code=404, detail="Pipeline run not found")
-    return run
+        
+    return {
+        "id": run.id,
+        "project_id": run.project_id,
+        "spec_id": run.spec_id,
+        "user_id": run.user_id,
+        "status": run.status,
+        "result": run.result,
+        "created_at": run.created_at.isoformat() if isinstance(run.created_at, datetime.datetime) else str(run.created_at)
+    }
 
 # --- Runs Router ---
 @runs_router.get("/{pipeline_id}/share")

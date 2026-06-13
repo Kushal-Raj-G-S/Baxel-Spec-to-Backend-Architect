@@ -129,7 +129,7 @@ class GLiNERWrapper:
 
     def extract_entities_llm(self, prompt: str) -> Dict[str, List[str]]:
         try:
-            from app.services.agents.generation import _load_api_key, LLM_BASE_URL, LLM_MODEL
+            from app.services.agents.generation import _load_api_key, LLM_BASE_URL, LLM_REVIEW_MODEL
             from openai import OpenAI
             import json
             
@@ -137,6 +137,8 @@ class GLiNERWrapper:
             if not api_key:
                 return None
                 
+            # Use the fast 8B model — entity extraction is a short structured JSON task
+            # that doesn't need the heavyweight 70B model. Saves ~15-20s per pipeline run.
             client = OpenAI(api_key=api_key, base_url=LLM_BASE_URL)
             system_content = (
                 "You are an NLP entity extraction assistant. Analyze the user's software product description. "
@@ -147,13 +149,13 @@ class GLiNERWrapper:
             )
             
             completion = client.chat.completions.create(
-                model=LLM_MODEL,
+                model=LLM_REVIEW_MODEL,  # 8B model — sufficient for JSON entity extraction
                 messages=[
                     {"role": "system", "content": system_content},
                     {"role": "user", "content": f"Product description: {prompt}"}
                 ],
                 temperature=0.1,
-                response_format={"type": "json_object"}
+                max_tokens=400  # Short JSON output — actors/entities/integrations only
             )
             
             raw = completion.choices[0].message.content

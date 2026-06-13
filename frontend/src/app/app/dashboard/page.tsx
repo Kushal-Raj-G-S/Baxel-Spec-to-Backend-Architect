@@ -636,10 +636,19 @@ function DashboardContent() {
   };
 
   const migrationSqlText = normalizeSqlText(result?.migration_sql);
-  const generatedSummaryText =
-    typeof result?.summary === "string"
-      ? result.summary
-      : result?.summary?.summary || "Baxel translated your spec into a data model, API surface, and implementation scaffold.";
+  // Build summary from real spec fields — avoids showing raw design_rationale text
+  const _rawResult = result as unknown as Record<string, unknown>;
+  const _specStack = _rawResult?.tech_stack as { language?: string; framework?: string; database_engine?: string } | undefined;
+  const _specDb = _rawResult?.database as { tables?: unknown[] } | undefined;
+  const _specEndpoints = _rawResult?.endpoints as unknown[] | undefined;
+  const generatedSummaryText = result
+    ? _specStack
+      ? `${_specStack.language} / ${_specStack.framework} \u2014 ${(_specDb?.tables || []).length} tables, ${(_specEndpoints || []).length} endpoints generated`
+      : typeof result?.summary === "string"
+        ? result.summary
+        : result?.summary?.summary || "Baxel translated your spec into a data model, API surface, and implementation scaffold."
+    : "Baxel translated your spec into a data model, API surface, and implementation scaffold.";
+
   const normalizedRules = (rules.length ? rules : [
     "Every entity needs a primary key",
     "Many-to-many requires a join table",
@@ -667,52 +676,81 @@ function DashboardContent() {
   const processStageIndex = isCompletedRun
     ? pipelineStages.length - 1
     : isRunning
-      ? Math.min(Math.floor(elapsedSeconds / 4), pipelineStages.length - 1)
+      // 30s per stage → 10 stages = 300s ≈ 5 min. Matches real 70B generation time.
+      // Stage index is capped at last stage so it doesn't overflow while waiting for result.
+      ? Math.min(Math.floor(elapsedSeconds / 30), pipelineStages.length - 1)
       : -1;
+
+  // True when all stages have ticked but the result hasn't come back yet (waiting on 70B)
+  const isWaitingForResult = isRunning && processStageIndex === pipelineStages.length - 1 && !isCompletedRun;
+
   const progressPercent = isCompletedRun
     ? 100
     : isRunning
-      ? Math.max(8, Math.round(((processStageIndex + 1) / pipelineStages.length) * 100))
+      // Cap progress at 92% while waiting — never show 100% until result actually arrives
+      ? Math.min(92, Math.max(8, Math.round(((processStageIndex + 1) / pipelineStages.length) * 100)))
       : 0;
-  const currentStageLabel = isCompletedRun ? "Ready" : pipelineStages[Math.max(processStageIndex, 0)] || "Waiting";
+  const currentStageLabel = isCompletedRun
+    ? "Ready"
+    : isWaitingForResult
+      ? "SAGE is drafting your architecture..."
+      : pipelineStages[Math.max(processStageIndex, 0)] || "Waiting";
 
-  const formatElapsed = (seconds: number) => `${seconds}s elapsed`;
+  const formatElapsed = (seconds: number) => {
+    if (seconds < 60) return `${seconds}s elapsed`;
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}m ${s}s elapsed`;
+  };
   const expansionMeta = result?.__meta?.spec_expansion;
   const expandedCharDelta = Math.max(0, (expansionMeta?.expanded_chars || 0) - (expansionMeta?.original_chars || 0));
   const inferredBoostCount = Math.max(0, expansionMeta?.inferred_count || 0);
 
+  // Stage insights — show live analysis counts on completion using real spec fields
+  const dbTables = (result as unknown as Record<string, unknown>)?.database as { tables?: unknown[] } | undefined;
+  const specEndpoints = (result as unknown as Record<string, unknown>)?.endpoints as unknown[] | undefined;
+  const specAuth = (result as unknown as Record<string, unknown>)?.auth_strategy as { method?: string } | undefined;
+  const specStack = (result as unknown as Record<string, unknown>)?.tech_stack as { language?: string; framework?: string; database_engine?: string } | undefined;
+  const specBusinessRules = (result as unknown as Record<string, unknown>)?.business_rules as unknown[] | undefined;
+  const specAntiFragility = (result as unknown as Record<string, unknown>)?.anti_fragility as { chaos_scenarios?: unknown[]; hardening_checklist?: unknown[]; resilience_rating?: string } | undefined;
+  const specDevOps = (result as unknown as Record<string, unknown>)?.devops as { environment_variables?: unknown[] } | undefined;
+  const specSpice = (result as unknown as Record<string, unknown>)?.spice as { design_rationale?: string } | undefined;
+
   const stageInsights: Record<string, string> = {
     "Requirements & scope": isCompletedRun
-      ? `Captured ${(result?.requirements?.functional || []).length} core workflows`
-      : "Gathering goals, constraints, and scope",
+      ? `Stack: ${specStack?.language || "Python"} / ${specStack?.framework || "FastAPI"} — ${(specBusinessRules || []).length} business rules captured`
+      : "Analysing goals, constraints, and scope...",
     "Domain model": isCompletedRun
-      ? `Found ${entities.length} entities, ${relationships.length} relationships`
-      : "Deriving entities and relationships",
+      ? `Found ${(dbTables?.tables || entities).length} entities, ${relationships.length} relationships`
+      : "Deriving entities and relationships...",
     "API surface": isCompletedRun
-      ? `Generated ${endpoints.length} endpoints across resources`
-      : "Designing API surface",
+      ? `Generated ${(specEndpoints || endpoints).length} endpoints across resources`
+      : "Designing REST API surface...",
     "Workflows & states": isCompletedRun
-      ? `Defined ${(result?.workflows || []).length} workflows`
-      : "Mapping workflows and states",
+      ? specSpice?.design_rationale
+        ? `${specSpice.design_rationale.slice(0, 60)}...`
+        : `${(specBusinessRules || []).length} workflows & business rules defined`
+      : "Mapping request workflows and state transitions...",
     "Data storage": isCompletedRun
-      ? `Planned ${(result?.architecture?.data_stores || []).length} data stores`
-      : "Selecting storage, indexing, and retention",
+      ? `${(dbTables?.tables || []).length} tables · DB: ${specStack?.database_engine || "PostgreSQL"}`
+      : "Selecting storage engine, indexing, and retention...",
     "Security & compliance": isCompletedRun
-      ? `Security: ${(result?.security?.authn || "auth").slice(0, 24)}...`
-      : "Defining auth, access, and compliance",
+      ? `Auth: ${specAuth?.method || "JWT"} · Token expiry: ${(result as unknown as Record<string, unknown>)?.auth_strategy ? "configured" : "default"}`
+      : "Defining auth, access control, and compliance...",
     "Observability": isCompletedRun
-      ? `Metrics ${(result?.observability?.metrics || []).length}, alerts ${(result?.observability?.alerts || []).length}`
-      : "Setting up logs, metrics, and tracing",
+      ? `${(specDevOps?.environment_variables || []).length} env vars · DevOps config generated`
+      : "Setting up logs, metrics, and tracing...",
     "Reliability & DR": isCompletedRun
-      ? `SLOs ${(result?.reliability?.slo || []).length}, DR ${(result?.reliability?.dr || []).length}`
-      : "Planning resilience and recovery",
+      ? `Resilience rating: ${specAntiFragility?.resilience_rating || "B"} · ${(specAntiFragility?.chaos_scenarios || []).length} chaos scenarios`
+      : "Planning resilience, SLOs, and disaster recovery...",
     "Scaling & performance": isCompletedRun
-      ? `Bottlenecks ${(result?.scaling?.bottlenecks || []).length}`
-      : "Planning scaling and performance",
+      ? `${(specAntiFragility?.hardening_checklist || []).length} hardening steps identified`
+      : "Analysing bottlenecks and scaling strategy...",
     "Deployment & DevOps": isCompletedRun
-      ? `Runbooks ${(result?.deliverables?.runbooks || []).length}`
-      : "Finalizing deployment and operations"
+      ? `Dockerfile + docker-compose generated · ${(specDevOps?.environment_variables || []).length} env vars`
+      : "Finalising deployment pipeline and infrastructure..."
   };
+
 
   const endpointByEntity = entities
     .map((entity) => {
@@ -899,9 +937,11 @@ function DashboardContent() {
                 <p className="text-lg font-medium text-white">
                   {isCompletedRun
                     ? "Backend generated successfully"
-                    : isRunning
-                      ? `Generating your backend... (${currentStageLabel})`
-                      : "Ready when you are"}
+                    : isWaitingForResult
+                      ? "SAGE is drafting your architecture..."
+                      : isRunning
+                        ? `Analysing spec — ${currentStageLabel}`
+                        : "Ready when you are"}
                 </p>
                 {isCompletedRun ? (
                   <span className="rounded-full border border-[#C2D68C]/40 bg-[#C2D68C]/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-white">
@@ -910,16 +950,21 @@ function DashboardContent() {
                 ) : null}
               </div>
 
-              <div className="mt-4 h-3 w-full overflow-hidden rounded-full bg-white/10">
+            <div className="mt-4 h-3 w-full overflow-hidden rounded-full bg-white/10">
                 <div
-                  className={`h-full rounded-full bg-[#C2D68C] transition-all duration-700 ${isRunning ? "animate-pulse" : ""}`}
+                  className={`h-full rounded-full transition-all duration-1000 ${isRunning ? "animate-pulse" : ""} ${isCompletedRun ? "bg-[#C2D68C]" : "bg-gradient-to-r from-[#C2D68C] to-[#8fbe3a]"}`}
                   style={{ width: `${progressPercent}%` }}
                 />
               </div>
-              <p className="mt-2 text-xs text-white/60">
-                [{"█".repeat(Math.round(progressPercent / 8)).padEnd(12, "░")}] {isCompletedRun ? "Completed" : `${progressPercent}% in progress`}
-                {isRunning ? ` - ${formatElapsed(elapsedSeconds)}` : ""}
-              </p>
+              <div className="mt-2 flex items-center justify-between gap-2">
+                <p className="text-xs text-white/60">
+                  [{"█".repeat(Math.round(progressPercent / 8)).padEnd(12, "░")}] {isCompletedRun ? "Completed" : `${progressPercent}% in progress`}
+                  {isRunning ? ` — ${formatElapsed(elapsedSeconds)}` : ""}
+                </p>
+                {isWaitingForResult && (
+                  <p className="animate-pulse text-xs text-[#C2D68C]/80">⏳ AI generating spec — please wait...</p>
+                )}
+              </div>
               {isCompletedRun && generationMeta?.source ? (
                 <p className="mt-2 text-xs text-white/60">
                   Generated by {generationMeta.source}{generationMeta.model ? ` (${generationMeta.model})` : ""}

@@ -1,8 +1,10 @@
 import os
 import logging
+from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
+load_dotenv()
 logger = logging.getLogger(__name__)
 
 # Fetch database URL, defaulting to workspace SQLite for easy local dev

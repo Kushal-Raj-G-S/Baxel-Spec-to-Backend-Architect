@@ -1,7 +1,8 @@
 import uuid
 import logging
 from sqlalchemy.orm import Session
-from app.models.spec_db import SpecModel
+from app.models.spec_db import ProjectModel, SpecModel, PipelineRunModel
+import datetime
 from app.services.nlp.pipeline import run_nlp_pipeline
 from app.services.agents.generation import run_agent_swarm
 
@@ -49,23 +50,42 @@ async def run_generation_pipeline(
             generation_status=status
         )
         
-        # Increment version number if parent exists
-        version = 1
-        if parent_spec_id:
-            parent = db_session.query(SpecModel).filter(SpecModel.id == parent_spec_id).first()
-            if parent:
-                version = parent.version + 1
-        
+        # Ensure we have a default project
+        project = db_session.query(ProjectModel).first()
+        if not project:
+            project = ProjectModel(
+                id=str(uuid.uuid4()),
+                name="Default Project",
+                user_id=None
+            )
+            db_session.add(project)
+            db_session.commit()
+            db_session.refresh(project)
+            
         # Save output to Database
         logger.info(f"[{spec_id_str}] Saving generated output to Database...")
         db_spec = SpecModel(
             id=spec_id_str,
-            parent_spec_id=parent_spec_id,
-            version=version,
-            prompt_used=prompt,
-            generated_json=spec.model_dump()
+            project_id=project.id,
+            title="Generated Spec",
+            content=prompt,
+            source_type="api",
+            user_id=None
         )
         db_session.add(db_spec)
+        
+        # Save pipeline run record
+        db_run = PipelineRunModel(
+            id=str(uuid.uuid4()),
+            project_id=project.id,
+            spec_id=spec_id_str,
+            status="completed",
+            stages={"stages": []},
+            result=spec.model_dump(),
+            completed_at=datetime.datetime.utcnow(),
+            user_id=None
+        )
+        db_session.add(db_run)
         db_session.commit()
         
         generation_status_db[spec_id_str].update({

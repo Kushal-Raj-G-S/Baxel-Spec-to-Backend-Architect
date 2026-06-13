@@ -12,11 +12,12 @@ import logoImage from "../logo.png";
 const appLinks = [
   { label: "Dashboard", href: "/app/dashboard" },
   { label: "Projects", href: "/app/projects" },
-  { label: "Pipelines", href: "/app/pipelines" },
+  { label: "Conversations", href: "/app/pipelines" },
   { label: "Settings", href: "/app/settings" }
 ];
 
-export default function AppShell({ children }: { children: React.ReactNode }) {
+export default function AppShell({ children, wide = false }: { children: React.ReactNode; wide?: boolean }) {
+  const widthClass = wide ? "max-w-[1400px]" : "max-w-6xl";
   const router = useRouter();
   const cachedPlanLabel = typeof window !== "undefined" ? window.localStorage.getItem("baxel:plan-label") : null;
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -256,7 +257,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div ref={rootRef} className="min-h-screen bg-[#1F261D] cursor-reactive">
       <header className="relative z-40 border-b border-white/10 bg-[#1F261D]/70">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-6">
+        <div className={`mx-auto flex w-full items-center justify-between px-6 py-6 ${widthClass}`}>
           <Link href="/" className="flex items-center gap-3">
             <Image src={logoImage} alt="Baxel logo" className="h-9 w-9 rounded-2xl object-cover" priority />
             <div className="min-w-0">
@@ -318,7 +319,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </div>
 
         {isMobileNavOpen && (
-          <div className="mx-auto w-full max-w-6xl px-6 pb-5 md:hidden">
+          <div className={`mx-auto w-full px-6 pb-5 md:hidden ${widthClass}`}>
             <div className="rounded-2xl border border-white/20 bg-[#1F261D]/90 p-3 shadow-lg">
               <p className="px-2 pb-2 text-xs font-semibold uppercase tracking-[0.2em] text-white/60">Navigation</p>
               <div className="space-y-1">
@@ -347,7 +348,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         )}
       </header>
-      <main className="mx-auto w-full max-w-6xl px-6 py-10">{children}</main>
+      <main className={`mx-auto w-full px-6 py-10 ${widthClass}`}>{children}</main>
 
       {isDomReady &&
         isProfileMenuOpen &&

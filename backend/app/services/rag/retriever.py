@@ -15,9 +15,14 @@ class RAGBlueprintRetriever:
         self.index = None
         self.texts = []
         self.initialized = False
+        self._init_attempted = False  # Prevent repeated failed model loads per process
         self.min_similarity_score = 0.60
         
     def initialize(self):
+        # Only attempt once per process — avoids re-triggering paging file errors
+        if self._init_attempted:
+            return
+        self._init_attempted = True
         try:
             from sentence_transformers import SentenceTransformer
             import faiss

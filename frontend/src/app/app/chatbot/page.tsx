@@ -122,6 +122,125 @@ type Message = {
   content: string;
 };
 
+// Markdown Renderer Component
+function MarkdownRenderer({ content }: { content: string }) {
+  const lines = content.split("\n");
+  const elements: React.ReactNode[] = [];
+  let currentListItems: React.ReactNode[] = [];
+  let activeListType: "unordered" | "ordered" | null = null;
+
+  const flushList = (key: string | number) => {
+    if (currentListItems.length > 0) {
+      if (activeListType === "unordered") {
+        elements.push(
+          <ul key={`list-${key}`} className="list-disc pl-5 mb-3 last:mb-0 space-y-1">
+            {currentListItems}
+          </ul>
+        );
+      } else if (activeListType === "ordered") {
+        elements.push(
+          <ol key={`list-${key}`} className="list-decimal pl-5 mb-3 last:mb-0 space-y-1">
+            {currentListItems}
+          </ol>
+        );
+      }
+      currentListItems = [];
+      activeListType = null;
+    }
+  };
+
+  const parseInlineStyles = (text: string) => {
+    // Split by bold markdown **
+    const parts = text.split(/\*\*([^*]+)\*\*/g);
+    return parts.map((part, index) => {
+      if (index % 2 === 1) {
+        return <strong key={index} className="font-bold text-[#C2D68C]">{part}</strong>;
+      }
+      // Inline code `code`
+      const subParts = part.split(/`([^`]+)`/g);
+      return subParts.map((subPart, subIndex) => {
+        if (subIndex % 2 === 1) {
+          return (
+            <code key={`code-${index}-${subIndex}`} className="bg-white/10 px-1.5 py-0.5 rounded font-mono text-xs text-[#C2D68C]">
+              {subPart}
+            </code>
+          );
+        }
+        return subPart;
+      });
+    });
+  };
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    // Check matches
+    const isBulletMatch = trimmed.startsWith("* ") || trimmed.startsWith("- ") || trimmed.startsWith("• ");
+    const isOrderedMatch = /^\d+\.\s+/.test(trimmed);
+
+    if (isBulletMatch) {
+      if (activeListType !== "unordered") {
+        flushList(i);
+        activeListType = "unordered";
+      }
+      const cleanText = trimmed.replace(/^[\*\-•]\s+/, "");
+      currentListItems.push(
+        <li key={`li-${i}`} className="text-white/90">
+          {parseInlineStyles(cleanText)}
+        </li>
+      );
+    } else if (isOrderedMatch) {
+      if (activeListType !== "ordered") {
+        flushList(i);
+        activeListType = "ordered";
+      }
+      const cleanText = trimmed.replace(/^\d+\.\s+/, "");
+      currentListItems.push(
+        <li key={`li-${i}`} className="text-white/90">
+          {parseInlineStyles(cleanText)}
+        </li>
+      );
+    } else {
+      flushList(i);
+
+      if (trimmed === "") {
+        continue;
+      }
+
+      if (trimmed.startsWith("### ")) {
+        elements.push(
+          <h4 key={`h3-${i}`} className="text-xs font-bold text-[#C2D68C] mt-3 mb-1 uppercase tracking-wider">
+            {parseInlineStyles(trimmed.substring(4))}
+          </h4>
+        );
+      } else if (trimmed.startsWith("## ")) {
+        elements.push(
+          <h3 key={`h2-${i}`} className="text-sm font-bold text-white mt-4 mb-1.5">
+            {parseInlineStyles(trimmed.substring(3))}
+          </h3>
+        );
+      } else if (trimmed.startsWith("# ")) {
+        elements.push(
+          <h2 key={`h1-${i}`} className="text-base font-bold text-white mt-5 mb-2">
+            {parseInlineStyles(trimmed.substring(2))}
+          </h2>
+        );
+      } else {
+        elements.push(
+          <p key={`p-${i}`} className="mb-2 last:mb-0 text-white/90 leading-relaxed">
+            {parseInlineStyles(trimmed)}
+          </p>
+        );
+      }
+    }
+  }
+
+  flushList("final");
+
+  return <div className="space-y-1">{elements}</div>;
+}
+
 const starterPrompts = [
   { label: "Investor Summary", text: "Write a short summary of this architecture that I can pitch to investors." },
   { label: "AWS Cost Estimate", text: "Estimate how much this stack will cost to host on AWS for 10,000 users/month." },
@@ -148,7 +267,7 @@ function ChatbotContent() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: "Welcome to Baxel Architecture Chat! Ask me anything about the generated design, databases, API logic, scaling properties, or request code helpers (like ORM files/models)."
+      content: "Welcome to SAGE! I am SAGE (Specification Answering & Guidance Engine), your AI Systems Architect. Ask me anything about the generated design, databases, API logic, scaling properties, or request code helpers (like ORM files/models)."
     }
   ]);
   const [chatInput, setChatInput] = useState("");
@@ -201,6 +320,28 @@ function ChatbotContent() {
         if (payload.result) {
           setResult(payload.result);
           setStatus("Ready");
+          
+          if (specId) {
+            try {
+              const historyRes = await fetch(`${apiBaseUrl}/api/chat/history?spec_id=${specId}`, {
+                headers: getAuthHeaders(token)
+              });
+              if (historyRes.ok) {
+                const historyData = await historyRes.json();
+                if (historyData.messages && historyData.messages.length > 0) {
+                  setMessages([
+                    {
+                      role: "assistant",
+                      content: "Welcome to SAGE! I am SAGE (Specification Answering & Guidance Engine), your AI Systems Architect. Ask me anything about the generated design, databases, API logic, scaling properties, or request code helpers (like ORM files/models)."
+                    },
+                    ...historyData.messages
+                  ]);
+                }
+              }
+            } catch (err) {
+              console.error("Failed to load chat history:", err);
+            }
+          }
         } else {
           setStatus("No results generated for this run.");
         }
@@ -314,7 +455,7 @@ function ChatbotContent() {
     return (
       <AppShell>
         <div className="glass rounded-3xl p-8 text-center text-white/60">
-          <p className="label">Baxel Chat</p>
+          <p className="label">SAGE Chat</p>
           <p className="mt-4 text-sm">{status}</p>
           <div className="mt-6">
             <Link href="/app/dashboard" className="rounded-full bg-[#C2D68C] px-5 py-2 text-xs font-semibold text-[#1F261D]">
@@ -327,13 +468,13 @@ function ChatbotContent() {
   }
 
   return (
-    <AppShell>
+    <AppShell wide>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 text-xs text-white/50">
             <Link href="/app/dashboard" className="transition hover:text-white">Dashboard</Link>
             <span>/</span>
-            <span className="text-white/80">Chatbot</span>
+            <span className="text-white/80">SAGE Chat</span>
           </div>
           <h1 className="mt-2 text-2xl font-bold text-white">
             Chatting with {fallbackProject || result?.overview?.product || "Spec Context"}
@@ -345,7 +486,7 @@ function ChatbotContent() {
         </Link>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr] h-[calc(100vh-220px)] min-h-[550px]">
+      <div className="grid gap-6 lg:grid-cols-[0.85fr_1.15fr] h-[calc(100vh-220px)] min-h-[550px]">
         {/* Left Visual Spec Column */}
         <section className="glass rounded-3xl p-6 flex flex-col min-h-0">
           <div className="flex flex-wrap items-center gap-1.5 pb-4 border-b border-white/10">
@@ -484,21 +625,20 @@ function ChatbotContent() {
 
         {/* Right Chat Column */}
         <section className="glass rounded-3xl p-6 flex flex-col min-h-0 border border-[#C2D68C]/20 shadow-[0_8px_32px_rgba(194,214,140,0.05)]">
-          <p className="label border-b border-white/10 pb-3">AI Architect Chat</p>
+          <p className="label border-b border-white/10 pb-3">SAGE Chat</p>
 
           {/* Messages Area */}
           <div className="flex-1 overflow-y-auto mt-4 space-y-4 pr-1">
             {messages.map((msg, index) => (
               <div key={index} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                 <div
-                  className={`max-w-[85%] rounded-2xl p-4 text-xs leading-relaxed ${
+                  className={`max-w-[85%] rounded-2xl p-4 text-sm leading-relaxed ${
                     msg.role === "user"
                       ? "bg-[#C2D68C]/15 text-white border border-[#C2D68C]/35 rounded-tr-none"
                       : "bg-white/5 text-white/90 border border-white/10 rounded-tl-none"
                   }`}
-                  style={{ whiteSpace: "pre-wrap" }}
                 >
-                  {msg.content}
+                  <MarkdownRenderer content={msg.content} />
                 </div>
               </div>
             ))}
@@ -573,7 +713,7 @@ function ChatbotContent() {
 
 export default function ChatbotPage() {
   return (
-    <Suspense fallback={<AppShell><div className="p-10 text-white/60 text-center">Loading chatbot...</div></AppShell>}>
+    <Suspense fallback={<AppShell><div className="p-10 text-white/60 text-center">Loading SAGE...</div></AppShell>}>
       <ChatbotContent />
     </Suspense>
   );

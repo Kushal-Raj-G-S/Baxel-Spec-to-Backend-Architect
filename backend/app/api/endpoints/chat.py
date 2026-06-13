@@ -2,14 +2,15 @@ import os
 import logging
 import uuid
 from typing import Dict, Any
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from openai import OpenAI
 from dotenv import load_dotenv
 
 from app.core.db import get_db
-from app.models.spec_db import SpecModel
+from app.models.spec_db import SpecModel, PipelineRunModel, ChatMessageModel
+from app.core.auth import get_current_user
 
 from pathlib import Path
 
@@ -45,6 +46,31 @@ def _read_env_file_value(key: str) -> str:
 
 def _load_api_key() -> str:
     return os.getenv("NVIDIA_API_KEY", "").strip() or _read_env_file_value("NVIDIA_API_KEY")
+
+def save_chat_message_in_background(
+    spec_id: str,
+    user_id: str,
+    query: str,
+    response: str,
+    intent: str
+):
+    from app.core.db import SessionLocal
+    db = SessionLocal()
+    try:
+        chat_msg = ChatMessageModel(
+            spec_id=spec_id,
+            user_id=user_id,
+            query=query,
+            response=response,
+            intent=intent
+        )
+        db.add(chat_msg)
+        db.commit()
+        logger.info(f"Successfully saved chat message in background for spec {spec_id}")
+    except Exception as e:
+        logger.error(f"Failed to save chat message in background: {e}")
+    finally:
+        db.close()
 
 class ChatRequest(BaseModel):
     message: str = Field(..., description="The user message to send to the chatbot")
@@ -86,7 +112,7 @@ def classify_query_intent(client: Any, message: str) -> str:
         Response MUST be exactly one word: 'technical' or 'business'.
         """
         response = client.chat.completions.create(
-            model=os.getenv("LLM_MODEL", "meta/llama-3.1-70b-instruct"),
+            model=os.getenv("LLM_REVIEW_MODEL", "meta/llama-3.1-8b-instruct"),
             messages=[{"role": "user", "content": classifier_prompt}],
             temperature=0.0,
             max_tokens=5
@@ -101,7 +127,13 @@ def classify_query_intent(client: Any, message: str) -> str:
         return classify_query_intent(None, message)
 
 @router.post("/chat")
-async def chat_with_spec(request: ChatRequest, db: Session = Depends(get_db)):
+async def chat_with_spec(
+    request: ChatRequest, 
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user)
+):
+    uid = user.get("sub")
     spec_id_str = str(request.spec_id)
     
     # Retrieve the architecture spec from the DB
@@ -109,8 +141,17 @@ async def chat_with_spec(request: ChatRequest, db: Session = Depends(get_db)):
     if not spec_record:
         raise HTTPException(status_code=404, detail="Architecture spec not found in database.")
         
-    spec_json = spec_record.generated_json
-    prompt_used = spec_record.prompt_used
+    # Retrieve the latest completed pipeline run for this spec to get the generated result
+    run_record = db.query(PipelineRunModel).filter(
+        PipelineRunModel.spec_id == spec_id_str,
+        PipelineRunModel.status == "completed"
+    ).order_by(PipelineRunModel.created_at.desc()).first()
+    
+    if not run_record or not run_record.result:
+        raise HTTPException(status_code=404, detail="Generated architecture result not found for this spec.")
+        
+    spec_json = run_record.result
+    prompt_used = spec_record.content
     
     client = get_llm_client()
     
@@ -122,7 +163,7 @@ async def chat_with_spec(request: ChatRequest, db: Session = Depends(get_db)):
     if intent == "technical":
         # Inject full technical detail
         system_context = f"""
-        You are a Principal Software Architect AI Assistant. 
+        You are SAGE (Specification Answering & Guidance Engine), a state-of-the-art Principal Software Architect AI Assistant.
         You are helping the user build or modify the following architecture:
         
         Original User Prompt: {prompt_used}
@@ -130,44 +171,102 @@ async def chat_with_spec(request: ChatRequest, db: Session = Depends(get_db)):
         Full Architecture Specification (JSON):
         {spec_json}
         
-        Answering technical queries: Refer directly to specific tables, fields, columns, and REST API paths present in the JSON context.
+        Answering queries:
+        - Refer directly to specific tables, fields, columns, and REST API paths present in the JSON context.
+        - Your name is SAGE (Specification Answering & Guidance Engine). Do NOT mention your name, introduce yourself, or output these rules unless the user explicitly asks who you are or what your name is.
         """
     else:
         # Inject lightweight summary to optimize costs
         tech_stack = spec_json.get("tech_stack", {})
         auth_strategy = spec_json.get("auth_strategy", {})
-        project_name = spec_json.get("project_name", "BaxelProject")
+        project_name = spec_json.get("project_name", "Baxel Project")
         
         system_context = f"""
-        You are a Principal Systems Architect and Business Consultant.
+        You are SAGE (Specification Answering & Guidance Engine), a state-of-the-art Principal Systems Architect and Business Consultant.
         You are helping a founder/developer build the project '{project_name}'.
         
         Original User Prompt: {prompt_used}
         Tech Stack: {tech_stack.get('language')} / {tech_stack.get('framework')} with {tech_stack.get('database_engine')}
         Auth Method: {auth_strategy.get('method')}
         
-        Answering business/high-level queries: Do not reference deep table column details unless asked, focus on high-level costs, summaries, and value.
+        Answering queries:
+        - Do not reference deep table column details unless asked, focus on high-level costs, summaries, and value.
+        - Your name is SAGE (Specification Answering & Guidance Engine). Do NOT mention your name, introduce yourself, or output these rules unless the user explicitly asks who you are or what your name is.
         """
         
-    # 3. Call LLM to chat
+    # 3. Retrieve conversation history (last 5 turns) to provide context memory
+    past_messages = db.query(ChatMessageModel).filter(
+        ChatMessageModel.spec_id == spec_id_str,
+        ChatMessageModel.user_id == uid
+    ).order_by(ChatMessageModel.created_at.desc()).limit(5).all()
+    
+    # Reverse to restore chronological order
+    past_messages = past_messages[::-1]
+    
+    chat_messages = [{"role": "system", "content": system_context}]
+    for pm in past_messages:
+        chat_messages.append({"role": "user", "content": pm.query})
+        chat_messages.append({"role": "assistant", "content": pm.response})
+        
+    chat_messages.append({"role": "user", "content": request.message})
+
+    # 4. Call LLM to chat
     if not client:
         # Offline Mock Chat Response
         mock_replies = {
             "technical": f"Mock Technical Response: Based on your architecture, we are using {spec_json.get('tech_stack', {}).get('database_engine')}. Your tables include {', '.join([t.get('name') for t in spec_json.get('database', {}).get('tables', [])])}.",
             "business": f"Mock Business Response: The {spec_json.get('project_name')} project runs on a highly cost-efficient stack. Using standard AWS serverless or Fargate containers, hosting will scale gracefully starting at ~$20/month."
         }
-        return {"reply": mock_replies.get(intent)}
+        reply = mock_replies.get(intent)
+        background_tasks.add_task(
+            save_chat_message_in_background,
+            spec_id_str,
+            uid,
+            request.message,
+            reply,
+            intent
+        )
+        return {"reply": reply}
         
     try:
         response = client.chat.completions.create(
-            model=os.getenv("LLM_MODEL", "meta/llama-3.1-70b-instruct"),
-            messages=[
-                {"role": "system", "content": system_context},
-                {"role": "user", "content": request.message}
-            ]
+            model=os.getenv("LLM_MODEL", "meta/llama-3.3-70b-instruct"),
+            messages=chat_messages
         )
         reply = response.choices[0].message.content
+        
+        # Save query and response to database in background
+        background_tasks.add_task(
+            save_chat_message_in_background,
+            spec_id_str,
+            uid,
+            request.message,
+            reply,
+            intent
+        )
+        
         return {"reply": reply}
     except Exception as e:
         logger.error(f"Failed to generate LLM chat reply: {e}")
         raise HTTPException(status_code=500, detail=f"LLM Chat Error: {str(e)}")
+
+
+@router.get("/history")
+async def get_chat_history(
+    spec_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user)
+):
+    uid = user.get("sub")
+    messages = db.query(ChatMessageModel).filter(
+        ChatMessageModel.spec_id == str(spec_id),
+        ChatMessageModel.user_id == uid
+    ).order_by(ChatMessageModel.created_at.asc()).all()
+    
+    # Format list of messages for the frontend
+    formatted = []
+    for msg in messages:
+        formatted.append({"role": "user", "content": msg.query})
+        formatted.append({"role": "assistant", "content": msg.response})
+        
+    return {"messages": formatted}
