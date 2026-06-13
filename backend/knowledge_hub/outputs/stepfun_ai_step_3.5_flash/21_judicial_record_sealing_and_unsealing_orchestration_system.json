@@ -1,0 +1,39 @@
+{
+  "archetype": "Judicial Record Sealing and Unsealing Orchestration System",
+  "domain": "Federal and State Court Administration",
+  "description": "A system that automates the cryptographic sealing, access-controlled unsealing, and immutable audit of court records according to varying jurisdictional rules. It serves court clerks, judges, and attorneys, with complexity arising from parsing 50+ state-specific sealing statutes, integrating with legacy case management systems (e.g., CM/ECF), and ensuring zero accidental disclosure during ephemeral access grants.",
+  "rules": [
+    "MUST enforce rule evaluation against real statutes (e.g., FRCP Rule 5.2, specific state court rules) and local administrative orders.",
+    "MUST generate a cryptographically sealed, tamper-evident package for each record using NIST-approved algorithms upon sealing.",
+    "MUST log every access attempt, successful or not, to an immutable audit trail meeting ISO 27001 standards.",
+    "MUST integrate with existing court authentication systems (e.g., PACER, state CM systems) and never store credentials.",
+    "MUST automatically expire time-limited unsealing grants and re-seal records without manual intervention."
+  ],
+  "anti_patterns": [
+    "DO NOT implement a single, uniform sealing policy\u2014jurisdictional variations make this legally invalid.",
+    "DO NOT rely on database-level encryption alone; sealing must be a portable, self-contained cryptographic object.",
+    "DO NOT allow 'view-only' access without an explicit, time-bound unsealing grant and logged justification."
+  ],
+  "key_technical_challenges": [
+    "Building a deterministic, auditable rule engine that correctly interprets and applies diverse, sometimes conflicting, legal sealing criteria from multiple sources.",
+    "Ensuring zero-knowledge proof of seal status to external systems without exposing record content or unsealing keys.",
+    "Achieving sub-second latency for seal/unseal operations while integrating with high-latency, legacy mainframe-based case management APIs."
+  ],
+  "recommended_stack": {
+    "language": "Java - Strong ecosystem for enterprise integration and cryptographic libraries used in government systems.",
+    "framework": "Spring Boot - Mature for building secure, transactional, API-driven services that integrate with legacy SOAP/XML court systems.",
+    "database_engine": "PostgreSQL - ACID compliance for critical audit logs and support for pgcrypto extensions.",
+    "cache": "Redis - For short-lived, encrypted access tokens and session state during active unsealing.",
+    "message_broker": "Apache Kafka - For immutable, ordered audit event streams and rule update dissemination.",
+    "special_services": [
+      "Cryptographic Sealing Service (HSM-backed)",
+      "Multi-Jurisdiction Rule Engine Service"
+    ]
+  },
+  "compliance_flags": [
+    "Federal Rules of Civil Procedure (Rule 5.2)",
+    "State-Specific Court Rules (e.g., CA Rules of Court)",
+    "ISO 27001 Audit Requirements",
+    "NIST SP 800-88 for Data Sanitization upon re-seal"
+  ]
+}

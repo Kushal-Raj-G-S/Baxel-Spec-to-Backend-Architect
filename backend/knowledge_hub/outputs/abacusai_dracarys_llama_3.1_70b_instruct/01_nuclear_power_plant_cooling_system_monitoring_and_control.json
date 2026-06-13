@@ -1,0 +1,37 @@
+{
+  "archetype": "Nuclear Power Plant Cooling System Monitoring and Control",
+  "domain": "Nuclear Energy Operations",
+  "description": "A software system that monitors and controls the cooling systems of a nuclear power plant, ensuring safe operation and preventing overheating. Used by nuclear power plant operators, this system must adhere to strict safety protocols and regulations. Technically challenging due to the need for real-time data processing, high reliability, and adherence to nuclear industry standards.",
+  "rules": [
+    "MUST integrate with existing SCADA systems for real-time data acquisition",
+    "MUST adhere to IAEA safety standards for nuclear power plant operations",
+    "MUST implement automatic fail-safe mechanisms to prevent overheating",
+    "MUST provide real-time alerts and notifications to operators in case of anomalies",
+    "MUST ensure data integrity and security in accordance with NRC regulations"
+  ],
+  "anti_patterns": [
+    "DO NOT use off-the-shelf solutions without customization for nuclear industry specificities",
+    "DO NOT neglect to implement redundancy in critical system components",
+    "DO NOT overlook the need for regular software updates and patching"
+  ],
+  "key_technical_challenges": [
+    "Real-time data processing and analysis of complex sensor data",
+    "Ensuring high reliability and fault tolerance in a safety-critical system",
+    "Implementing secure communication protocols for data transmission"
+  ],
+  "recommended_stack": {
+    "language": "C++ for its performance, reliability, and compatibility with existing SCADA systems",
+    "framework": "Qt for its real-time capabilities and cross-platform support",
+    "database_engine": "PostgreSQL for its reliability, security, and support for complex data types",
+    "cache": "Redis for its high performance and real-time data processing capabilities",
+    "message_broker": "Apache Kafka for its fault-tolerant and scalable messaging capabilities",
+    "special_services": [
+      "IAEA-compliant safety analysis tools",
+      "NRC-compliant security auditing tools"
+    ]
+  },
+  "compliance_flags": [
+    "IAEA Safety Standards",
+    "NRC Regulations"
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "archetype": "Real-Time Millisecond-Level Skid-Load & Drag Coefficient Orchestrator for Autonomous Heavy-Miner Haulage in Opaque Dust Environments",
+  "domain": "Autonomous Open-Pit Mining Logistics",
+  "description": "This system fuses LiDAR, inertial measurement units (IMUs), and wheel-torque telemetry to calculate real-time dynamic drag coefficients and slip ratios for 400-ton autonomous haul trucks operating in low-visibility dust storms. Computer vision operators use this to override standard path planning when soil shear strength drops, preventing catastrophic rollovers. The technical difficulty lies in synchronizing heterogeneous sensor data streams with sub-10ms latency while compensating for massive vehicle inertia and unpredictable material density changes.",
+  "rules": [
+    "MUST adhere to ISO 26262 ASIL-D functional safety standards for all decision-making logic affecting vehicle motion.",
+    "MUST implement a deterministic real-time operating system (RTOS) kernel for the control loop to guarantee sub-5ms jitter.",
+    "MUST ingest data via Modbus TCP and CAN FD protocols to interface directly with legacy hydraulic braking and transmission controllers.",
+    "MUST apply Kalman Filtering variants specifically tuned for sensor dropout rates exceeding 40% during high-dust events.",
+    "MUST log all state transitions and sensor fusion weights in an immutable format compliant with MSHA (Mine Safety and Health Administration) accident reconstruction requirements."
+  ],
+  "anti_patterns": [
+    "DO NOT use asynchronous, event-driven architectures for the primary braking control loop, as network latency spikes could cause fatal stopping distance errors.",
+    "DO NOT rely solely on GPS/RTK for localization, as open-pit canyon walls create multipath interference and signal loss.",
+    "DO NOT apply standard computer vision object detection models trained on urban datasets, as they fail to classify loose gravel piles and wet tailings correctly."
+  ],
+  "key_technical_challenges": [
+    "Synchronizing clock-time across distributed sensor nodes on a moving, vibrating 400-ton vehicle to within 10 microseconds.",
+    "Mathematically modeling the non-linear friction coefficient of wet, variable-composition ore tailings in real-time without ground-truth data.",
+    "Implementing a 'fail-operational' redundancy strategy where a secondary independent compute node can assume control within 50ms of primary failure."
+  ],
+  "recommended_stack": {
+    "language": "Rust \u2014 Provides memory safety guarantees and zero-cost abstractions critical for deterministic real-time control loops.",
+    "framework": "RTE (Real-Time Executive) for OSEK/VDX \u2014 Ensures strict task scheduling and priority inheritance for safety-critical threads.",
+    "database_engine": "InfluxDB \u2014 Optimized for high-write throughput of time-series sensor telemetry with down-sampling capabilities for long-term trend analysis.",
+    "cache": "Memcached \u2014 (Null) \u2014 Replaced by shared memory segments for zero-copy inter-process communication within the local vehicle node.",
+    "message_broker": "DDS (Data Distribution Service) \u2014 The industry standard for real-time, publish-subscribe middleware in safety-critical embedded systems.",
+    "special_services": [
+      "Non-Linear State Estimator Service (Extended Kalman Filter)",
+      "Dynamic Friction Surface Mapping Engine"
+    ]
+  },
+  "compliance_flags": [
+    "MSHA 30 CFR Part 56/57",
+    "ISO 26262 (Road Vehicles Functional Safety)",
+    "IEC 61508 (Functional Safety of Electrical/Electronic/Programmable Electronic Safety-related Systems)"
+  ]
+}

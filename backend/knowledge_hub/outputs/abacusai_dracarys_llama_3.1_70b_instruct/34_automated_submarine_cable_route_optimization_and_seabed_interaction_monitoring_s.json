@@ -1,0 +1,38 @@
+{
+  "archetype": "Automated Submarine Cable Route Optimization and Seabed Interaction Monitoring System for Transoceanic Telecommunications",
+  "domain": "Submarine Telecommunications Cable Industry",
+  "description": "This system optimizes submarine cable routes to minimize environmental impact and reduce the risk of seabed interactions, while ensuring compliance with international telecommunications regulations. It is used by cable operators and marine surveyors to plan and monitor cable deployments. The system must account for complex seabed topography, ocean currents, and marine life habitats.",
+  "rules": [
+    "MUST comply with ITU-T L.1750 recommendations for submarine cable route planning",
+    "MUST integrate with marine survey data formats such as IHO S-100",
+    "MUST account for environmental impact assessments in accordance with OSPAR Convention",
+    "MUST ensure compliance with Flag State and Coastal State regulations for cable deployments",
+    "MUST support real-time monitoring of seabed interactions and cable burial depth"
+  ],
+  "anti_patterns": [
+    "DO NOT use simplified 2D route planning models that neglect seabed topography and ocean currents",
+    "DO NOT ignore environmental impact assessments for sensitive marine habitats",
+    "DO NOT rely solely on manual survey data without integrating with automated sensing technologies"
+  ],
+  "key_technical_challenges": [
+    "Integrating complex geospatial data from multiple sources, including marine surveys and satellite imagery",
+    "Developing predictive models for seabed interactions and cable burial depth",
+    "Optimizing route planning algorithms for real-time computation and minimal environmental impact"
+  ],
+  "recommended_stack": {
+    "language": "Python + extensive libraries for geospatial data processing and machine learning",
+    "framework": "Django + support for complex data models and real-time monitoring",
+    "database_engine": "PostGIS + spatial database capabilities for efficient geospatial queries",
+    "cache": "Redis + high-performance caching for real-time data processing",
+    "message_broker": "RabbitMQ + support for asynchronous data processing and integration with sensing technologies",
+    "special_services": [
+      "Geospatial data processing services",
+      "Marine survey data integration services"
+    ]
+  },
+  "compliance_flags": [
+    "ITU-T L.1750",
+    "OSPAR Convention",
+    "Flag State and Coastal State regulations"
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "archetype": "Automated Underwater Archaeological Site Survey and Excavation Planning System",
+  "domain": "Underwater Archaeology",
+  "description": "This system aids underwater archaeologists in surveying and excavating submerged sites by processing sonar and sub-bottom profiling data to identify potential artifacts, generate 3D models of the site, and plan excavation routes. It's used by research institutions and government agencies to preserve cultural heritage. The system's technical challenges include handling large datasets, integrating multiple sensor inputs, and ensuring accuracy in low-visibility environments.",
+  "rules": [
+    "MUST integrate with side-scan sonar and sub-bottom profiling equipment to collect site data",
+    "MUST adhere to UNESCO's Convention on the Protection of the Underwater Cultural Heritage",
+    "MUST support 3D modeling and visualization of the site to aid in excavation planning",
+    "MUST incorporate machine learning algorithms to identify potential artifacts in the sonar data",
+    "MUST ensure data integrity and security to protect sensitive cultural and historical information"
+  ],
+  "anti_patterns": [
+    "DO NOT rely solely on manual data analysis, as it is time-consuming and prone to human error",
+    "DO NOT use a generic GIS platform without customization for underwater archaeology",
+    "DO NOT neglect to account for water conditions and their impact on sensor data accuracy"
+  ],
+  "key_technical_challenges": [
+    "Integrating diverse sensor data types and formats",
+    "Developing accurate machine learning models for artifact identification",
+    "Optimizing 3D modeling and visualization for low-visibility environments"
+  ],
+  "recommended_stack": {
+    "language": "Python, due to its extensive libraries for scientific computing and machine learning",
+    "framework": "Django, for its robust support of data-driven applications",
+    "database_engine": "PostgreSQL, for its ability to handle spatial data and large datasets",
+    "cache": "Redis, for its performance in handling real-time data",
+    "message_broker": "Apache Kafka, for its reliability in handling large volumes of sensor data",
+    "special_services": [
+      "Geospatial analysis libraries (e.g., GDAL, Geopy)",
+      "Machine learning frameworks (e.g., scikit-learn, TensorFlow)"
+    ]
+  },
+  "compliance_flags": [
+    "UNESCO Convention on the Protection of the Underwater Cultural Heritage",
+    "National Historic Preservation Act (NHPA)"
+  ]
+}

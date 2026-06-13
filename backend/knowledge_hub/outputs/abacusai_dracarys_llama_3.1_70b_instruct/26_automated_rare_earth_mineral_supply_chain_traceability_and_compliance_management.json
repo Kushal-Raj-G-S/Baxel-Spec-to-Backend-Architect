@@ -1,0 +1,37 @@
+{
+  "archetype": "Automated Rare Earth Mineral Supply Chain Traceability and Compliance Management System for European Union (EU) Importers",
+  "domain": "Rare Earth Mineral Trade and Compliance",
+  "description": "This system tracks and verifies the origin, processing, and trade of rare earth minerals across the EU, ensuring compliance with EU regulations and industry standards. It is used by EU importers, customs agencies, and regulatory bodies to monitor and report on the supply chain. The system must integrate with various industry-standard data formats and protocols, such as the International Chamber of Commerce (ICC) Incoterms and the European Union's Single Window Environment for Customs (EU SWEC).",
+  "rules": [
+    "MUST integrate with ICC Incoterms for standardized trade terminology",
+    "MUST support EU SWEC for customs clearance and reporting",
+    "MUST comply with EU Regulation (EU) 2017/821 on conflict minerals",
+    "MUST handle data from multiple industry-standard formats, such as ISO 15394 for mineral trade data",
+    "MUST provide real-time alerts for non-compliance or discrepancies in supply chain data"
+  ],
+  "anti_patterns": [
+    "DO NOT use a generic supply chain management system without customization for rare earth minerals",
+    "DO NOT rely solely on manual data entry for supply chain tracking",
+    "DO NOT neglect to implement robust data validation and verification mechanisms"
+  ],
+  "key_technical_challenges": [
+    "Developing a scalable data integration framework for multiple industry-standard formats",
+    "Implementing real-time data analytics for supply chain monitoring and alerting",
+    "Ensuring data security and compliance with EU data protection regulations"
+  ],
+  "recommended_stack": {
+    "language": "Java, due to its robustness and scalability for complex data integration and analytics",
+    "framework": "Apache Kafka, for real-time data processing and event-driven architecture",
+    "database_engine": "PostgreSQL, for its strong support for industry-standard data formats and robust data integrity",
+    "cache": "Redis, for high-performance data caching and real-time analytics",
+    "message_broker": "Apache Kafka, for real-time data processing and event-driven architecture",
+    "special_services": [
+      "EU SWEC API",
+      "ICC Incoterms API"
+    ]
+  },
+  "compliance_flags": [
+    "EU Regulation (EU) 2017/821",
+    "EU General Data Protection Regulation (GDPR)"
+  ]
+}

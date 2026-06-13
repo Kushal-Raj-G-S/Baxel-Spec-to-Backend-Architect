@@ -1,0 +1,37 @@
+{
+  "archetype": "Subsea Fiber Optic Cable Vibration & Strain Anomaly Detector",
+  "domain": "Transoceanic Telecommunications Infrastructure Maintenance",
+  "description": "A real-time distributed sensing system that processes terabits of raw optical backscatter data from Submarine Line Terminal Equipment (SLTE) to detect ship anchors, fishing trawlers, or seismic events threatening undersea cables. It is used by network operations centers (NOCs) and marine geologists to pinpoint physical threats within meters of location. The system is technically hard due to the extreme latency of transoceanic links, the requirement for real-time DSP (Digital Signal Processing) on noisy photon-counting data, and the need to correlate optical phase shifts with global bathymetric maps instantly.",
+  "rules": [
+    "MUST implement the Distributed Acoustic Sensing (DAS) protocol stack to process Rayleigh backscatter signals at 10kHz sampling rates per fiber channel.",
+    "MUST adhere to ITU-T G.650.1 and G.652.D standards for optical fiber characterization and loss budgeting.",
+    "MUST integrate with TEOS (Telecom Engineering Operational System) via CORBA or gRPC for legacy SLTE hardware interfacing.",
+    "MUST enforce deterministic latency <50ms from photon detection to alarm generation for active threat mitigation (e.g., triggering vessel shutdown signals).",
+    "MUST utilize IEC 61850 data models for substation-level alarm correlation and trip logic consistency."
+  ],
+  "anti_patterns": [
+    "DO NOT use standard HTTP/REST APIs for streaming raw interferometric data, as the overhead will cause buffer overruns and miss transient vibration events.",
+    "DO NOT rely on centralized batch processing for anomaly detection, as the delay between threat onset and detection will result in permanent cable severance.",
+    "DO NOT use general-purpose relational databases for storing raw waveform traces, as the write throughput and query patterns for time-series spectral analysis are incompatible."
+  ],
+  "key_technical_challenges": [
+    "Filtering out environmental noise (currents, thermal expansion) from distinct anthropogenic threats (anchors, trawlers) using adaptive machine learning on edge devices.",
+    "Synchronizing clock domains across thousands of repeater amplifiers spanning 6,000km to ensure sub-meter localization accuracy.",
+    "Handling massive data ingestion rates (hundreds of GB/s) from multiple fiber pairs while maintaining continuous 24/7 availability on low-power repeater hardware."
+  ],
+  "recommended_stack": {
+    "language": "Rust \u2014 provides memory safety for concurrent DSP pipelines with zero garbage collection pauses in real-time processing loops.",
+    "framework": "Tokio \u2014 asynchronous runtime capable of managing thousands of concurrent high-throughput I/O channels for sensor streams.",
+    "database_engine": "TimescaleDB \u2014 optimized for continuous aggregates on high-frequency time-series spectral data with SQL compatibility.",
+    "cache": "Redis Cluster \u2014 for transient state management of active threat vectors and rapid alarm coordination.",
+    "message_broker": "Apache Kafka \u2014 essential for decoupling high-volume raw data ingestion from complex event processing and archival.",
+    "special_services": [
+      "Fast Fourier Transform (FFT) Accelerator Service (GPU-bound)",
+      "Bathymetric Contextual correlator (GIS-bound)"
+    ]
+  },
+  "compliance_flags": [
+    "ITU-T G.9961 (SDH generic requirements)",
+    "IEC 62443 (Industrial automation and control system security)"
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "archetype": "Real-Time Spectrographic Isotope Contamination & Decay Chain Orchestration Engine for Mobile PET-CT Radiopharmaceutical Production",
+  "domain": "Mobile Radiopharmaceutical Synthesis & Nuclear Medicine Logistics",
+  "description": "A hard real-time control system that orchestrates the cyclotron-to-patient workflow for short-lived positron emission tomography (FDG, C-11, F-18) isotopes, correlating raw gamma-ray spectroscopy data with bolometric temperature sensors to predict decay losses and adjust synthesis microfluidic valve timing dynamically. It is used by nuclear pharmacy engineers and radiochemists in mobile field units where seconds of delay result in total batch failure. The system is technically difficult due to the need for microsecond-latency hardware interrupt handling, complex Bayesian decay modeling, and strict radiation safety interlocks.",
+  "rules": [
+    "MUST adhere to IEC 61508 SIL 3 safety integrity levels for all radiation-shutter and pneumatic valve control loops.",
+    "MUST ingest and process raw data from High-Purity Germanium (HPGe) detectors via VMEbus or optical fiber interfaces with <100 microseconds latency.",
+    "MUST implement deterministic scheduling for microfluidic synthesis modules to manage half-life decay curves of isotopes like Carbon-11 (20 min) in real-time.",
+    "MUST integrate with NEMA NU 2-2018 standards for PET scanner performance calibration data validation before patient injection.",
+    "MUST maintain a write-once, append-only audit trail compliant with 21 CFR Part 11 for all dose calculation and transport chain-of-custody events."
+  ],
+  "anti_patterns": [
+    "DO NOT use asynchronous event loops for radiation safety interlocks, as non-deterministic latency could fail to trigger emergency shielding in the event of a leak.",
+    "DO NOT rely on cloud-only processing for decay chain calculations, as mobile field units operate in Faraday-caged leaded environments with intermittent or zero connectivity.",
+    "DO NOT use standard JSON serialization for internal sensor telemetry, as the overhead introduces unacceptable jitter in the feedback control loop for synthesis temperature regulation."
+  ],
+  "key_technical_challenges": [
+    "Solving the 'kinetic-inference' problem: Real-time estimation of reaction yield in a microfluidic chip based on noisy, delayed spectroscopy data while the isotope is simultaneously decaying.",
+    "Implementing a hardware-software co-design for FPGA-to-CPU handshaking that guarantees deterministic interrupt delivery for emergency beam-stop commands.",
+    "Synchronizing high-resolution time-series data from heterogeneous sources (mass spec, gamma counters, thermal cameras) with sub-millisecond precision across a distributed edge architecture."
+  ],
+  "recommended_stack": {
+    "language": "Rust + Embedded C++ (Rust for memory safety in logic, C++ for low-level FPGA interaction)",
+    "framework": "QNX Neutrino RTOS (Provides the deterministic hard real-time guarantees required for nuclear safety loops)",
+    "database_engine": "TimescaleDB (PostgreSQL extension) optimized for high-velocity hypertable ingestion of sensor time-series data",
+    "cache": "Null (Direct memory access and ring buffers used instead to avoid latency spikes)",
+    "message_broker": "ZeroMQ (High-performance, asynchronous messaging suitable for lab instrumentation networks)",
+    "special_services": [
+      "Bayesian Decay Kinetic Solver Service",
+      "Geant4 Monte Carlo Radiation Transport Simulator"
+    ]
+  },
+  "compliance_flags": [
+    "21 CFR Part 11 (Electronic Records)",
+    "IEC 62304 (Medical Device Software Life Cycle Processes)",
+    "NRC 10 CFR Part 35 (Radiopharmaceutical Use)"
+  ]
+}

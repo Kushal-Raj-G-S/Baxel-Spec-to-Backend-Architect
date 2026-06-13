@@ -1,0 +1,39 @@
+{
+  "archetype": "Real-Time Radiological Isotope Decay Chain & Shielding Attenuation Simulator for Mobile PET-CT Orchestration",
+  "domain": "Nuclear Medicine & Mobile Radiopharmacy Logistics",
+  "description": "This system orchestrates the dynamic scheduling and transport of short-half-life radiopharmaceuticals (e.g., F-18, C-11) from cyclotron sites to mobile PET-CT units, calculating real-time decay corrections and tissue attenuation factors for every patient scan window. It integrates with Geiger-M\u00fcller counters, GPS telemetry, and hospital HIS to ensure radiation dose compliance and image reconstruction accuracy despite variable transport times. The technical difficulty lies in synchronizing stochastic radioactive decay models with deterministic logistics constraints under strict regulatory dose limits.",
+  "rules": [
+    "MUST implement IEC 61226 Safety Class A/B logic for dose calculation criticality, ensuring zero-tolerance for floating-point drift in decay constants.",
+    "MUST ingest and validate DICOM Radiation Dose Structured Reports (RDSR) and HL7 FHIR Radiology profiles in real-time to adjust patient exposure limits dynamically.",
+    "MUST simulate and enforce ALARA (As Low As Reasonably Achievable) principles by calculating lead-equivalent shielding attenuation based on variable vehicle speed, road vibration, and ambient background radiation.",
+    "MUST interface with NEMA NU 2-2018 standard performance metrics to adjust scanner acquisition parameters based on the precise remaining isotope activity at the moment of injection.",
+    "MUST maintain a cryptographic audit trail compliant with 10 CFR Part 35 (Medical Use of Byproduct Material) using immutable ledgers for every milligram of isotope dispensed."
+  ],
+  "anti_patterns": [
+    "DO NOT use standard Unix cron jobs for decay calculations, as non-deterministic scheduling latencies can cause fatal overdosing or under-dosing of radiotracers.",
+    "DO NOT rely on relational database eventual consistency, as the radioactive source strength is a strictly time-dependent scalar that requires immediate, strongly consistent updates to prevent image reconstruction artifacts.",
+    "DO NOT abstract hardware sensor inputs into generic IoT streams, as Geiger counter pulse counting rates require direct interrupt handling to distinguish between background noise and actual isotope leakage events."
+  ],
+  "key_technical_challenges": [
+    "Solving the multi-variable optimization problem of routing multiple mobile units with different isotope half-lives while minimizing the 'decay penalty' and maximizing patient throughput.",
+    "Implementing deterministic real-time numerical integration for complex decay chains (parent-daughter isotopes) on edge devices with limited compute power inside moving armored transport vehicles.",
+    "Synchronizing high-frequency radiation sensor telemetry (100Hz+) with low-latency GPS and ECG signals to correlate patient motion artifacts with radiation count rate anomalies."
+  ],
+  "recommended_stack": {
+    "language": "Rust \u2014 Provides memory safety and deterministic execution time critical for real-time radiation safety calculations and preventing segmentation faults.",
+    "framework": "Tokio with RT (Real-time) patch \u2014 Enables asynchronous, non-blocking I/O for high-concurrency sensor ingestion while guaranteeing sub-millisecond task scheduling.",
+    "database_engine": "TimescaleDB (PostgreSQL extension) \u2014 Optimized for high-write throughput of time-series radiation sensor data with robust retention policies for regulatory audits.",
+    "cache": "Redis Cluster \u2014 Used strictly for ephemeral state of transport vehicles and immediate decay lookups, not for persistent safety logic.",
+    "message_broker": "NATS.io \u2014 Delivers ultra-low latency, queue-less streaming of radiation pulse events and GPS telemetry across distributed mobile units.",
+    "special_services": [
+      "Monte Carlo Decay Chain Simulator Microservice",
+      "DICOM RDSR Anomaly Detection Engine"
+    ]
+  },
+  "compliance_flags": [
+    "10 CFR Part 35 (NRC Medical Use)",
+    "IEC 61226 (Safety of Instrumentation and Control Systems)",
+    "HIPAA (Patient Data Privacy)",
+    "NEMA NU 2-2018 (Performance Standards for PET Systems)"
+  ]
+}

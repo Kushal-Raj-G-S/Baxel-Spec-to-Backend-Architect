@@ -1,0 +1,37 @@
+{
+  "archetype": "Automated Aquatic Invasive Species Early Detection and Response System for Great Lakes Shipping Locks",
+  "domain": "Marine Conservation and Shipping Logistics",
+  "description": "This system uses AI-powered image recognition and sensor data to detect invasive species in ballast water and hull fouling of ships passing through Great Lakes shipping locks, alerting authorities and vessel operators to prevent ecological disasters. It is used by shipping lock operators, conservation agencies, and vessel owners. The system's technical complexity lies in integrating real-time sensor data, image analysis, and compliance with international shipping regulations.",
+  "rules": [
+    "MUST integrate with International Maritime Organization (IMO) ballast water management regulations",
+    "MUST comply with US Coast Guard and Environmental Protection Agency (EPA) regulations on invasive species management",
+    "MUST use American Society for Testing and Materials (ASTM) standards for water quality monitoring",
+    "MUST integrate with Automated Identification System (AIS) for vessel tracking",
+    "MUST adhere to National Oceanic and Atmospheric Administration (NOAA) guidelines for aquatic invasive species detection and response"
+  ],
+  "anti_patterns": [
+    "DO NOT rely solely on manual inspections, as they are time-consuming and prone to human error",
+    "DO NOT use generic machine learning models without domain-specific training data",
+    "DO NOT neglect to consider the variability of aquatic ecosystems and species behavior"
+  ],
+  "key_technical_challenges": [
+    "Developing accurate image recognition models for diverse aquatic species and environments",
+    "Integrating real-time sensor data from multiple sources (e.g., water quality monitors, cameras, AIS)",
+    "Ensuring system scalability and reliability for high-volume shipping traffic"
+  ],
+  "recommended_stack": {
+    "language": "Python + extensive libraries for image processing and machine learning",
+    "framework": "Flask + lightweight and flexible for real-time data processing",
+    "database_engine": "PostgreSQL + robust support for geospatial data and regulations",
+    "cache": "Redis + fast data caching for real-time analytics",
+    "message_broker": "RabbitMQ + reliable message queuing for distributed system integration",
+    "special_services": [
+      "Google Cloud Vision API",
+      "NOAA's Aquatic Invasive Species Database"
+    ]
+  },
+  "compliance_flags": [
+    "IMO Ballast Water Management Convention",
+    "USCG Invasive Species Management Regulations"
+  ]
+}

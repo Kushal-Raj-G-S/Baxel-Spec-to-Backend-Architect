@@ -1,0 +1,37 @@
+{
+  "archetype": "Real-Time Phyto-Genomic Phenotyping & Canopy Light Scattering Correction Engine for High-Throughput Greenhouse Screening",
+  "domain": "Industrial Plant Genomics & Controlled Environment Agriculture",
+  "description": "A deterministic control system that synchronizes hyperspectral imaging arrays with temporally varying LED grow-light spectra to eliminate confounding variables in plant trait extraction during phenotyping campaigns. It calculates real-time biophysical indices (like Chlorophyll Fluorescence Yield) for thousands of genotypes per hour, requiring sub-millisecond sensor fusion to account for the Doppler shift of conveyor belts and the spectral interference of artificial lighting. Used by crop scientists and automated breeding robots, it bridges the gap between optical physics and biological data acquisition.",
+  "rules": [
+    "MUST adhere to the OGC SensorThings API for strict temporal-spatial alignment of imaging data with environmental telemetry logs.",
+    "MUST implement IEEE 1588v2 (PTP) precision clock synchronization across all cameras, spectrometers, and conveyor encoders to ensure <100ns phase coherence.",
+    "MUST enforce a 'Read-Once-Write-Many' data pipeline for raw spectral cubes to prevent data loss during high-bandwidth events (500GB/hour per lane).",
+    "MUST calibrate spectral response curves dynamically against reference white/black standards inserted every 50 positions in the conveyor line.",
+    "MUST compartmentalize real-time control loops (lighting adjustment) from batch analytics (genomic correlation) to prevent latency-induced confounding."
+  ],
+  "anti_patterns": [
+    "DO NOT use asynchronous event loops for lighting control, as non-deterministic scheduling will introduce spectral artifacts that invalidate fluorescence measurements.",
+    "DO NOT rely on general-purpose SQL databases for storing raw hyperspectral cubes, as the lack of array-optimized indexing will cause query timeouts during batch processing.",
+    "DO NOT decouple camera trigger signals from the conveyor encoder, as variable belt speed will cause spatial distortion in the reconstructed 3D plant models."
+  ],
+  "key_technical_challenges": [
+    "Real-time radiometric calibration of hyperspectral sensors under rapidly changing, programmable LED spectral profiles without stopping the conveyor.",
+    "Synchronization of multi-sensor data streams (LiDAR, Thermal, Hyperspectral) with high-precision mechanical encoder ticks to correct for motion blur and parallax.",
+    "Algorithmic separation of plant tissue reflectance from artificial light source interference using adaptive spectral unmixing in real-time."
+  ],
+  "recommended_stack": {
+    "language": "Rust \u2014 chosen for strict memory safety guarantees and zero-cost abstractions required for real-time hardware interfacing.",
+    "framework": "Tokio \u2014 provides the deterministic async runtime necessary for handling high-throughput I/O with precise timing constraints.",
+    "database_engine": "TimescaleDB \u2014 optimized for time-series sensor data and integrates postGIS for spatial plant tracking.",
+    "cache": "Redis \u2014 used for low-latency state management of conveyor belt position and active sensor configurations.",
+    "message_broker": "NATS JetStream \u2014 ensures high-velocity, reliable delivery of telemetry and image trigger events with at-least-once semantics.",
+    "special_services": [
+      "Adaptive Spectral Unmixing Engine (Real-time)",
+      "Conveyor Kinematic Distortion Corrector"
+    ]
+  },
+  "compliance_flags": [
+    "ISO 22000 (Food Safety Management)",
+    "ALCOA+ (Attributable, Legible, Contemporaneous, Original, Accurate data integrity for agricultural research)"
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "archetype": "Real-Time Grain Silo Pseudo-Fluid Dynamics & Self-Sustaining Combustion Propagation Predictor",
+  "domain": "Bulk Commodity Storage & Agri-Logistics Safety",
+  "description": "This system ingests high-frequency data from distributed thermal imaging arrays, pressure transducers, and gas chromatography sensors within massive grain silos to model grain as a non-Newtonian pseudo-fluid. It predicts the onset of spontaneous combustion events and structural silo wall buckling caused by uneven settling or 'rat-holing' phenomena, calculating emergency ingress routes for nitrogen flooding crews in real-time. The system is technically challenging due to the need to fuse noisy sensor data from harsh, dusty environments with complex computational fluid dynamics (CFD) simulations running on edge hardware with sub-second latency requirements.",
+  "rules": [
+    "MUST adhere to OSHA Standard 1910.1115 (Grain Handling Facilities) regarding conveyor interlocks and emission limits.",
+    "MUST utilize IEC 61508 SIL-2 or SIL-3 safety integrity levels for all shutdown logic triggers.",
+    "MUST process sensor data using the Modbus TCP/IP or\u57fa\u91d1\u4f1a\u73b0\u573a\u603b\u7ebf (Foundation Fieldbus) H1 protocol without data loss during grain dust interference.",
+    "MUST implement a 'fail-safe' logic state that defaults to active inerting if the core simulation engine loses telemetry.",
+    "MUST account for the specific dielectric properties of varying grain types (wheat, corn, soy) when calibrating microwave moisture sensors."
+  ],
+  "anti_patterns": [
+    "DO NOT rely on cloud-only processing for the safety critical loop; network latency and dust-induced connectivity loss must not compromise the shutdown trigger.",
+    "DO NOT use generic statistical anomaly detection; the system must model physical grain flow dynamics (Bagnoldian physics) rather than simple thresholding.",
+    "DO NOT assume uniform grain density; the system must dynamically adjust for stratification and moisture gradients that alter thermal conductivity."
+  ],
+  "key_technical_challenges": [
+    "Real-time coupling of sparse sensor data with high-fidelity Discrete Element Method (DEM) simulations on edge GPUs.",
+    "Filtering out high-amplitude noise from grain aeration fans and mechanical conveyors to detect micro-sparks or hot spots.",
+    "Predicting the 'depth of burial' for potential fire propagation based on historical compaction data and current humidity levels."
+  ],
+  "recommended_stack": {
+    "language": "Rust \u2014 for memory safety and deterministic real-time execution in safety-critical embeddedcontrollers.",
+    "framework": "Tokio with real-time extensions \u2014 to handle concurrent sensor streams and safety logic orchestration.",
+    "database_engine": "TimescaleDB \u2014 optimized for high-write ingestion of time-series sensor data with continuous aggregates.",
+    "cache": "Redis Cluster \u2014 for immediate state sharing between distributed edge nodes.",
+    "message_broker": "NATS \u2014 for ultra-low latency, high-throughput messaging between sensors and control logic.",
+    "special_services": [
+      "Edge-based DEM Solver Service for localized grain flow simulation",
+      "Adaptive Kalman Filter Service for sensor fusion in dusty environments"
+    ]
+  },
+  "compliance_flags": [
+    "OSHA 1910.1115",
+    "NFPA 61 (Standard for the Prevention of Fires and Dust Explosions in Agricultural and Food Processing Facilities)",
+    "IEC 61508"
+  ]
+}

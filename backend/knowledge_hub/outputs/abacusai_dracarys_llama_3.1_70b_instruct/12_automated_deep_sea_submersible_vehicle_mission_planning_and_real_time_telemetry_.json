@@ -1,0 +1,37 @@
+{
+  "archetype": "Automated Deep-Sea Submersible Vehicle Mission Planning and Real-Time Telemetry System",
+  "domain": "Deep-Sea Exploration and Research",
+  "description": "This system plans and executes autonomous underwater vehicle (AUV) missions, providing real-time telemetry and adjusting mission parameters based on environmental factors, vehicle performance, and scientific objectives. It is used by oceanographers, marine biologists, and submersible vehicle operators to collect data on ocean currents, marine life, and seafloor topography. The system must account for complex variables like water pressure, temperature, and salinity, as well as the vehicle's limited power and communication range.",
+  "rules": [
+    "MUST adhere to the International Hydrographic Organization's (IHO) standards for underwater vehicle navigation and data collection",
+    "MUST integrate with the AUV's proprietary control system and sensor suite, which includes side-scan sonar, bathymetry, and water samplers",
+    "MUST account for the latency and limited bandwidth of acoustic communication between the AUV and the support vessel or shore-based station",
+    "MUST comply with the General Data Protection Regulation (GDPR) for handling sensitive research data and personal identifiable information",
+    "MUST ensure system reliability and fault tolerance in the event of hardware failure or software errors during mission execution"
+  ],
+  "anti_patterns": [
+    "DO NOT use a generic project management framework, as it will not account for the unique constraints and complexities of deep-sea operations",
+    "DO NOT neglect to implement real-time data processing and alerting, as timely decision-making is critical for mission success and vehicle safety",
+    "DO NOT overlook the importance of user experience and intuitive interfaces, as operators must be able to quickly respond to changing mission conditions"
+  ],
+  "key_technical_challenges": [
+    "Developing a robust and efficient algorithm for mission planning and replanning in response to changing environmental conditions and vehicle performance",
+    "Integrating and processing data from diverse sensors and instruments in real-time, while ensuring data quality and accuracy",
+    "Implementing a reliable and fault-tolerant communication system for transmitting and receiving data between the AUV and the support vessel or shore-based station"
+  ],
+  "recommended_stack": {
+    "language": "Python + NumPy and SciPy for efficient numerical computations and data analysis",
+    "framework": "Django + GeoDjango for handling spatial data and building a robust web application",
+    "database_engine": "PostgreSQL + PostGIS for efficient storage and querying of large spatial datasets",
+    "cache": "Redis for caching frequently accessed data and reducing database queries",
+    "message_broker": "Apache Kafka for handling high-volume, high-throughput data streams from the AUV",
+    "special_services": [
+      "NASA's WorldWind library for 3D visualization of underwater terrain and vehicle tracks",
+      "IHO's S-100 standard for encoding and decoding underwater vehicle data"
+    ]
+  },
+  "compliance_flags": [
+    "IHO S-100",
+    "GDPR"
+  ]
+}

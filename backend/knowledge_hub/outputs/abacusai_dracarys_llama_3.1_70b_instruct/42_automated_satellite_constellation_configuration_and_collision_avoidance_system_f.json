@@ -1,0 +1,37 @@
+{
+  "archetype": "Automated Satellite Constellation Configuration and Collision Avoidance System for Low Earth Orbit (LEO) Satellite Networks",
+  "domain": "Satellite Operations and Space Situational Awareness",
+  "description": "This system automates the configuration and management of satellite constellations in Low Earth Orbit (LEO), predicting and preventing potential collisions with other satellites and space debris. It is used by satellite operators and space agencies to ensure safe and efficient operation of their satellite fleets. The system must integrate with various data sources, such as satellite tracking systems and weather forecasts, and adhere to international regulations and standards for space situational awareness.",
+  "rules": [
+    "MUST integrate with the Space Data Association (SDA) format for satellite tracking data",
+    "MUST comply with the International Organization for Standardization (ISO) 24113 standard for space debris mitigation",
+    "MUST incorporate weather forecast data from the National Weather Service (NWS) or equivalent",
+    "MUST adhere to the United Nations Committee on the Peaceful Uses of Outer Space (COPUOS) guidelines for responsible satellite operations",
+    "MUST support multiple satellite bus architectures and propulsion systems"
+  ],
+  "anti_patterns": [
+    "DO NOT use a simplified, two-dimensional collision detection algorithm, as it will not account for the complex orbital dynamics of LEO satellites",
+    "DO NOT rely solely on historical data for collision prediction, as it will not capture the rapidly changing environment of LEO",
+    "DO NOT neglect to account for the effects of atmospheric drag on satellite orbits"
+  ],
+  "key_technical_challenges": [
+    "Developing an efficient and accurate algorithm for collision detection and prediction in a highly dynamic and complex environment",
+    "Integrating and processing large amounts of data from various sources, including satellite tracking systems, weather forecasts, and space debris catalogs",
+    "Ensuring the system can scale to support large satellite constellations and handle high volumes of data in real-time"
+  ],
+  "recommended_stack": {
+    "language": "Python, due to its extensive libraries and frameworks for scientific computing and data analysis",
+    "framework": "Django, for its robustness and scalability in handling complex data models and workflows",
+    "database_engine": "PostgreSQL, for its support for spatial data types and efficient querying of large datasets",
+    "cache": "Redis, for its high-performance caching and ability to handle large amounts of data",
+    "message_broker": "Apache Kafka, for its scalability and fault-tolerance in handling high-volume data streams",
+    "special_services": [
+      "SDA satellite tracking API",
+      "NWS weather forecast API"
+    ]
+  },
+  "compliance_flags": [
+    "ISO 24113",
+    "COPUOS guidelines"
+  ]
+}

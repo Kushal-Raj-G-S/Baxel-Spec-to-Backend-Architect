@@ -1,0 +1,39 @@
+{
+  "archetype": "Real-Time In-Vivo Chiral Purity & Enantiomeric Excess (ee) Monitor for Continuous Flow Biocatalysis",
+  "domain": "Continuous Flow Pharmaceutical Manufacturing (Biocatalysis)",
+  "description": "A deterministic edge-computing system that ingests terabytes of high-frequency spectroscopic data from inline chiral sensor arrays to calculate enantiomeric purity in millisecond intervals, enabling immediate feedback control of micro-reactor flow rates and enzyme concentrations. It is technically demanding because it requires sub-millisecond latency to prevent the production of costly off-spec enantiomers in a continuous stream where reaction time is measured in seconds, not hours.",
+  "rules": [
+    "MUST implement IEC 61508 SIL-3 compliant fail-safe logic to trigger immediate reactor flush if chirality drifts beyond 0.5% threshold.",
+    "MUST process data streams conforming to the Analytical Method Exchange (AMX) standard and OPC UA PubSub for hardware abstraction.",
+    "MUST enforce FDA 21 CFR Part 11 electronic signature and audit trail immutability for every control parameter adjustment.",
+    "MUST utilize hard real-time operating system (RTOS) primitives to guarantee deterministic jitter under 100 microseconds.",
+    "MUST integrate with industrial PID loops via Modbus TCP and EtherCAT protocols for direct actuator control without cloud round-trips."
+  ],
+  "anti_patterns": [
+    "DO NOT use asynchronous event loops or garbage-collected languages with stop-the-world pauses for the control loop, as latency spikes can ruin an entire batch.",
+    "DO NOT rely on cloud-based inference for critical control decisions, as network jitter violates the strict timing constraints of continuous flow chemistry.",
+    "DO NOT implement standard SQL transactional locking for high-frequency sensor data writes, as the overhead prevents the system from keeping up with 100kHz sampling rates."
+  ],
+  "key_technical_challenges": [
+    "Performing real-time Fourier Transform Infrared (FTIR) signal deconvolution on embedded hardware to distinguish overlapping chiral peaks.",
+    "Stabilizing control loops against stochastic noise from flow pumps while maintaining sub-second response times to exothermic reaction spikes.",
+    "Ensuring data integrity and cryptographic signing of high-volume sensor telemetry streams while strictly adhering to GMP audit requirements."
+  ],
+  "recommended_stack": {
+    "language": "Rust \u2014 Provides memory safety guarantees without a garbage collector, essential for hard real-time deterministic execution.",
+    "framework": "Rust-RTOS (e.g., Tock or Zephyr) \u2014 Offers microsecond-level scheduling precision and hardware abstraction.",
+    "database_engine": "TimescaleDB with hypertables partitioned by reaction batch ID \u2014 Optimized for high-velocity time-series ingestion with SQL querying.",
+    "cache": "None \u2014 Data must be processed in-flight; caching introduces unacceptable latency for control decisions.",
+    "message_broker": "Eclipse Paho MQTT over TLS 1.3 \u2014 Low overhead, reliable delivery for telemetry to remote monitoring stations.",
+    "special_services": [
+      "Embedded DSP Kernel for Spectral deconvolution",
+      "GMP Audit Trail Cryptographic Sequencer"
+    ]
+  },
+  "compliance_flags": [
+    "FDA 21 CFR Part 11",
+    "IEC 61508 SIL-3",
+    "GMP Data Integrity ALCOA+",
+    "ISO 13485 (if medical device context)"
+  ]
+}

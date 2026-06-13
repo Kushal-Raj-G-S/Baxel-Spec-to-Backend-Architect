@@ -1,0 +1,38 @@
+{
+  "archetype": "Blastophone Acoustic Yield & Seismic Event Correlation Engine for Deep-Crust Mining",
+  "domain": "Deep-Crust Hard Rock Mining & Geomechanics",
+  "description": "A real-time distributed system that ingests high-fidelity acoustic data from piezoelectric blasthole sensors to verify explosive detonation sequencing and simultaneously correlates micro-seismic events with open-pit stability models. Used by geotechnical engineers and blast safety officers to prevent catastrophic slope failures or misfired charges, it is technically hard due to the sub-millisecond synchronization requirements across thousands of sensors in high-noise, high-vibration environments.",
+  "rules": [
+    "MUST adhere to ISO 14644-1 cleanroom standards for sensor data integrity during explosive handling phases to prevent false positives from environmental dust interference.",
+    "MUST implement deterministic latency scheduling to ensure acoustic wave arrival times are correlated within 5 microseconds for accurate triangulation of underground voids.",
+    "MUST utilize the IEEE 1588 Precision Time Protocol (PTP) over deterministic Ethernet (TSN) to synchronize geographically dispersed sensor arrays across 5km of operational tunnel.",
+    "MUST format all seismic output data according to the QuakeML standard for immediate ingestion by national geological survey databases.",
+    "MUST enforce strict role-based access control (RBAC) compliant with MSHA (Mine Safety and Health Administration) regulations regarding blast design approval workflows."
+  ],
+  "anti_patterns": [
+    "DO NOT use asynchronous fire-and-forget message queuing for detonation confirmation signals, as the domain requires guaranteed delivery and immediate abort triggers to prevent uncontrolled detonations.",
+    "DO NOT rely on standard cloud-based time synchronization (NTP), as network jitter and packet loss in underground tunnels will introduce fatal errors in seismic triangulation accuracy.",
+    "DO NOT aggregate raw acoustic waveforms into low-resolution summaries before edge processing, as subtle pre-cursor frequency shifts indicating rock stress fractures would be lost."
+  ],
+  "key_technical_challenges": [
+    "Synchronizing thousands of distributed sensors across variable network latencies in a subterranean environment to achieve sub-microsecond event alignment.",
+    "Filtering extreme background acoustic noise from heavy machinery and ventilation systems to isolate specific fracture propagation signatures.",
+    "Processing terabytes of high-frequency waveform data in real-time on edge devices with limited compute resources to predict slope instability before it becomes visible."
+  ],
+  "recommended_stack": {
+    "language": "Rust \u2014 Provides memory safety and guaranteed real-time performance without garbage collection pauses critical for safety-critical detonation logic.",
+    "framework": "Tokio with Async-RT \u2014 Enables high-concurrency I/O handling for thousands of simultaneous sensor streams while maintaining deterministic scheduling.",
+    "database_engine": "TimescaleDB \u2014 Optimized for high-velocity time-series ingestion of seismic waveforms and supports complex hypertable queries for historical pattern matching.",
+    "cache": "Redis Cluster (with persistence)\u2014 Essential for buffering transient sensor bursts and facilitating low-latency session state for blast operators.",
+    "message_broker": "NATS JetStream \u2014 Delivers exactly-once delivery semantics with ultra-low latency for critical abort signals and alert dissemination.",
+    "special_services": [
+      "Edge-based Fast-Fourier Transform (FFT) Pre-processor for real-time frequency domain analysis",
+      "Geostatistical Kriging Engine for interpolating rock stress fields from sparse sensor data"
+    ]
+  },
+  "compliance_flags": [
+    "MSHA 30 CFR Part 56/57 (Surface/Underground Metal and Nonmetal Mines)",
+    "ISO 13849-1 (Safety of Machinery - Safety-Related Parts of Control Systems)",
+    "IMCA (International Marine Contractors Association) Guidelines for Underwater Acoustic Monitoring"
+  ]
+}

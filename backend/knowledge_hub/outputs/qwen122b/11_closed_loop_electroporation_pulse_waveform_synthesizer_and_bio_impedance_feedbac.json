@@ -1,0 +1,38 @@
+{
+  "archetype": "Closed-Loop Electroporation Pulse Waveform Synthesizer & Bio-Impedance Feedback Controller for Ex Vivo Organ Perfusion",
+  "domain": "Precision Bioprinting & Xenotransplantation Preservation",
+  "description": "A hard real-time control system that orchestrates microsecond-precision high-voltage electroporation pulses on donor organs during ex vivo perfusion to facilitate gene therapy delivery or cryoprotectant introduction. It actively monitors multi-frequency bio-impedance spectroscopy data to dynamically adjust pulse amplitude and duration to prevent cellular lysis while ensuring transfection efficiency. The system operates in a sterile, isolated environment requiring sub-millisecond latency to prevent irreversible tissue damage.",
+  "rules": [
+    "MUST adhere to IEC 60601-2-25 requirements for electro-medical diagnostic equipment safety and leakage current limits.",
+    "MUST utilize IEEE 11073 SDC (Service Oriented Device Connectivity) for real-time communication with the organ perfusion console.",
+    "MUST process bio-impedance spectra across 10kHz to 10MHz bandwidth with a sampling jitter not exceeding 50 nanoseconds.",
+    "MUST implement deterministic scheduling (e.g., RT-PREEMPT kernel) to guarantee pulse generation within 200 microseconds of feedback trigger.",
+    "MUST log all waveform parameters and impedance shifts to a WORM (Write Once Read Many) storage compliant with 21 CFR Part 11 for clinical audit trails."
+  ],
+  "anti_patterns": [
+    "DO NOT use standard TCP/IP networking for the feedback loop, as packet retransmission latency variations can cause lethal over-exposure to electrical fields.",
+    "DO NOT rely on non-deterministic garbage-collected languages for the pulse generation thread, as pause times will corrupt the transfection protocol.",
+    "DO NOT implement 'best-effort' error handling; any deviation in voltage must trigger an immediate hardware-level fail-safe shutdown rather than a software retry."
+  ],
+  "key_technical_challenges": [
+    "Synchronizing hardware-triggered high-voltage discharge with high-frequency analog-to-digital conversion without clock drift or jitter.",
+    "Implementing adaptive control algorithms that model the non-linear, time-varying electrical properties of biological tissue in real-time.",
+    "Designing isolation barriers and shielding to prevent electromagnetic interference (EMI) from corrupting sensitive bio-sensor readings during high-voltage events."
+  ],
+  "recommended_stack": {
+    "language": "Rust + C FFI \u2014 Provides memory safety guarantees for the main logic while enabling direct, zero-copy access to FPGA registers for pulse timing.",
+    "framework": "FreeRTOS or QNX Neutrino \u2014 Offers hard real-time deterministic scheduling required for microsecond-level control loops.",
+    "database_engine": "TimescaleDB with Hypertables \u2014 Optimized for time-series ingestion of high-frequency impedance telemetry and audit logging.",
+    "cache": "null",
+    "message_broker": "ZeroMQ (ZMQ) \u2014 Provides low-latency, deterministic pub/sub messaging for inter-process communication within the local control node.",
+    "special_services": [
+      "Real-time FPGA Pulse Synthesis Engine",
+      "Bio-Impedance Spectral Decomposition Service"
+    ]
+  },
+  "compliance_flags": [
+    "FDA 510(k) Medical Device",
+    "ISO 13485 Quality Management",
+    "IEC 62304 Medical Software Lifecycle"
+  ]
+}

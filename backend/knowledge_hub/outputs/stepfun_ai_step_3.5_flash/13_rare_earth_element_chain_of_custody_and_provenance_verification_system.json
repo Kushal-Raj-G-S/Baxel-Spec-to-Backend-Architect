@@ -1,0 +1,40 @@
+{
+  "archetype": "Rare Earth Element Chain of Custody and Provenance Verification System",
+  "domain": "Critical Mineral Supply Chain Compliance",
+  "description": "A permissioned system that tracks rare earth elements from mine concentrate to final alloy, integrating IoT sensor data from processing plants, maritime logistics, and manufacturing facilities to generate an immutable, auditable ledger for government and corporate auditors. Its complexity stems from reconciling incompatible physical assay data formats, validating geo-political origin against trade sanctions lists (e.g., ITAR), and ensuring data integrity across jurisdictions with conflicting privacy laws.",
+  "rules": [
+    "MUST adhere to the OECD Due Diligence Guidance for Responsible Mineral Supply Chains and generate reports in the standardized RMI CRM Template format.",
+    "MUST integrate with national export control databases (e.g., USITC, EU Dual-Use) for real-time sanctions screening of all intermediate handlers.",
+    "MUST cryptographically sign and timestamp all physical assay certificates using the standardized ASTM E44 standard for electronic documentation.",
+    "MUST support multi-ledger interoperability to reconcile data from sovereign mining registries (e.g., Congo's ITIE) with private refinery ERPs.",
+    "MUST enforce granular, role-based data visibility where a Chinese magnet manufacturer cannot see the US defense contractor end-use, but a designated auditor can."
+  ],
+  "anti_patterns": [
+    "DO NOT use a public, permissionless blockchain\u2014finality times and public data exposure violate export control and commercial confidentiality requirements.",
+    "DO NOT rely on a single centralized database\u2014it becomes a single point of fraudulent alteration and geopolitical target, violating the core tenet of distributed trust.",
+    "DO NOT assume sensor data is truthful\u2014must implement cryptographic hardware security modules (HSMs) at weighbridges and assay labs to prevent spoofing of origin data."
+  ],
+  "key_technical_challenges": [
+    "Achieving reliable, tamper-evident data ingestion from legacy, air-gapped assay equipment in remote mining camps with intermittent satellite connectivity.",
+    "Designing a smart contract system that can encode complex, multi-jurisdictional rules (e.g., 'material from Region X is permissible only if smelted in Facility Y after Date Z') without excessive gas costs or computational intractability.",
+    "Implementing zero-knowledge proofs or secure multi-party computation to allow competitors in the same supply chain to prove compliance without revealing proprietary process parameters or volumes to each other."
+  ],
+  "recommended_stack": {
+    "language": "Rust \u2013 for writing high-integrity, low-level cryptographic modules and blockchain consensus code with no runtime.",
+    "framework": "Hyperledger Fabric \u2013 for its permissioned model, private data collections, and modular policy enforcement, essential for multi-stakeholder trust.",
+    "database_engine": "PostgreSQL with TimescaleDB \u2013 for efficiently storing time-series assay data and complex regulatory relationship graphs.",
+    "cache": "Redis Streams \u2013 for buffering high-throughput sensor data from processing lines during network partitions to the blockchain commit service.",
+    "message_broker": "Apache Kafka \u2013 for managing the immutable audit log of all cross-organizational events and data transformations before ledger anchoring.",
+    "special_services": [
+      "Secure Hardware Enclave Attestation Service (e.g., AWS Nitro)",
+      "Geospatial Polygon Validation Service (using GADM v4.1 data)",
+      "Cryptographic Audit Trail Service (W3C Verifiable Credentials)"
+    ]
+  },
+  "compliance_flags": [
+    "ITAR (International Traffic in Arms Regulations)",
+    "EU Conflict Minerals Regulation (Regulation (EU) 2017/821)",
+    "OECD DDG",
+    "US Dodd-Frank Act Section 1502"
+  ]
+}

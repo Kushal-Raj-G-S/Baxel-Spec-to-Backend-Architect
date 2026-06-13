@@ -1,0 +1,39 @@
+{
+  "archetype": "Real-Time Cryogenic Freezer Row Thermal Stratification & Inert Gas Quench Predictor for Industrial Liquid Nitrogen Storage",
+  "domain": "Industrial Cryogenic Infrastructure & Cold Chain Logistics",
+  "description": "A deterministic control system that models multi-phase fluid dynamics within massive liquid nitrogen storage vessels to predict thermal layer collapse and prevent catastrophic pressure spikes during rapid draw-off. It is used by facility engineers in semiconductor manufacturing and biobanking to orchestrate safety valves and purge cycles, requiring millisecond-latency fusion of ultrasonic level sensors, distributed fiber-optic thermometry (DTS), and pressure transducers against non-linear thermodynamic equations.",
+  "rules": [
+    "MUST ingest data via Modbus TCP and IEC 61850 standards from legacy industrial PLCs while maintaining sub-100ms end-to-end latency for emergency shutdown triggers.",
+    "MUST comply with ASME BPVC Section VIII Division 1 standards for pressure vessel safety margins and OSHA 1910.119 Process Safety Management requirements.",
+    "MUST implement ISO 11014 safety data sheet protocols to dynamically adjust alarm thresholds based on real-time ambient humidity and barometric pressure inputs.",
+    "MUST support edge-computed CFD approximations (Computational Fluid Dynamics) to predict stratification events before they occur, filtering sensor noise without cloud dependency.",
+    "MUST ensure data integrity via NIST-traceable calibration logs and immutable audit trails for every valve actuation and setpoint change."
+  ],
+  "anti_patterns": [
+    "DO NOT use asynchronous event loops for safety-critical valve control, as garbage collection pauses or context switches could delay emergency isolation beyond the critical time window.",
+    "DO NOT rely on approximate floating-point arithmetic for volume calculations; use fixed-point or arbitrary-precision libraries to prevent cumulative rounding errors that could trigger false 'over-fill' alarms.",
+    "DO NOT design the UI for human-in-the-loop decision making during a thermal runaway event; the system must autonomously execute pre-certified mitigation sequences without human confirmation."
+  ],
+  "key_technical_challenges": [
+    "Synchronizing disparate sensor sampling rates (10Hz DTS vs 1kHz pressure transducers) to create a coherent temporal view of fluid dynamics without losing phase alignment.",
+    "Solving the 'two-phase flow' simulation problem at the edge, where the software must approximate liquid-gas interface movement in a complex geometry with limited compute resources.",
+    "Managing the 'dead zone' hysteresis in cryogenic control valves to prevent chattering that causes metal fatigue and catastrophic mechanical failure."
+  ],
+  "recommended_stack": {
+    "language": "Rust \u2014 provides memory safety without garbage collection, essential for hard real-time control loops in safety-critical environments.",
+    "framework": "Tokio combined with a deterministic RTOS abstraction layer \u2014 ensures task scheduling predictability while handling high-throughput I/O.",
+    "database_engine": "TimescaleDB (PostgreSQL extension) \u2014 optimized for high-velocity time-series ingestion with continuous aggregates for real-time trend analysis.",
+    "cache": "ZeroMQ (embedded) \u2014 ultra-low latency message passing for inter-process communication between sensor collectors and the control logic.",
+    "message_broker": "Null (Direct shared memory or ZeroMQ) \u2014 eliminates the network hop latency of a central broker for critical safety signals.",
+    "special_services": [
+      "Edge-CFD Solver Module for real-time stratification prediction",
+      "Hysteresis Compensation Engine for Valve Actuation Smoothing"
+    ]
+  },
+  "compliance_flags": [
+    "ASME BPVC Section VIII",
+    "OSHA 1910.119",
+    "IEC 61508 SIL 3 Functional Safety",
+    "NIST Traceability Standards"
+  ]
+}

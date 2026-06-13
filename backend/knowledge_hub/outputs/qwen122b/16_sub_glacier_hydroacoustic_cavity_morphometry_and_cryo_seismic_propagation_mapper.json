@@ -1,0 +1,38 @@
+{
+  "archetype": "Sub-Glacier Hydroacoustic Cavity Morphometry & Cryo-Seismic Propagation Mapper",
+  "domain": "Cryospheric Glaciology & Deep-Ice Remote Sensing",
+  "description": "A real-time distributed processing system that ingests raw hydrophone array data from boreholes drilled through kilometers of ice to reconstruct the 3D morphology of sub-glacial water cavities and predict basal sliding events. It is used by polar research station teams to prevent catastrophic ice shelf collapse by correlating acoustic resonance frequencies with ice shear stress limits. The system is technically challenging due to the need for sub-millisecond latency in extremely high-noise environments, the requirement to process terabytes of unformatted binary sensor streams over satellite links with >90% packet loss, and the application of inverse problem solvers on edge devices with severe thermal constraints.",
+  "rules": [
+    "MUST implement adaptive noise cancellation using reference sensors to filter out ice cracking (creep) signals from distinct water flow acoustic signatures.",
+    "MUST adhere to the NetCDF Climate and Forecast (CF) Conventions for all geospatial and temporal data serialization to ensure interoperability with global ice sheet models.",
+    "MUST utilize hardware-accelerated FFT (Fast Fourier Transform) pipelines to process 24-bit, 192kHz raw audio streams in real-time without buffer overruns.",
+    "MUST enforce strict deterministic scheduling for sensor polling to maintain phase coherence across geographically separated hydrophone nodes for beamforming triangulation.",
+    "MUST integrate a fallback 'store-and-forward' protocol that compresses data using lossless FLAC for deep-satellite transmission links with intermittent connectivity."
+  ],
+  "anti_patterns": [
+    "DO NOT rely on cloud-based batch processing for hazard detection; the latency of satellite round-trips (1-2 seconds) is too slow to prevent immediate basal slip events.",
+    "DO NOT use standard relational database schemas for raw acoustic waveforms; the write throughput and high-dimensional time-series nature require specialized time-series or columnar storage.",
+    "DO NOT apply general-purpose machine learning models trained on urban acoustic data; the frequency domain characteristics of ice and water are distinct and require domain-specific feature extraction."
+  ],
+  "key_technical_challenges": [
+    "Solving ill-posed inverse problems to reconstruct 3D cavity shapes from sparse, noisy 1D acoustic projection data.",
+    "Maintaining millisecond-level clock synchronization across nodes separated by kilometers of ice where GPS signals are unavailable or unreliable.",
+    "Optimizing energy consumption of edge compute units running heavy numerical linear algebra on battery-powered systems in -60\u00b0C environments."
+  ],
+  "recommended_stack": {
+    "language": "Rust \u2014 Provides memory safety guarantees essential for long-running embedded processes while offering C-level performance for DSP libraries.",
+    "framework": "Apache Arrow \u2014 Enables zero-copy data interchange between C++ DSP libraries and Python analysis tools for rapid model iteration.",
+    "database_engine": "TimescaleDB \u2014 Optimized for high-velocity time-series ingestion with native support for hypertables to manage massive acoustic datasets.",
+    "cache": "Redis \u2014 Used for transient state buffering of high-frequency sensor readings before aggregation.",
+    "message_broker": "MQTT \u2014 Lightweight protocol designed for unreliable, high-latency satellite links common in polar regions.",
+    "special_services": [
+      "Geometric Acoustic Beamforming Engine",
+      "Basal Shear Stress Inverse Solver"
+    ]
+  },
+  "compliance_flags": [
+    "SCAR (Scientific Committee on Antarctic Research) Data Policy",
+    "ISO 19650 (Information management for construction and infrastructure in extreme environments) Adaptation",
+    "NEPA (National Environmental Policy Act) Environmental Impact Assessment Data Standards"
+  ]
+}

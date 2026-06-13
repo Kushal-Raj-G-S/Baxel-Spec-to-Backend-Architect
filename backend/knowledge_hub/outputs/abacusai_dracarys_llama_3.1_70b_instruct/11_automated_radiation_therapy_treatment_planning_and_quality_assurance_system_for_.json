@@ -1,0 +1,37 @@
+{
+  "archetype": "Automated Radiation Therapy Treatment Planning and Quality Assurance System for Proton Therapy Centers",
+  "domain": "Radiation Oncology",
+  "description": "This system generates optimized radiation treatment plans for cancer patients undergoing proton therapy, ensuring precise dose delivery while minimizing damage to surrounding tissues. Radiation oncologists and physicists use the system to create and verify treatment plans, which must comply with strict regulations and protocols. The system's complexity arises from integrating diverse data sources, such as patient anatomy, tumor characteristics, and machine-specific radiation delivery parameters.",
+  "rules": [
+    "MUST comply with IEC 61217 and ICRU 78 standards for radiation therapy treatment planning",
+    "MUST integrate with Varian, Siemens, or other proton therapy machine control systems",
+    "MUST account for variations in patient anatomy and tumor motion during treatment",
+    "MUST ensure accurate dose calculation and verification using Monte Carlo simulations or pencil beam algorithms",
+    "MUST maintain a comprehensive audit trail for regulatory compliance and quality assurance"
+  ],
+  "anti_patterns": [
+    "DO NOT use a generic 3D visualization library without accounting for radiation therapy-specific requirements",
+    "DO NOT neglect to incorporate machine-specific radiation delivery parameters",
+    "DO NOT overlook the need for robust patient data management and version control"
+  ],
+  "key_technical_challenges": [
+    "Developing an efficient and accurate dose calculation engine",
+    "Integrating with diverse machine control systems and data formats",
+    "Implementing robust data management and version control for patient and treatment plan data"
+  ],
+  "recommended_stack": {
+    "language": "C++ for performance-critical dose calculation and simulation components",
+    "framework": "Qt for cross-platform GUI development and user interface consistency",
+    "database_engine": "PostgreSQL for robust data management and version control",
+    "cache": "Redis for caching frequently accessed patient and treatment plan data",
+    "message_broker": "RabbitMQ for integrating with machine control systems and other external services",
+    "special_services": [
+      "DICOM image processing and visualization",
+      "Monte Carlo simulation libraries"
+    ]
+  },
+  "compliance_flags": [
+    "FDA 21 CFR Part 11",
+    "HIPAA"
+  ]
+}

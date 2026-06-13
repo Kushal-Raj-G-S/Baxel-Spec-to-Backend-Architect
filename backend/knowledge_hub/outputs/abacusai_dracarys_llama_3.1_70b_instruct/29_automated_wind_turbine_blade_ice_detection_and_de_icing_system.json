@@ -1,0 +1,36 @@
+{
+  "archetype": "Automated Wind Turbine Blade Ice Detection and De-icing System",
+  "domain": "Renewable Energy - Wind Farm Operations",
+  "description": "This system detects ice formation on wind turbine blades and automatically activates de-icing systems to prevent damage and maintain power output. Wind farm operators use this system to minimize downtime and ensure efficient energy production. Technically challenging aspects include integrating with turbine control systems, processing real-time sensor data, and adhering to strict safety protocols.",
+  "rules": [
+    "MUST comply with IEC 61400-25 wind turbine communication standard",
+    "MUST integrate with existing turbine control systems (e.g. Siemens Gamesa, GE Renewable Energy)",
+    "MUST detect ice formation using a combination of temperature, humidity, and vibration sensors",
+    "MUST activate de-icing systems (e.g. heating, pneumatic) based on detection results",
+    "MUST log and report de-icing events for maintenance and performance analysis"
+  ],
+  "anti_patterns": [
+    "DO NOT use a simple threshold-based approach for ice detection, as it may lead to false positives or false negatives",
+    "DO NOT neglect to account for varying turbine blade geometries and materials in the detection algorithm",
+    "DO NOT overlook the need for secure, encrypted communication with turbine control systems"
+  ],
+  "key_technical_challenges": [
+    "Developing a robust and accurate ice detection algorithm using sensor data fusion",
+    "Integrating with diverse turbine control systems and protocols",
+    "Ensuring reliable and secure communication in a potentially harsh, outdoor environment"
+  ],
+  "recommended_stack": {
+    "language": "Python - for its extensive libraries and tools for data analysis and machine learning",
+    "framework": "Flask - for building a lightweight, RESTful API for turbine control system integration",
+    "database_engine": "TimescaleDB - for efficient storage and querying of time-series sensor data",
+    "cache": "Redis - for caching detection results and reducing database load",
+    "message_broker": "MQTT - for secure, low-latency communication with turbine control systems",
+    "special_services": [
+      "Industrial Ethernet switch for connecting to turbine control systems"
+    ]
+  },
+  "compliance_flags": [
+    "IEC 61400-25",
+    "UL 508A"
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "archetype": "Real-Time Methane Plume Dispersion & Source Apportionment Engine for Chevron Drift Remediation",
+  "domain": "Offshore Oil & Gas Environmental Compliance (Methane Mitigation)",
+  "description": "A distributed sensor fusion system that ingests data from airborne Lidar, drone-mounted tunable diode laser absorption spectroscopy (TDLAS), and fixed offshore platform anemometers to calculate real-time 3D methane dispersion trajectories and pinpoint leak sources within centimeters. It is used by environmental compliance officers and offshore safety engineers to trigger automated emergency shut-downs (ESD) and generate legally binding emission reports for regulatory bodies. The system is technically difficult due to the extreme latency sensitivity required to model fluid dynamics against rapidly changing marine wind shear and the need to fuse asynchronous, noisy sensor data streams into a coherent physical model in sub-second intervals.",
+  "rules": [
+    "MUST implement the ANSI/ISA-84.00.01 standard for Safety Instrumented Systems (SIS) logic to ensure that any detected leak threshold >500 ppmv triggers an automatic ESD signal to the higher-level control system within 200ms.",
+    "MUST ingest and normalize data from heterogeneous protocols including Modbus TCP for fixed sensors, MAVLink for drone telemetry, and proprietary binary streams from TDLAS spectrometers, using a time-synchronization protocol (PTP IEEE 1588) to align data to within 1ms accuracy.",
+    "MUST utilize a computational fluid dynamics (CFD) solver optimized for edge deployment that accounts for marine boundary layer turbulence, humidity, and sea surface temperature to predict plume drift, rather than relying on static Gaussian dispersion models.",
+    "MUST adhere to the EPA Subpart W reporting format (40 CFR Part 98) for all generated emission data, ensuring an immutable audit trail with cryptographic signing for every calculation step to prevent regulatory tampering.",
+    "MUST operate with 99.99% availability in a harsh environment, utilizing a redundant local edge compute cluster that continues full simulation and alarm logic even if the connection to the onshore command center is severed.",
+    "MUST filter sensor noise using a Kalman Filter or Particle Filter specifically tuned for atmospheric turbulence, distinguishing between actual leaks and transient background methane spikes caused by biological decay or nearby vessel traffic."
+  ],
+  "anti_patterns": [
+    "DO NOT use a central cloud-only architecture for the core leak detection logic, as network latency and potential satellite link outages in remote offshore locations make real-time safety intervention impossible.",
+    "DO NOT use generic SQL databases for storing high-frequency sensor time-series data, as the write throughput and query patterns for 100Hz+ data streams require specialized time-series or columnar storage to avoid buffer overruns.",
+    "DO NOT rely on static threshold alerts (e.g., 'if > X then alarm') without context-aware modeling, as this leads to massive false-positive rates due to natural background fluctuations, causing 'alarm fatigue' and ignored safety events."
+  ],
+  "key_technical_challenges": [
+    "Achieving sub-100ms end-to-end latency for the sensor-to-emergency-shutdown circuit while running a complex 3D CFD simulation on edge hardware with thermal constraints.",
+    "Fusing asynchronous data streams from multiple sources (drones, fixed sensors, weather stations) that have different clock skews and jitter, requiring precise hardware timestamping and interpolation algorithms.",
+    "Modeling non-linear atmospheric dispersion in a dynamic marine environment where wind direction and speed can change every few seconds, requiring real-time re-meshing of the simulation grid.",
+    "Ensuring data integrity and non-repudiation for regulatory audits where every sensor reading and calculation must be cryptographically signed and immutable."
+  ],
+  "recommended_stack": {
+    "language": "Rust \u2014 Provides memory safety and zero-cost abstractions critical for real-time safety-critical systems and deterministic latency.",
+    "framework": "Tokio (Rust async runtime) \u2014 Enables non-blocking I/O for handling high-throughput sensor streams and concurrent CFD solver threads with precise task scheduling.",
+    "database_engine": "TimescaleDB (PostgreSQL extension) \u2014 Handles high-velocity time-series data ingestion while leveraging SQL for complex regulatory reporting and joining with static metadata.",
+    "cache": "Redis (with Atomic operations) \u2014 Used for distributed locking and fast access to current state variables for the safety logic loop.",
+    "message_broker": "NATS \u2014 Offers ultra-low latency pub/sub messaging ideal for real-time sensor data distribution and command propagation in heterogeneous edge networks.",
+    "special_services": [
+      "GROMACS-in-Edge: A lightweight, GPU-accelerated molecular dynamics or fluid dynamics solver ported for real-time plume modeling.",
+      "EPA-Compliance-Reporter: A module that formats, signs, and encrypts data streams specifically for 40 CFR Part 98 submission protocols."
+    ]
+  },
+  "compliance_flags": [
+    "EPA 40 CFR Part 98 (Subpart W)",
+    "ISO 14064-1 (Greenhouse gas accounting)",
+    "ANSI/ISA-84.00.01 (Functional Safety)",
+    "API Recommended Practice 1173 (Pipeline Safety Management Systems)"
+  ]
+}

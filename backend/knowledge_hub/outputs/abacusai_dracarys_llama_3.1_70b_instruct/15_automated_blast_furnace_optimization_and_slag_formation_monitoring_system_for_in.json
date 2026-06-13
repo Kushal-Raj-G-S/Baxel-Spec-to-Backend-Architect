@@ -1,0 +1,37 @@
+{
+  "archetype": "Automated Blast Furnace Optimization and Slag Formation Monitoring System for Integrated Steel Mills",
+  "domain": "Steel Production and Metallurgy",
+  "description": "This system optimizes blast furnace performance by analyzing real-time data from temperature sensors, gas analyzers, and slag formation detectors. It predicts optimal fuel injection rates and warns operators of potential slag buildup. The system must integrate with existing control systems and adhere to industry standards for process control and safety.",
+  "rules": [
+    "MUST comply with IEC 61850 for substation automation and communication",
+    "MUST interface with existing control systems using Modbus TCP/IP",
+    "MUST analyze data from temperature sensors with an accuracy of \u00b11\u00b0C",
+    "MUST detect slag formation using computer vision and machine learning algorithms",
+    "MUST provide real-time alerts and warnings to operators via a human-machine interface (HMI)"
+  ],
+  "anti_patterns": [
+    "DO NOT use a generic data analytics platform without domain-specific expertise",
+    "DO NOT neglect the importance of real-time data processing and low-latency communication",
+    "DO NOT overlook the need for robust security measures to protect against cyber threats"
+  ],
+  "key_technical_challenges": [
+    "Integrating with existing control systems and devices from different manufacturers",
+    "Developing machine learning models that can accurately predict slag formation and optimal fuel injection rates",
+    "Ensuring real-time data processing and low-latency communication in a high-noise industrial environment"
+  ],
+  "recommended_stack": {
+    "language": "C++ - for performance-critical components and integration with industrial control systems",
+    "framework": "Qt - for building the HMI and integrating with industrial devices",
+    "database_engine": "Time-series database (e.g. InfluxDB) - for storing and analyzing large amounts of sensor data",
+    "cache": "Redis - for caching frequently accessed data and reducing latency",
+    "message_broker": "MQTT - for real-time communication between devices and the control system",
+    "special_services": [
+      "Industrial protocol converter (e.g. Modbus to MQTT)",
+      "Computer vision library (e.g. OpenCV)"
+    ]
+  },
+  "compliance_flags": [
+    "IEC 61850",
+    "IEC 61508"
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "archetype": "Automated Lunar Regolith Excavation Site Planning and Optimization System for In-Situ Resource Utilization (ISRU)",
+  "domain": "Planetary Resource Utilization",
+  "description": "This system helps mission planners optimize excavation sites for lunar regolith, which is crucial for in-situ resource utilization (ISRU) in future lunar missions. The system takes into account geological, topological, and environmental factors to select the best excavation sites. It is technically challenging due to the need to integrate data from various sources, including satellite imagery, geological surveys, and environmental monitoring systems.",
+  "rules": [
+    "MUST adhere to NASA's Planetary Protection Policy to prevent contamination of the lunar regolith",
+    "MUST comply with the NASA Technical Standards for Planetary Resource Utilization",
+    "MUST integrate with NASA's Earth Observing System (EOS) for access to satellite imagery",
+    "MUST use the Lunar Reconnaissance Orbiter (LRO) data for topological and geological analysis",
+    "MUST ensure data compatibility with the ISRU system's software framework"
+  ],
+  "anti_patterns": [
+    "DO NOT assume uniformity in the lunar regolith's composition and structure",
+    "DO NOT neglect the effects of lunar dust on excavation equipment and ISRU systems",
+    "DO NOT overlook the need for continuous environmental monitoring during excavation"
+  ],
+  "key_technical_challenges": [
+    "Integrating data from multiple sources with different formats and resolutions",
+    "Developing an optimization algorithm that balances excavation efficiency with environmental and safety concerns",
+    "Ensuring the system's scalability and performance for large-scale excavation operations"
+  ],
+  "recommended_stack": {
+    "language": "Python - widely used in the space industry and suitable for data-intensive applications",
+    "framework": "Django - provides a robust framework for building complex data-driven applications",
+    "database_engine": "PostgreSQL - supports spatial data types and geometric operations",
+    "cache": "Redis - suitable for caching spatial data and query results",
+    "message_broker": "RabbitMQ - provides a reliable messaging system for integrating with other NASA systems",
+    "special_services": [
+      "NASA's Earth Observing System (EOS)",
+      "Lunar Reconnaissance Orbiter (LRO) data"
+    ]
+  },
+  "compliance_flags": [
+    "NASA Planetary Protection Policy",
+    "NASA Technical Standards for Planetary Resource Utilization"
+  ]
+}

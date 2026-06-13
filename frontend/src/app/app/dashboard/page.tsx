@@ -8,27 +8,103 @@ import { supabase } from "../../../lib/supabase-browser";
 import { resolveAvatarUrl } from "../../../lib/avatar";
 
 const pipelineStages = [
-  "Spec expansion",
-  "Spec cleanup",
-  "Entities & relations",
-  "Model proposal",
+  "Requirements & scope",
+  "Domain model",
   "API surface",
-  "Business rules",
-  "Code skeleton"
+  "Workflows & states",
+  "Data storage",
+  "Security & compliance",
+  "Observability",
+  "Reliability & DR",
+  "Scaling & performance",
+  "Deployment & DevOps"
 ] as const;
 
 const stageIcons: Record<(typeof pipelineStages)[number], string> = {
-  "Spec expansion": "SE",
-  "Spec cleanup": "SC",
-  "Entities & relations": "ER",
-  "Model proposal": "MP",
+  "Requirements & scope": "RS",
+  "Domain model": "DM",
   "API surface": "AP",
-  "Business rules": "BR",
-  "Code skeleton": "</>"
+  "Workflows & states": "WS",
+  "Data storage": "DS",
+  "Security & compliance": "SC",
+  "Observability": "OB",
+  "Reliability & DR": "RD",
+  "Scaling & performance": "SP",
+  "Deployment & DevOps": "DD"
 };
 
 type PipelineResult = {
   summary?: { summary?: string } | string;
+  overview?: {
+    product?: string;
+    summary?: string;
+    assumptions?: string[];
+    primary_users?: string[];
+  };
+  requirements?: {
+    functional?: string[];
+    non_functional?: string[];
+    constraints?: string[];
+    integrations?: string[];
+    data_sensitivity?: string;
+    compliance?: string[];
+  };
+  architecture?: {
+    style?: string;
+    services?: string[];
+    data_stores?: string[];
+    messaging?: string[];
+    cache?: string[];
+    external?: string[];
+    deployment?: string[];
+  };
+  data_model?: {
+    entities?: Array<{
+      name: string;
+      fields?: Array<{
+        name: string;
+        type: string;
+        constraints?: string[];
+        description?: string;
+      }>;
+    }>;
+    relationships?: string[];
+    indexes?: string[];
+    retention?: string[];
+  };
+  api?: {
+    public_endpoints?: Array<{ method: string; path: string; desc?: string }>
+    internal_endpoints?: Array<{ method: string; path: string; desc?: string }>
+    webhooks?: Array<{ event: string; path: string; desc?: string }>
+  };
+  workflows?: Array<{ name: string; steps?: string[]; failure_modes?: string[] }>
+  security?: {
+    authn?: string;
+    authz?: string;
+    data_protection?: string;
+    audit?: string;
+  };
+  observability?: {
+    logs?: string[];
+    metrics?: string[];
+    traces?: string[];
+    alerts?: string[];
+  };
+  scaling?: {
+    current?: string[];
+    future?: string[];
+    bottlenecks?: string[];
+  };
+  reliability?: {
+    slo?: string[];
+    backups?: string[];
+    dr?: string[];
+  };
+  deliverables?: {
+    milestones?: string[];
+    testing?: string[];
+    runbooks?: string[];
+  };
   entities?: Array<{
     name: string;
     fields?: Array<{
@@ -63,6 +139,17 @@ type PipelineResult = {
       expanded_chars?: number;
       inferred_count?: number;
     };
+  };
+  anti_fragility?: {
+    resilience_rating: string;
+    critical_vulnerabilities: string[];
+    chaos_scenarios: Array<{
+      scenario_name: string;
+      failure_description: string;
+      impact_analysis: string;
+      mitigation_strategy: string;
+    }>;
+    hardening_checklist: string[];
   };
 };
 
@@ -115,7 +202,7 @@ type UserPreferenceRow = {
 };
 
 type ViewMode = "guide" | "builder" | "pro";
-type OutputTab = "schema" | "api" | "code" | "sql" | "rules";
+type OutputTab = "schema" | "api" | "code" | "sql" | "rules" | "resilience";
 
 const starterTemplates = [
   {
@@ -197,6 +284,7 @@ function DashboardContent() {
   const [status, setStatus] = useState("Idle");
   const [result, setResult] = useState<PipelineResult | null>(null);
   const [lastRunMeta, setLastRunMeta] = useState<{ projectName: string; specTitle: string; runId?: string } | null>(null);
+  const [activeSpecId, setActiveSpecId] = useState<string | null>(null);
   const [generationMeta, setGenerationMeta] = useState<{ source?: string; model?: string } | null>(null);
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [profileEmail, setProfileEmail] = useState("loading...");
@@ -415,12 +503,18 @@ function DashboardContent() {
         throw new Error(detail || "Spec creation failed");
       }
       const spec = await specRes.json();
-
+      setActiveSpecId(spec.id);
+      
       setStatus("Running pipeline...");
       const pipelineRes = await fetch(`${apiBaseUrl}/pipelines/run`, {
         method: "POST",
         headers,
-        body: JSON.stringify({ project_id: project.id, spec_id: spec.id, stack: "fastapi+supabase" })
+        body: JSON.stringify({
+          project_id: project.id,
+          spec_id: spec.id,
+          stack: "fastapi+supabase",
+          spec_content: specPayloadContent,
+        })
       });
       if (!pipelineRes.ok) {
         const detail = await pipelineRes.text();
@@ -588,15 +682,36 @@ function DashboardContent() {
   const inferredBoostCount = Math.max(0, expansionMeta?.inferred_count || 0);
 
   const stageInsights: Record<string, string> = {
-    "Spec expansion": isCompletedRun
-      ? `Expanded idea context by +${expandedCharDelta} chars (${expansionMeta?.source || "none"})`
-      : "Internal expansion pending",
-    "Spec cleanup": isCompletedRun ? `Normalized: ${(specTitle || "backend spec").slice(0, 54)}` : "Schema normalized and ready",
-    "Entities & relations": isCompletedRun ? `Found ${entities.length} entities, ${relationships.length} relationships` : "Entity extraction pending",
-    "Model proposal": isCompletedRun ? `Proposed schema: ${entities.length} tables, ${joinTables.length} join tables` : "Schema proposal pending",
-    "API surface": isCompletedRun ? `Generated ${endpoints.length} endpoints across resources` : "Endpoint generation pending",
-    "Business rules": isCompletedRun ? `Captured ${normalizedRules.length} business rules` : "Rule extraction pending",
-    "Code skeleton": isCompletedRun ? `Skeleton ready: ${entities.length} models, ${entities.length} routers, ${entities.length} services` : "Skeleton generation pending"
+    "Requirements & scope": isCompletedRun
+      ? `Captured ${(result?.requirements?.functional || []).length} core workflows`
+      : "Gathering goals, constraints, and scope",
+    "Domain model": isCompletedRun
+      ? `Found ${entities.length} entities, ${relationships.length} relationships`
+      : "Deriving entities and relationships",
+    "API surface": isCompletedRun
+      ? `Generated ${endpoints.length} endpoints across resources`
+      : "Designing API surface",
+    "Workflows & states": isCompletedRun
+      ? `Defined ${(result?.workflows || []).length} workflows`
+      : "Mapping workflows and states",
+    "Data storage": isCompletedRun
+      ? `Planned ${(result?.architecture?.data_stores || []).length} data stores`
+      : "Selecting storage, indexing, and retention",
+    "Security & compliance": isCompletedRun
+      ? `Security: ${(result?.security?.authn || "auth").slice(0, 24)}...`
+      : "Defining auth, access, and compliance",
+    "Observability": isCompletedRun
+      ? `Metrics ${(result?.observability?.metrics || []).length}, alerts ${(result?.observability?.alerts || []).length}`
+      : "Setting up logs, metrics, and tracing",
+    "Reliability & DR": isCompletedRun
+      ? `SLOs ${(result?.reliability?.slo || []).length}, DR ${(result?.reliability?.dr || []).length}`
+      : "Planning resilience and recovery",
+    "Scaling & performance": isCompletedRun
+      ? `Bottlenecks ${(result?.scaling?.bottlenecks || []).length}`
+      : "Planning scaling and performance",
+    "Deployment & DevOps": isCompletedRun
+      ? `Runbooks ${(result?.deliverables?.runbooks || []).length}`
+      : "Finalizing deployment and operations"
   };
 
   const endpointByEntity = entities
@@ -649,13 +764,13 @@ function DashboardContent() {
 
   const currentPlanCode = (plan?.plan_code || "").toLowerCase();
   const tabEntitlements: Record<string, OutputTab[]> = {
-    starter: ["schema", "api"],
-    creator: ["schema", "api", "sql", "rules"],
-    studio: ["schema", "api", "code", "sql", "rules"],
-    growth: ["schema", "api", "code", "sql", "rules"],
-    enterprise: ["schema", "api", "code", "sql", "rules"],
+    starter: ["schema", "api", "resilience"],
+    creator: ["schema", "api", "sql", "rules", "resilience"],
+    studio: ["schema", "api", "code", "sql", "rules", "resilience"],
+    growth: ["schema", "api", "code", "sql", "rules", "resilience"],
+    enterprise: ["schema", "api", "code", "sql", "rules", "resilience"],
   };
-  const allTabs: OutputTab[] = ["schema", "api", "code", "sql", "rules"];
+  const allTabs: OutputTab[] = ["schema", "api", "code", "sql", "rules", "resilience"];
   const allowedTabs = currentPlanCode
     ? (tabEntitlements[currentPlanCode] || tabEntitlements.starter)
     : allTabs;
@@ -710,6 +825,10 @@ function DashboardContent() {
         const fallbackSpec = searchParams.get("spec") || "Saved spec";
         setLastRunMeta({ projectName: fallbackProject, specTitle: fallbackSpec, runId });
 
+        if (runPayload.spec_id) {
+          setActiveSpecId(runPayload.spec_id);
+        }
+
         const resultMeta = runPayload?.result?.__meta || {};
         setGenerationMeta({ source: resultMeta.source, model: resultMeta.model });
       } catch {
@@ -727,7 +846,7 @@ function DashboardContent() {
 
   const renderSectionBadge = (count: number, label: string) => {
     if (!isProMode) return null;
-    return <span className="rounded-full border border-dune/30 bg-white px-2 py-0.5 text-[11px] text-dune">{count} {label}</span>;
+    return <span className="rounded-full border border-white/30 bg-white/5 px-2 py-0.5 text-[11px] text-white/60">{count} {label}</span>;
   };
 
   const renderConstraintChip = (constraint: string, index: number) => {
@@ -741,7 +860,7 @@ function DashboardContent() {
       <span
         key={`${constraint}-${index}`}
         title={label}
-        className="max-w-full break-all rounded-full border border-dune/20 bg-white px-2 py-0.5 text-[10px] uppercase tracking-[0.08em] text-dune"
+        className="max-w-full break-all rounded-full border border-white/20 bg-white/5 px-2 py-0.5 text-[10px] uppercase tracking-[0.08em] text-white/60"
       >
         {label}
       </span>
@@ -763,7 +882,7 @@ function DashboardContent() {
       <AppShell>
         <div className="glass rounded-3xl p-8">
           <p className="label">Workspace</p>
-          <p className="mt-3 text-sm text-dune">Loading your preferences...</p>
+          <p className="mt-3 text-sm text-white/60">Loading your preferences...</p>
         </div>
       </AppShell>
     );
@@ -774,10 +893,10 @@ function DashboardContent() {
       <div className="grid gap-6 lg:grid-cols-[1.35fr_0.65fr]">
         <main className="space-y-6">
           <section className="glass rounded-3xl p-8 reveal">
-            <p className="text-sm uppercase tracking-[0.22em] text-dune">Generation status</p>
-            <div className="mt-4 rounded-2xl border border-dune/20 bg-white/80 p-5">
+            <p className="text-sm uppercase tracking-[0.22em] text-white/60">Generation status</p>
+            <div className="mt-4 rounded-2xl border border-white/20 bg-white/5 p-5">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <p className="text-lg font-medium text-ink">
+                <p className="text-lg font-medium text-white">
                   {isCompletedRun
                     ? "Backend generated successfully"
                     : isRunning
@@ -785,32 +904,32 @@ function DashboardContent() {
                       : "Ready when you are"}
                 </p>
                 {isCompletedRun ? (
-                  <span className="rounded-full border border-mint/40 bg-mint/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-ink">
+                  <span className="rounded-full border border-[#C2D68C]/40 bg-[#C2D68C]/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-white">
                     Ready
                   </span>
                 ) : null}
               </div>
 
-              <div className="mt-4 h-3 w-full overflow-hidden rounded-full bg-bone">
+              <div className="mt-4 h-3 w-full overflow-hidden rounded-full bg-white/10">
                 <div
-                  className={`h-full rounded-full bg-ink transition-all duration-700 ${isRunning ? "animate-pulse" : ""}`}
+                  className={`h-full rounded-full bg-[#C2D68C] transition-all duration-700 ${isRunning ? "animate-pulse" : ""}`}
                   style={{ width: `${progressPercent}%` }}
                 />
               </div>
-              <p className="mt-2 text-xs text-dune">
+              <p className="mt-2 text-xs text-white/60">
                 [{"█".repeat(Math.round(progressPercent / 8)).padEnd(12, "░")}] {isCompletedRun ? "Completed" : `${progressPercent}% in progress`}
                 {isRunning ? ` - ${formatElapsed(elapsedSeconds)}` : ""}
               </p>
               {isCompletedRun && generationMeta?.source ? (
-                <p className="mt-2 text-xs text-dune">
+                <p className="mt-2 text-xs text-white/60">
                   Generated by {generationMeta.source}{generationMeta.model ? ` (${generationMeta.model})` : ""}
                 </p>
               ) : null}
             </div>
 
-            <details className="mt-5 rounded-2xl border border-dune/20 bg-white/70 p-4" open={showGenerationDetails}>
+            <details className="mt-5 rounded-2xl border border-white/20 bg-white/5 p-4" open={showGenerationDetails}>
               <summary
-                className="cursor-pointer text-sm font-semibold text-ink"
+                className="cursor-pointer text-sm font-semibold text-white"
                 onClick={(event) => {
                   event.preventDefault();
                   setShowGenerationDetails((prev) => !prev);
@@ -824,13 +943,13 @@ function DashboardContent() {
                     const isStageDone = isCompletedRun || (isRunning && index < processStageIndex);
                     const isStageActive = isRunning && index === processStageIndex;
                     return (
-                      <div key={stage} className="rounded-xl border border-dune/20 bg-white px-3 py-2">
+                      <div key={stage} className="rounded-xl border border-white/20 bg-white/5 px-3 py-2">
                         <div className="flex items-center justify-between gap-2">
-                          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-dune">{stageIcons[stage]}</p>
-                          <p className="text-[11px] text-dune">{isStageDone ? "Completed" : isStageActive ? "Running" : "Queued"}</p>
+                          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/60">{stageIcons[stage]}</p>
+                          <p className="text-[11px] text-white/60">{isStageDone ? "Completed" : isStageActive ? "Running" : "Queued"}</p>
                         </div>
-                        <p className="mt-1 text-sm text-ink">{stage}</p>
-                        <p className="mt-1 text-xs text-dune">{stageInsights[stage]}</p>
+                        <p className="mt-1 text-sm text-white">{stage}</p>
+                        <p className="mt-1 text-xs text-white/60">{stageInsights[stage]}</p>
                       </div>
                     );
                   })}
@@ -841,34 +960,34 @@ function DashboardContent() {
 
           {isCompletedRun ? (
             <div className="space-y-8">
-              <section ref={summaryRef} className="rounded-3xl border border-dune/20 bg-white p-8 shadow-[0_24px_60px_rgba(15,15,15,0.12)]">
+              <section ref={summaryRef} className="rounded-3xl border border-white/20 bg-[#1F261D] p-8 shadow-[0_24px_60px_rgba(0,0,0,0.12)]">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div>
-                    <p className="text-xs uppercase tracking-[0.2em] text-dune">Baxel understood your spec</p>
-                    <h2 className="mt-2 text-3xl font-semibold text-ink">{lastRunMeta?.projectName || projectName || "Untitled project"}</h2>
-                    <p className="mt-2 text-sm text-dune">{generatedSummaryText}</p>
+                    <p className="text-xs uppercase tracking-[0.2em] text-[#C2D68C]">Baxel understood your spec</p>
+                    <h2 className="mt-2 text-3xl font-semibold text-white">{lastRunMeta?.projectName || projectName || "Untitled project"}</h2>
+                    <p className="mt-2 text-sm text-white/60">{generatedSummaryText}</p>
                   </div>
-                  <div className="rounded-2xl border border-dune/20 bg-bone/70 px-4 py-3 text-right">
-                    <p className="text-lg font-semibold text-ink">{entities.length} entities, {endpoints.length} endpoints</p>
-                    <p className="text-xs text-dune">{joinTables.length} joins, {normalizedRules.length} rules, {triggerCount} triggers</p>
+                  <div className="rounded-2xl border border-white/20 bg-white/5 px-4 py-3 text-right">
+                    <p className="text-lg font-semibold text-white">{entities.length} entities, {endpoints.length} endpoints</p>
+                    <p className="text-xs text-white/60">{joinTables.length} joins, {normalizedRules.length} rules, {triggerCount} triggers</p>
                   </div>
                 </div>
 
                 <div className="mt-5 flex flex-wrap gap-2">
                   {keyEntities.map((entity) => (
-                    <span key={entity} className="rounded-full border border-dune/30 bg-bone px-3 py-1 text-xs font-medium text-ink">{entity}</span>
+                    <span key={entity} className="rounded-full border border-white/30 bg-white/5 px-3 py-1 text-xs font-medium text-white">{entity}</span>
                   ))}
-                  {keyEntitiesMore > 0 ? <span className="rounded-full border border-dune/30 bg-white px-3 py-1 text-xs text-dune">+{keyEntitiesMore} more</span> : null}
+                  {keyEntitiesMore > 0 ? <span className="rounded-full border border-white/30 bg-white/10 px-3 py-1 text-xs text-white/60">+{keyEntitiesMore} more</span> : null}
                 </div>
 
-                <div className="mt-6 rounded-2xl border border-dune/20 bg-bone/50 p-4">
-                  <p className="text-xs uppercase tracking-[0.2em] text-dune">Relationship map</p>
+                <div className="mt-6 rounded-2xl border border-white/20 bg-white/5 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-white/60">Relationship map</p>
                   <div className="mt-3 grid gap-3 md:grid-cols-2">
                     {sortedEntities.slice(0, 6).map((entity, index) => (
-                      <div key={`${entity.name}-${index}`} className="rounded-xl border border-dune/20 bg-white px-3 py-3">
-                        <p className="text-sm font-semibold text-ink">{entity.name}</p>
-                        <p className="mt-1 text-xs text-dune">{entityRelationCount[entity.name] || 0} relationships</p>
-                        <p className="mt-2 text-[11px] text-dune">
+                      <div key={`${entity.name}-${index}`} className="rounded-xl border border-white/20 bg-white/5 px-3 py-3">
+                        <p className="text-sm font-semibold text-white">{entity.name}</p>
+                        <p className="mt-1 text-xs text-white/60">{entityRelationCount[entity.name] || 0} relationships</p>
+                        <p className="mt-2 text-[11px] text-white/60">
                           {(entity.fields || []).slice(0, 3).map((field) => field.name).join("  •  ") || "id"}
                         </p>
                       </div>
@@ -884,7 +1003,8 @@ function DashboardContent() {
                     { key: "api", label: "API" },
                     { key: "code", label: "Code" },
                     { key: "sql", label: "SQL" },
-                    { key: "rules", label: "Rules" }
+                    { key: "rules", label: "Rules" },
+                    { key: "resilience", label: "Resilience" }
                   ] as Array<{ key: OutputTab; label: string }>).filter((tab) => isTabAllowed(tab.key)).map((tab) => (
                     <button
                       key={tab.key}
@@ -892,8 +1012,8 @@ function DashboardContent() {
                       onClick={() => setActiveTab(tab.key)}
                       className={`rounded-full px-4 py-2 text-sm ${
                         activeTab === tab.key
-                          ? "bg-ink text-bone"
-                          : "border border-dune/30 bg-white text-ink"
+                          ? "bg-[#C2D68C] text-[#1F261D]"
+                          : "border border-white/30 bg-white/5 text-white"
                       }`}
                     >
                       {tab.label}
@@ -901,8 +1021,8 @@ function DashboardContent() {
                   ))}
                 </div>
 
-                <div className="mt-5 rounded-2xl border border-dune/20 bg-white/80 p-5">
-                  <p className="mb-4 text-xs uppercase tracking-[0.16em] text-dune">
+                <div className="mt-5 rounded-2xl border border-white/20 bg-white/5 p-5">
+                  <p className="mb-4 text-xs uppercase tracking-[0.16em] text-white/60">
                     {isPlanLoading && !plan
                       ? "Loading plan outputs..."
                       : `${plan?.plan_name || "Current"} outputs: ${allowedTabs.map((tab) => tab.toUpperCase()).join(" • ")}`}
@@ -913,14 +1033,14 @@ function DashboardContent() {
                     </p>
                   ) : null}
                   {lockedTabs.length ? (
-                    <p className="mb-3 rounded-xl border border-dune/25 bg-bone/60 px-3 py-2 text-xs text-dune">
+                    <p className="mb-3 rounded-xl border border-white/25 bg-white/10 px-3 py-2 text-xs text-white/60">
                       Advanced output hidden on this plan: {lockedTabs.map((tab) => tab.toUpperCase()).join(" • ")}. Upgrade to unlock.
                     </p>
                   ) : null}
                   {showStarterLockedPreview ? (
-                    <div className="mb-4 rounded-xl border border-dune/20 bg-white/70 p-3">
-                      <p className="text-[11px] uppercase tracking-[0.14em] text-dune">Preview (Locked)</p>
-                      <div className="mt-2 rounded-lg border border-dune/20 bg-bone/70 p-3 text-xs text-ink blur-[2px] select-none">
+                    <div className="mb-4 rounded-xl border border-white/20 bg-white/5 p-3">
+                      <p className="text-[11px] uppercase tracking-[0.14em] text-white/60">Preview (Locked)</p>
+                      <div className="mt-2 rounded-lg border border-white/20 bg-white/10 p-3 text-xs text-white blur-[2px] select-none">
                         {starterLockedPreviewMessage}
                       </div>
                     </div>
@@ -928,16 +1048,16 @@ function DashboardContent() {
                   {activeTab === "schema" ? (
                     <div className="grid gap-4 md:grid-cols-2">
                       {sortedEntities.map((entity, index) => (
-                        <div key={`${entity.name}-${index}`} className={`min-w-0 rounded-2xl border ${highlightedEntities.has(entity.name) ? "border-ink/30" : "border-dune/20"} bg-white p-4`}>
+                        <div key={`${entity.name}-${index}`} className={`min-w-0 rounded-2xl border ${highlightedEntities.has(entity.name) ? "border-white/30" : "border-white/20"} bg-white/5 p-4`}>
                           <div className="flex items-center justify-between gap-2">
-                            <p className="text-sm font-semibold text-ink">{entity.name}</p>
-                            <span className="rounded-full border border-dune/25 bg-white px-2 py-0.5 text-[11px] text-dune">{entityRelationCount[entity.name] || 0} relations</span>
+                            <p className="text-sm font-semibold text-white">{entity.name}</p>
+                            <span className="rounded-full border border-white/25 bg-white/5 px-2 py-0.5 text-[11px] text-white/60">{entityRelationCount[entity.name] || 0} relations</span>
                           </div>
                           <div className="mt-3 space-y-1">
                             {(entity.fields?.length ? entity.fields : [{ name: "id", type: "uuid", constraints: ["primary_key"] }]).map((field, fieldIndex) => (
-                              <div key={`${entity.name}-${field.name}-${fieldIndex}`} className="min-w-0 flex flex-wrap items-center gap-2 text-xs text-dune">
-                                <span className="font-semibold text-ink">{field.name}</span>
-                                <span className="rounded-full bg-ink px-2 py-0.5 text-[10px] uppercase tracking-[0.08em] text-bone">{field.type}</span>
+                              <div key={`${entity.name}-${field.name}-${fieldIndex}`} className="min-w-0 flex flex-wrap items-center gap-2 text-xs text-white/60">
+                                <span className="font-semibold text-white">{field.name}</span>
+                                <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.08em] text-white">{field.type}</span>
                                 {(field.constraints || []).slice(0, 2).map((constraint, constraintIndex) => renderConstraintChip(constraint, constraintIndex))}
                               </div>
                             ))}
@@ -950,65 +1070,177 @@ function DashboardContent() {
                   {activeTab === "api" ? (
                     <div className="space-y-3">
                       {endpoints.length ? endpoints.map((api, index) => (
-                        <div key={`${api.method}-${api.path}-${index}`} className="rounded-2xl border border-dune/20 bg-white p-4">
+                        <div key={`${api.method}-${api.path}-${index}`} className="rounded-2xl border border-white/20 bg-white/5 p-4">
                           <div className="flex items-center gap-3">
                             <span className="code-pill">{api.method}</span>
-                            <span className="text-sm font-medium text-ink">{api.path}</span>
+                            <span className="text-sm font-medium text-white">{api.path}</span>
                           </div>
-                          <p className="mt-2 text-xs text-dune">{api.desc || "Generated endpoint"}</p>
-                          {!!api.errors?.length ? <p className="mt-1 text-[11px] text-dune/90">Errors: {api.errors.join(" | ")}</p> : null}
+                          <p className="mt-2 text-xs text-white/60">{api.desc || "Generated endpoint"}</p>
+                          {!!api.errors?.length ? <p className="mt-1 text-[11px] text-white/60/90">Errors: {api.errors.join(" | ")}</p> : null}
                         </div>
-                      )) : <p className="text-sm text-dune">No API routes generated.</p>}
+                      )) : <p className="text-sm text-white/60">No API routes generated.</p>}
                     </div>
                   ) : null}
 
                   {activeTab === "code" && isTabAllowed("code") ? (
                     <div className="space-y-3">
-                      <div className="rounded-2xl border border-dune/20 bg-white p-4">
-                        <p className="text-xs uppercase tracking-[0.2em] text-dune">Models</p>
-                        <pre className="mt-2 whitespace-pre-wrap text-xs text-ink">{codeSkeleton?.models || "No models generated yet."}</pre>
+                      <div className="rounded-2xl border border-white/20 bg-white/5 p-4">
+                        <p className="text-xs uppercase tracking-[0.2em] text-white/60">Models</p>
+                        <pre className="mt-2 whitespace-pre-wrap text-xs text-white">{codeSkeleton?.models || "No models generated yet."}</pre>
                       </div>
-                      <div className="rounded-2xl border border-dune/20 bg-white p-4">
-                        <p className="text-xs uppercase tracking-[0.2em] text-dune">Routers</p>
-                        <pre className="mt-2 whitespace-pre-wrap text-xs text-ink">{codeSkeleton?.routers || "No routers generated yet."}</pre>
+                      <div className="rounded-2xl border border-white/20 bg-white/5 p-4">
+                        <p className="text-xs uppercase tracking-[0.2em] text-white/60">Routers</p>
+                        <pre className="mt-2 whitespace-pre-wrap text-xs text-white">{codeSkeleton?.routers || "No routers generated yet."}</pre>
                       </div>
-                      <div className="rounded-2xl border border-dune/20 bg-white p-4">
-                        <p className="text-xs uppercase tracking-[0.2em] text-dune">Services</p>
-                        <pre className="mt-2 whitespace-pre-wrap text-xs text-ink">{codeSkeleton?.services || "No services generated yet."}</pre>
+                      <div className="rounded-2xl border border-white/20 bg-white/5 p-4">
+                        <p className="text-xs uppercase tracking-[0.2em] text-white/60">Services</p>
+                        <pre className="mt-2 whitespace-pre-wrap text-xs text-white">{codeSkeleton?.services || "No services generated yet."}</pre>
                       </div>
                     </div>
                   ) : null}
 
                   {activeTab === "sql" && isTabAllowed("sql") ? (
                     <div>
-                      <p className="text-xs text-dune">{migrationTableCount} tables detected in migration output.</p>
-                      <pre className="mt-3 whitespace-pre-wrap rounded-2xl border border-dune/20 bg-white p-4 text-xs text-ink">{migrationSqlText || "No SQL migration generated yet."}</pre>
+                      <p className="text-xs text-white/60">{migrationTableCount} tables detected in migration output.</p>
+                      <pre className="mt-3 whitespace-pre-wrap rounded-2xl border border-white/20 bg-white/5 p-4 text-xs text-white">{migrationSqlText || "No SQL migration generated yet."}</pre>
                     </div>
                   ) : null}
 
                   {activeTab === "rules" && isTabAllowed("rules") ? (
                     <div className="space-y-3">
                       {normalizedRules.length ? normalizedRules.map((rule, index) => (
-                        <div key={`${rule.name}-${index}`} className="rounded-2xl border border-dune/20 bg-white p-4">
-                          <p className="text-sm font-semibold text-ink">{rule.name}</p>
-                          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-dune">
-                            <span className="rounded-full border border-dune/20 bg-white px-2 py-0.5 uppercase tracking-[0.08em]">{rule.type}</span>
-                            {rule.trigger_condition ? <span className="rounded-full border border-dune/20 bg-white px-2 py-0.5">Trigger: {rule.trigger_condition}</span> : null}
+                        <div key={`${rule.name}-${index}`} className="rounded-2xl border border-white/20 bg-white/5 p-4">
+                          <p className="text-sm font-semibold text-white">{rule.name}</p>
+                          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-white/60">
+                            <span className="rounded-full border border-white/20 bg-white/5 px-2 py-0.5 uppercase tracking-[0.08em]">{rule.type}</span>
+                            {rule.trigger_condition ? <span className="rounded-full border border-white/20 bg-white/5 px-2 py-0.5">Trigger: {rule.trigger_condition}</span> : null}
                           </div>
                         </div>
-                      )) : <p className="text-sm text-dune">No business rules generated.</p>}
+                      )) : <p className="text-sm text-white/60">No business rules generated.</p>}
+                    </div>
+                  ) : null}
+
+                  {activeTab === "resilience" && isTabAllowed("resilience") ? (
+                    <div className="space-y-6">
+                      {/* Resilience Grade & Intro */}
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-2xl border border-white/20 bg-white/5 p-6 shadow-inner">
+                        <div>
+                          <h3 className="text-lg font-semibold text-white">Chaos Engineering & Resilience Audit</h3>
+                          <p className="mt-1 text-xs text-white/60">
+                            Simulated failure scenarios executed by our automated Chaos Architect.
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs uppercase tracking-[0.16em] text-white/60">Resilience Rating:</span>
+                          <span className="flex items-center justify-center rounded-xl bg-emerald-500/20 border border-emerald-500/30 px-4 py-2 font-mono text-2xl font-bold text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.1)]">
+                            {result?.anti_fragility?.resilience_rating || "B+"}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Critical Single Points of Failure */}
+                      <div className="rounded-2xl border border-rose-500/20 bg-rose-500/5 p-6">
+                        <div className="flex items-center gap-2">
+                          <span className="text-rose-400 font-bold">⚠️</span>
+                          <h4 className="text-sm font-semibold uppercase tracking-[0.1em] text-rose-300">
+                            Critical Vulnerabilities & Single Points of Failure
+                          </h4>
+                        </div>
+                        <ul className="mt-4 space-y-2.5">
+                          {(result?.anti_fragility?.critical_vulnerabilities || [
+                            "No fallback connection pool configuration found under peak transactional loads.",
+                            "Single node database deployment represents a critical single point of failure."
+                          ]).map((vuln, i) => (
+                            <li key={i} className="flex items-start gap-2.5 text-xs text-white/80">
+                              <span className="text-rose-400 font-bold select-none">•</span>
+                              <span>{vuln}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {/* Simulated Failure Scenarios */}
+                      <div>
+                        <h4 className="text-sm font-semibold uppercase tracking-[0.12em] text-white/80 mb-4">
+                          Simulated Failure Scenarios
+                        </h4>
+                        <div className="grid gap-4 md:grid-cols-3">
+                          {(result?.anti_fragility?.chaos_scenarios || [
+                            {
+                              scenario_name: "Database Connection Pool Exhaustion",
+                              failure_description: "High concurrent write operations lock database transactions, exhausting the connection pool.",
+                              impact_analysis: "HTTP 500 errors on stateful write endpoints, causing clients to drop requests.",
+                              mitigation_strategy: "Implement connection pooling limits, read replicas, and exponential backoff."
+                            }
+                          ]).map((scenario, idx) => (
+                            <div key={idx} className="flex flex-col justify-between rounded-2xl border border-white/20 bg-white/5 p-5 transition-all hover:border-white/30 hover:bg-white/10">
+                              <div>
+                                <span className="rounded-full bg-white/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-[#C2D68C]">
+                                  Scenario {idx + 1}
+                                </span>
+                                <h5 className="mt-3 text-sm font-semibold text-white">{scenario.scenario_name}</h5>
+                                
+                                <div className="mt-4 space-y-3">
+                                  <div>
+                                    <span className="text-[10px] font-semibold uppercase tracking-wider text-rose-400">Failure Mode</span>
+                                    <p className="mt-0.5 text-xs text-white/70">{scenario.failure_description}</p>
+                                  </div>
+                                  <div>
+                                    <span className="text-[10px] font-semibold uppercase tracking-wider text-amber-400">System Impact</span>
+                                    <p className="mt-0.5 text-xs text-white/70">{scenario.impact_analysis}</p>
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              <div className="mt-4 pt-4 border-t border-white/10">
+                                <span className="text-[10px] font-semibold uppercase tracking-wider text-emerald-400 flex items-center gap-1">
+                                  ✓ Hardening Plan
+                                </span>
+                                <p className="mt-1 text-xs text-[#C2D68C]/90 font-medium leading-relaxed">{scenario.mitigation_strategy}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Hardening Checklist */}
+                      <div className="rounded-2xl border border-white/20 bg-white/5 p-6">
+                        <h4 className="text-sm font-semibold uppercase tracking-[0.12em] text-white/80">
+                          Production Hardening Checklist
+                        </h4>
+                        <div className="mt-4 space-y-3">
+                          {(result?.anti_fragility?.hardening_checklist || [
+                            "Configure connection pool sizing matching active server threads.",
+                            "Integrate Redis read-through cache for core latency-sensitive fetches.",
+                            "Implement fallback logging buffers for local transaction storage under offline splits."
+                          ]).map((step, idx) => (
+                            <label key={idx} className="flex items-center gap-3 cursor-pointer text-xs text-white/80 hover:text-white transition-colors">
+                              <input
+                                type="checkbox"
+                                className="h-4 w-4 rounded border-white/30 bg-white/5 text-[#C2D68C] focus:ring-0 focus:ring-offset-0"
+                              />
+                              <span>{step}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   ) : null}
                 </div>
 
                 <div className="mt-5 flex flex-wrap gap-3">
-                  {isTabAllowed("sql") ? (
-                    <button className="rounded-full bg-ink px-5 py-2 text-sm text-bone" onClick={() => downloadTextFile("baxel-migration.sql", migrationSqlText || "-- No SQL generated yet.")}>Export SQL</button>
-                  ) : (
-                    <Link href="/pricing" className="rounded-full border border-dune/35 px-4 py-2 text-sm text-ink">Unlock SQL export</Link>
-                  )}
-                  <button className="rounded-full border border-dune/35 px-4 py-2 text-sm text-ink" onClick={copyShareLinkFromLatest}>Copy share link</button>
-                  <button className="rounded-full border border-dune/35 px-4 py-2 text-sm text-ink disabled:cursor-not-allowed disabled:opacity-60" onClick={rerunLatest} disabled={isRerunBlocked}>Re-run</button>
+                  <button
+                    className="rounded-full bg-[#C2D68C] px-5 py-2 text-sm text-[#1F261D]"
+                    onClick={() => {
+                      if (result) {
+                        downloadTextFile("baxel-spec.json", JSON.stringify(result, null, 2));
+                      }
+                    }}
+                  >
+                    Export JSON
+                  </button>
+                  <button className="rounded-full border border-white/35 px-4 py-2 text-sm text-white" onClick={copyShareLinkFromLatest}>Copy share link</button>
+                  <button className="rounded-full border border-white/35 px-4 py-2 text-sm text-white disabled:cursor-not-allowed disabled:opacity-60" onClick={rerunLatest} disabled={isRerunBlocked}>Re-run</button>
                 </div>
               </section>
             </div>
@@ -1018,13 +1250,13 @@ function DashboardContent() {
         <aside className="space-y-4">
           <section className="glass rounded-3xl p-8 reveal reveal-delay-1">
             <p className="label">What are you building?</p>
-            <div className="mt-4 rounded-2xl border border-dune/20 bg-white/70 p-4">
-              <p className="text-[11px] uppercase tracking-[0.2em] text-dune">Starter prompts</p>
+            <div className="mt-4 rounded-2xl border border-white/20 bg-white/5 p-4">
+              <p className="text-[11px] uppercase tracking-[0.2em] text-white/60">Starter prompts</p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {starterTemplates.map((template) => (
                   <button
                     key={template.label}
-                    className="rounded-full border border-dune/30 px-3 py-1 text-xs text-ink"
+                    className="rounded-full border border-white/30 px-3 py-1 text-xs text-white"
                     onClick={() => {
                       setProjectName(template.projectName);
                       setIdeaName(template.projectName);
@@ -1037,9 +1269,9 @@ function DashboardContent() {
                 ))}
               </div>
               <div className="mt-4">
-                <label className="text-xs uppercase tracking-[0.2em] text-dune">Idea name</label>
+                <label className="text-xs uppercase tracking-[0.2em] text-white/60">Idea name</label>
                 <input
-                  className="mt-2 w-full rounded-2xl border border-dune/20 bg-white/80 px-4 py-2 text-sm text-ink"
+                  className="mt-2 w-full rounded-2xl border border-white/20 bg-white/5 px-4 py-2 text-sm text-white"
                   value={ideaName}
                   onChange={(event) => setIdeaName(event.target.value)}
                   placeholder="Example: LearnSphere"
@@ -1048,33 +1280,33 @@ function DashboardContent() {
             </div>
 
             {isRunning ? (
-              <div className="mt-6 rounded-2xl border border-dune/25 bg-white/80 p-4">
+              <div className="mt-6 rounded-2xl border border-white/25 bg-white/5 p-4">
                 <div className="flex items-center gap-2">
-                  <span className="h-2 w-2 animate-pulse rounded-full bg-ink" />
-                  <p className="text-sm font-semibold text-ink">Generating backend...</p>
+                  <span className="h-2 w-2 animate-pulse rounded-full bg-white" />
+                  <p className="text-sm font-semibold text-white">Generating backend...</p>
                 </div>
-                <p className="mt-2 text-xs text-dune">Current stage: {pipelineStages[processStageIndex] || "Preparing"}</p>
-                <p className="mt-1 text-xs text-dune">{formatElapsed(elapsedSeconds)}</p>
-                <button className="mt-4 min-h-[56px] w-full cursor-not-allowed rounded-2xl bg-ink/70 px-4 py-3 text-base font-semibold text-bone" disabled>
+                <p className="mt-2 text-xs text-white/60">Current stage: {pipelineStages[processStageIndex] || "Preparing"}</p>
+                <p className="mt-1 text-xs text-white/60">{formatElapsed(elapsedSeconds)}</p>
+                <button className="mt-4 min-h-[56px] w-full cursor-not-allowed rounded-2xl bg-white/10 px-4 py-3 text-base font-semibold text-white" disabled>
                   Running...
                 </button>
               </div>
             ) : (
-              <div className="mt-6 space-y-4 text-sm text-dune">
+              <div className="mt-6 space-y-4 text-sm text-white/60">
                 <div>
-                  <label className="text-xs uppercase tracking-[0.2em] text-dune">Describe your idea</label>
+                  <label className="text-xs uppercase tracking-[0.2em] text-white/60">Describe your idea</label>
                   <textarea
-                    className="mt-2 h-40 w-full rounded-2xl border border-dune/20 bg-white/70 px-4 py-3 text-sm"
+                    className="mt-2 h-40 w-full rounded-2xl border border-white/20 bg-white/5 px-4 py-3 text-sm text-white"
                     value={specContent}
                     onChange={(event) => setSpecContent(event.target.value.slice(0, activeIdeaCharLimit))}
                     maxLength={activeIdeaCharLimit}
                     placeholder="A ride-sharing app where drivers accept trips, riders track ETAs, and payments settle after each ride..."
                   />
-                  <p className="mt-2 text-xs text-dune">Hint: write this like you are explaining the product to a teammate.</p>
-                  <p className="mt-1 text-xs text-dune">{ideaCharsUsed}/{activeIdeaCharLimit} characters used ({ideaCharsRemaining} left).</p>
+                  <p className="mt-2 text-xs text-white/60">Hint: write this like you are explaining the product to a teammate.</p>
+                  <p className="mt-1 text-xs text-white/60">{ideaCharsUsed}/{activeIdeaCharLimit} characters used ({ideaCharsRemaining} left).</p>
                 </div>
                 <button
-                  className={`min-h-[56px] w-full rounded-2xl px-4 py-3 text-base font-semibold ${isGenerateBlocked ? "cursor-not-allowed bg-ink/60 text-bone" : "bg-ink text-bone"}`}
+                  className={`min-h-[56px] w-full rounded-2xl px-4 py-3 text-base font-semibold ${isGenerateBlocked ? "cursor-not-allowed bg-white/10 text-white" : "bg-[#C2D68C] text-[#1F261D]"}`}
                   onClick={runPipeline}
                   disabled={isGenerateBlocked}
                 >
@@ -1086,7 +1318,7 @@ function DashboardContent() {
                   </p>
                 ) : null}
                 {plan ? (
-                  <p className="text-xs text-dune">
+                  <p className="text-xs text-white/60">
                     Plan budget guide: {plan.monthly_run_limit} runs across {plan.monthly_project_limit} projects (about {perProjectRunsAllowed} runs/project). Idea limit: {activeIdeaCharLimit} chars.
                   </p>
                 ) : null}
@@ -1094,28 +1326,28 @@ function DashboardContent() {
             )}
 
             {isIdle ? (
-              <div className="mt-5 rounded-2xl border border-dune/20 bg-white/70 p-4">
-                <p className="text-xs uppercase tracking-[0.16em] text-dune">Last run</p>
-                <p className="mt-2 text-sm font-semibold text-ink">{summary?.recent_pipeline_runs?.[0]?.spec_title || "No runs yet"}</p>
-                <p className="text-xs text-dune">{summary?.recent_pipeline_runs?.[0]?.project_name || ""}</p>
-                <button className="mt-3 rounded-full border border-dune/35 px-3 py-1.5 text-xs text-ink disabled:cursor-not-allowed disabled:opacity-60" onClick={rerunLatest} disabled={isRerunBlocked}>Re-run</button>
+              <div className="mt-5 rounded-2xl border border-white/20 bg-white/5 p-4">
+                <p className="text-xs uppercase tracking-[0.16em] text-white/60">Last run</p>
+                <p className="mt-2 text-sm font-semibold text-white">{summary?.recent_pipeline_runs?.[0]?.spec_title || "No runs yet"}</p>
+                <p className="text-xs text-white/60">{summary?.recent_pipeline_runs?.[0]?.project_name || ""}</p>
+                <button className="mt-3 rounded-full border border-white/35 px-3 py-1.5 text-xs text-white disabled:cursor-not-allowed disabled:opacity-60" onClick={rerunLatest} disabled={isRerunBlocked}>Re-run</button>
               </div>
             ) : null}
 
             {isCompletedRun ? (
-              <div className="mt-5 rounded-2xl border border-dune/20 bg-white/80 p-4">
-                <p className="text-xs uppercase tracking-[0.16em] text-dune">Run complete</p>
-                <p className="mt-2 text-sm font-semibold text-ink">{lastRunMeta?.projectName || projectName || "Project"}</p>
-                <p className="text-xs text-dune">{lastRunMeta?.specTitle || specTitle || "Spec"}</p>
+              <div className="mt-5 rounded-2xl border border-white/20 bg-white/5 p-4">
+                <p className="text-xs uppercase tracking-[0.16em] text-white/60">Run complete</p>
+                <p className="mt-2 text-sm font-semibold text-white">{lastRunMeta?.projectName || projectName || "Project"}</p>
+                <p className="text-xs text-white/60">{lastRunMeta?.specTitle || specTitle || "Spec"}</p>
                 <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
-                  <div className="rounded-xl border border-dune/20 bg-white px-2 py-2"><p className="font-semibold text-ink">{entities.length}</p><p className="text-dune">Entities</p></div>
-                  <div className="rounded-xl border border-dune/20 bg-white px-2 py-2"><p className="font-semibold text-ink">{endpoints.length}</p><p className="text-dune">Endpoints</p></div>
-                  <div className="rounded-xl border border-dune/20 bg-white px-2 py-2"><p className="font-semibold text-ink">{migrationTableCount}</p><p className="text-dune">SQL tables</p></div>
+                  <div className="rounded-xl border border-white/20 bg-white/5 px-2 py-2"><p className="font-semibold text-white">{entities.length}</p><p className="text-white/60">Entities</p></div>
+                  <div className="rounded-xl border border-white/20 bg-white/5 px-2 py-2"><p className="font-semibold text-white">{endpoints.length}</p><p className="text-white/60">Endpoints</p></div>
+                  <div className="rounded-xl border border-white/20 bg-white/5 px-2 py-2"><p className="font-semibold text-white">{migrationTableCount}</p><p className="text-white/60">SQL tables</p></div>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <button className="rounded-full border border-dune/35 px-3 py-1.5 text-xs text-ink" onClick={() => downloadTextFile("baxel-migration.sql", migrationSqlText || "-- No SQL generated yet.")}>Export SQL</button>
-                  <button className="rounded-full border border-dune/35 px-3 py-1.5 text-xs text-ink" onClick={copyShareLinkFromLatest}>Copy share link</button>
-                  <button className="rounded-full border border-dune/35 px-3 py-1.5 text-xs text-ink disabled:cursor-not-allowed disabled:opacity-60" onClick={rerunLatest} disabled={isRerunBlocked}>Re-run</button>
+                  <button className="rounded-full border border-white/35 px-3 py-1.5 text-xs text-white" onClick={() => downloadTextFile("baxel-migration.sql", migrationSqlText || "-- No SQL generated yet.")}>Export SQL</button>
+                  <button className="rounded-full border border-white/35 px-3 py-1.5 text-xs text-white" onClick={copyShareLinkFromLatest}>Copy share link</button>
+                  <button className="rounded-full border border-white/35 px-3 py-1.5 text-xs text-white disabled:cursor-not-allowed disabled:opacity-60" onClick={rerunLatest} disabled={isRerunBlocked}>Re-run</button>
                 </div>
               </div>
             ) : null}
@@ -1123,10 +1355,10 @@ function DashboardContent() {
 
           <section className="glass rounded-2xl p-4">
             <p className="label">Stats</p>
-            <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs text-dune">
-              <div className="rounded-xl border border-dune/20 bg-white/70 px-2 py-2"><p className="text-base font-semibold text-ink">{summary?.projects_count ?? 0}</p><p>Projects</p></div>
-              <div className="rounded-xl border border-dune/20 bg-white/70 px-2 py-2"><p className="text-base font-semibold text-ink">{summary?.specs_count ?? 0}</p><p>Specs</p></div>
-              <div className="rounded-xl border border-dune/20 bg-white/70 px-2 py-2"><p className="text-base font-semibold text-ink">{summary?.pipeline_runs_count ?? 0}</p><p>Runs</p></div>
+            <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs text-white/60">
+              <div className="rounded-xl border border-white/20 bg-white/5 px-2 py-2"><p className="text-base font-semibold text-white">{summary?.projects_count ?? 0}</p><p>Projects</p></div>
+              <div className="rounded-xl border border-white/20 bg-white/5 px-2 py-2"><p className="text-base font-semibold text-white">{summary?.specs_count ?? 0}</p><p>Specs</p></div>
+              <div className="rounded-xl border border-white/20 bg-white/5 px-2 py-2"><p className="text-base font-semibold text-white">{summary?.pipeline_runs_count ?? 0}</p><p>Runs</p></div>
             </div>
           </section>
 
@@ -1138,36 +1370,33 @@ function DashboardContent() {
                 : [{ id: "draft-project", name: projectName || "No recent project", created_at: "" }])
                 .slice(0, 6)
                 .map((project, index) => (
-                  <div key={`${project.id}-${project.name}-${index}`} className="rounded-xl border border-dune/20 bg-white/70 px-3 py-2">
-                    <p className="truncate text-xs font-medium text-ink">{project.name}</p>
-                    <p className="text-[11px] text-dune">{project.created_at ? new Date(project.created_at).toLocaleDateString() : "-"}</p>
+                  <div key={`${project.id}-${project.name}-${index}`} className="rounded-xl border border-white/20 bg-white/5 px-3 py-2">
+                    <p className="truncate text-xs font-medium text-white">{project.name}</p>
+                    <p className="text-[11px] text-white/60">{project.created_at ? new Date(project.created_at).toLocaleDateString() : "-"}</p>
                   </div>
                 ))}
             </div>
           </section>
 
           <section className="glass rounded-2xl p-4">
-            <p className="text-[10px] uppercase tracking-[0.22em] text-dune/80">Output detail</p>
-            <div className="mt-3 flex items-center gap-2">
-              {([
-                { label: "Guide", value: "guide" as ViewMode },
-                { label: "Builder", value: "builder" as ViewMode },
-                { label: "Pro", value: "pro" as ViewMode }
-              ]).map((item) => (
-                <button
-                  key={item.value}
-                  type="button"
-                  onClick={() => setAndPersistViewMode(item.value)}
-                  className={`rounded-full px-3 py-1.5 text-xs ${
-                    viewMode === item.value
-                      ? "bg-ink text-bone ring-2 ring-ink/25"
-                      : "border border-dune/35 bg-white text-dune"
-                  }`}
+            <p className="text-[10px] uppercase tracking-[0.22em] text-white/60">Output detail</p>
+            {isCompletedRun ? (
+              <div className="mt-3 space-y-3">
+                <p className="text-xs text-white/80 leading-relaxed">
+                  {generatedSummaryText}
+                </p>
+                <Link
+                  href={`/app/chatbot?run=${lastRunMeta?.runId || summary?.recent_pipeline_runs?.[0]?.id || ""}&spec_id=${activeSpecId || (summary?.recent_pipeline_runs as any)?.[0]?.spec_id || ""}`}
+                  className="inline-flex w-full items-center justify-center rounded-xl bg-[#C2D68C] px-3 py-2 text-xs font-semibold text-[#1F261D] transition-all hover:bg-[#b0c878]"
                 >
-                  {item.label}
-                </button>
-              ))}
-            </div>
+                  Chat with spec
+                </Link>
+              </div>
+            ) : (
+              <p className="mt-3 text-xs text-white/40 italic">
+                Run generation to see the output summary and start chatting.
+              </p>
+            )}
           </section>
         </aside>
       </div>
@@ -1177,7 +1406,7 @@ function DashboardContent() {
 
 export default function DashboardPage() {
   return (
-    <Suspense fallback={<AppShell><div className="p-10 text-dune">Loading workspace...</div></AppShell>}>
+    <Suspense fallback={<AppShell><div className="p-10 text-white/60">Loading workspace...</div></AppShell>}>
       <DashboardContent />
     </Suspense>
   );

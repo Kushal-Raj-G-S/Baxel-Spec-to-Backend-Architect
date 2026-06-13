@@ -1,0 +1,43 @@
+{
+  "archetype": "Track Geometry Exception Management System (TGEMS)",
+  "domain": "Class I Freight Rail Infrastructure Maintenance",
+  "description": "A real-time system that processes high-frequency laser and inertial measurement unit (IMU) data from track inspection vehicles to detect geometry defects (e.g., cant, gage, alignment, warp) against Federal Railroad Administration (FRA) and Association of American Railroads (AAR) safety limits. It prioritizes and dispatches work orders to maintenance crews, ensuring regulatory compliance while minimizing train delay costs. The system's complexity stems from fusing multi-sensor data, applying dynamic speed-restriction logic, and integrating with legacy dispatch and track inventory databases.",
+  "rules": [
+    "MUST enforce FRA 49 CFR Part 213 (Track Safety Standards) defect thresholds, which vary by track class (1-9) and include geometry combinations like 'warp' over a 62-foot chord.",
+    "MUST ingest and process raw scan data in industry-standard .xml or .csv formats defined by AREMA (American Railway Engineering and Maintenance-of-Way Association) Chapter 5 specifications.",
+    "MUST interface with the railroad's existing Linear Referencing System (LRS) and track database (e.g., using GE's Transportation Systems RailSIGHT\u2122 or custom Oracle/SQL Server schemas) to tag defects with precise milepost and track ID.",
+    "MUST generate regulatory Form F 6180-96 (Track Geometry Inspection Report) and integrate with the FRA's Electronic Recordkeeping System (ERS) for audit trails.",
+    "MUST calculate 'immediate action' vs. '48-hour' vs. '30-day' repair priorities based on defect severity, train speed, and track classification, not just raw measurements."
+  ],
+  "anti_patterns": [
+    "DO NOT treat all track classes equally\u2014using a single static threshold ignores that Class 4 mainline track has a 1-inch gage limit while Class 1 yard track allows 1.25 inches, leading to false positives or missed critical defects.",
+    "DO NOT store raw point-cloud sensor data indefinitely; the volume (terabytes per 1000 miles) is infeasible without aggressive down-sampling and defect-extract-only retention policies.",
+    "DO NOT isolate the geometry system from the 'track inventory' database\u2014a defect at milepost 102.5 is meaningless without knowing if that segment has a joint, bridge, or curve, which affects repair methodology and cost.",
+    "DO NOT assume continuous network connectivity across remote rail corridors; the system must operate offline for hours and synchronize defect batches upon returning to a wayside WiFi point at a yard.",
+    "DO NOT implement a generic task management UI; dispatchers need a map-based view layered with track charts, speed limits, and existing work windows, not a simple Kanban board."
+  ],
+  "key_technical_challenges": [
+    "Real-time multi-sensor fusion: Aligning sub-millimeter laser profile data with IMU-measured cant and alignment at 30+ mph vehicle speeds, compensating for vehicle dynamics and suspension lash.",
+    "Regulatory logic engine: Encoding hundreds of conditional FRA rules (e.g., 'warp' is only a defect if gage is not already defective) and AAR Manual of Standards into a deterministic, auditable decision engine.",
+    "Edge-to-cloud workflow: Processing 1-2 TB/day of raw scan data on the inspection vehicle (edge) to extract 0.1% defect data, then securely streaming only exceptions to a central cloud for prioritization, given limited bandwidth in rural corridors."
+  ],
+  "recommended_stack": {
+    "language": "C++ (for real-time sensor data processing on edge devices) + Rust (for safety-critical rule engine modules due to memory safety guarantees)",
+    "framework": "gRPC with Protocol Buffers (for strict, versioned contracts between edge processors, cloud services, and legacy mainframe integrations)",
+    "database_engine": "TimescaleDB (PostgreSQL with time-series extension) for storing defect histories and trend analysis, linked to a relational Oracle instance for official track inventory records",
+    "cache": "Redis Cluster (for caching track geometry limits by track class and territory to accelerate rule evaluation under load)",
+    "message_broker": "Apache Kafka (for durable, replayable streams of defect events from multiple inspection vehicles to downstream prioritization and work order services)",
+    "special_services": [
+      "TensorFlow Lite micro (for on-vehicle anomaly detection to pre-filter scan data before upload)",
+      "Commercial off-the-shelf (COTS) GIS engine (e.g., Safe Software FME) for transforming coordinate systems between vehicle GNSS, track LRS, and federal GIS standards",
+      "A proprietary or licensed 'Track Chart' rendering service that generates PDFs compliant with AAR Chapter 6 for crew work packages"
+    ]
+  },
+  "compliance_flags": [
+    "FRA 49 CFR Part 213 (Track Safety Standards)",
+    "AAR Manual of Standards and Recommended Practices (Chapter 5 - Track)",
+    "FRA Electronic Recordkeeping Rule (49 CFR Part 240 Appendix D)",
+    "OSHA 1910.269 (for maintenance crew safety work windows)",
+    "EPA noise and environmental regulations for maintenance activities in sensitive areas"
+  ]
+}

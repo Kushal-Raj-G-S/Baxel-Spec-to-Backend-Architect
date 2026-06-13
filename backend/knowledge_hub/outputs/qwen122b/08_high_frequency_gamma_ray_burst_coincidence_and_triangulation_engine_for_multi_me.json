@@ -1,0 +1,38 @@
+{
+  "archetype": "High-Frequency Gamma-Ray Burst Coincidence & Triangulation Engine for Multi-Messenger Astronomy",
+  "domain": "Space-based High-Energy Astrophysics Instrumentation",
+  "description": "A distributed real-time processing system that ingests truncated telemetry streams from multiple independent satellite constellations to detect, filter, and triangulate transient gamma-ray bursts within sub-millisecond windows. It is used by the mission operations center to trigger rapid repointing of optical telescopes and issue automated public alerts, requiring nanosecond-precision clock synchronization across light-years of separation. The technical difficulty lies in correlating noisy, time-skewed data streams from disparate hardware architectures while adhering to strict latency budgets to capture the earliest optical afterglow.",
+  "rules": [
+    "MUST implement sub-microsecond clock synchronization using PTP (IEEE 1588v2) or GPS disciplined oscillators to ensure valid triangulation geometry.",
+    "MUST process CCSDS (Consultative Committee for Space Data Systems) telemetry packets with zero-copy memory structures to prevent buffer overruns during burst modes.",
+    "MUST enforce deterministic latency for all signal path processing to guarantee a <100ms alert generation time post-detection.",
+    "MUST adhere to lossy compression standards specifically for high-energy photon counting data where statistical integrity must be preserved despite bandwidth constraints.",
+    "MUST integrate with the VOEvent protocol (IETF) for standardized inter-observatory alert broadcasting."
+  ],
+  "anti_patterns": [
+    "DO NOT use standard time-series databases for raw photon arrival data; the write throughput during a swarm event will overwhelm disk I/O and break real-time processing.",
+    "DO NOT rely on TCP for telemetry ingestion; packets must be handled via UDP with application-layer sequence recovery to minimize jitter.",
+    "DO NOT implement batch processing for alert generation; the system must be event-driven and stream-based to meet the physics of the afterglow phenomenon."
+  ],
+  "key_technical_challenges": [
+    "Resolving time-of-arrival ambiguities caused by relativistic effects and inter-satellite clock drift without a shared ground station anchor.",
+    "Filtering cosmic ray background noise from genuine astrophysical transient signals using real-time statistical hypothesis testing on embedded hardware.",
+    "Maintaining system integrity and data coherence when one node in the constellation experiences a single-event upset (SEU) due to radiation exposure."
+  ],
+  "recommended_stack": {
+    "language": "Rust + C++ (embedded); Rust for memory safety in high-concurrency alert logic, C++ for legacy hardware abstraction layers.",
+    "framework": "RustTokio + ZeroMQ; ensures asynchronous non-blocking I/O with deterministic latency guarantees required for time-critical signal processing.",
+    "database_engine": "TimescaleDB (with hypertables for time-series) + In-Memory Plasma; Timescale for historical trend analysis, Plasma for high-speed ring buffers.",
+    "cache": "Null (Direct Memory Access preferred); caching adds indeterminate latency which is unacceptable for transient detection.",
+    "message_broker": "ZeroMQ (ZMQ); provides the necessary pub/sub pattern with ultra-low latency and no single point of failure.",
+    "special_services": [
+      "Real-time Cross-Correlation Triangulation Service",
+      "CCSDS Packet Parser & Reassembler Service"
+    ]
+  },
+  "compliance_flags": [
+    "ECSS (European Cooperation for Space Standardization) Standards",
+    "VOEvent Protocol Compliance",
+    "NASA Data Integrity Policy"
+  ]
+}

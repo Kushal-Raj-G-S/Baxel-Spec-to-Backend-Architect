@@ -159,8 +159,8 @@ export default function OnboardingPage() {
             <span className={`h-2 w-2 rounded-full ${experience ? "bg-ink" : "bg-dune/25"}`} />
           </div>
 
-          <h1 className="text-center text-3xl font-semibold text-ink">Let&apos;s set up your workspace</h1>
-          <p className="mt-2 text-center text-sm text-dune">Takes 30 seconds. You can change this anytime.</p>
+          <h1 className="text-center text-3xl font-semibold text-ink text-white">Let&apos;s set up your workspace</h1>
+          <p className="mt-2 text-center text-sm text-dune text-white">Takes 30 seconds. You can change this anytime.</p>
 
           <div className="mt-8 space-y-5">
             <div className="rounded-2xl border border-dune/20 bg-white/80 p-4">

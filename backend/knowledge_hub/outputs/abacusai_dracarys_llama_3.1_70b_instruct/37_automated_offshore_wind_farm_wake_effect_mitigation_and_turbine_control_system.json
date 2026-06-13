@@ -1,0 +1,37 @@
+{
+  "archetype": "Automated Offshore Wind Farm Wake Effect Mitigation and Turbine Control System",
+  "domain": "Offshore Wind Energy",
+  "description": "This system uses real-time weather and turbine performance data to optimize turbine placement and yaw control to minimize wake effects, increasing overall wind farm efficiency by up to 15%. It is used by wind farm operators and turbine manufacturers to improve energy production and reduce maintenance costs. The system must account for complex fluid dynamics, turbine interactions, and environmental factors.",
+  "rules": [
+    "MUST adhere to IEC 61400-1 wind turbine design standards",
+    "MUST integrate with SCADA systems for real-time turbine data",
+    "MUST use mesoscale weather forecasting models for accurate wind predictions",
+    "MUST account for wake effects on downstream turbines",
+    "MUST comply with EU's Renewable Energy Directive (RED) for reporting and monitoring"
+  ],
+  "anti_patterns": [
+    "DO NOT use simplified wake models that neglect turbulence and rotor interactions",
+    "DO NOT neglect the impact of ocean currents and waves on turbine performance",
+    "DO NOT use fixed turbine yaw angles without considering real-time wind direction"
+  ],
+  "key_technical_challenges": [
+    "Accurate modeling of complex wake effects and turbine interactions",
+    "Real-time data processing and optimization of turbine control parameters",
+    "Integration with diverse SCADA systems and data formats"
+  ],
+  "recommended_stack": {
+    "language": "Python - for its extensive libraries in scientific computing and data analysis",
+    "framework": "Django - for its robust web development capabilities and ease of integration with SCADA systems",
+    "database_engine": "PostgreSQL - for its support of advanced geospatial data types and queries",
+    "cache": "Redis - for its high-performance caching and data processing",
+    "message_broker": "RabbitMQ - for its reliable and scalable message queuing",
+    "special_services": [
+      "OpenFOAM for CFD simulations",
+      "Copernicus Climate Data Store for weather forecasting"
+    ]
+  },
+  "compliance_flags": [
+    "EU's Renewable Energy Directive (RED)",
+    "IEC 61400-1"
+  ]
+}

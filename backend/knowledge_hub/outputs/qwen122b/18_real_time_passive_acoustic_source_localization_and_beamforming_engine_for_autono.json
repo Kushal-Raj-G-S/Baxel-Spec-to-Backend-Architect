@@ -1,0 +1,38 @@
+{
+  "archetype": "Real-Time Passive Acoustic Source Localization & Beamforming Engine for Autonomous Underwater Glider Swarms",
+  "domain": "Deep-Sea Passive Acoustic Monitoring & Marine Mammal Protection",
+  "description": "A distributed edge-computing system that synchronizes hydrophone arrays across swarms of solar-powered underwater gliders to triangulate and classify transient biological and anthropogenic noise sources in real-time. It is used by marine conservationists and naval defense contractors to enforce Marine Protected Area (MPA) quiet zones and track cetacean migration paths. The technical difficulty lies in compensating for varying ocean salinity, temperature gradients, and glider motion-induced Doppler shifts with millisecond-level clock synchronization over low-bandwidth acoustic modems.",
+  "rules": [
+    "MUST implement IEEE 1588 Precision Time Protocol (PTP) over acoustic modem links to achieve sub-microsecond synchronization across nodes with variable latency.",
+    "MUST adhere to the NATO STANAG 4586 Unmanned Underwater Vehicle Interoperability Standard for command and control handshakes.",
+    "MUST process raw hydrophone data streams using Continuous Wavelet Transform (CWT) to detect narrowband whale calls against high ambient ocean noise floors.",
+    "MUST strictly enforce energy budget constraints by switching nodes into deep-sleep states when acoustic event probability falls below a dynamic threshold.",
+    "MUST format output telemetry according to the Marine Data Standards (MDS) XML schema for automated ingestion into NOAA or EMODnet databases."
+  ],
+  "anti_patterns": [
+    "DO NOT rely on cloud-based central processing for event detection, as the acoustic data uplink bandwidth is insufficient (< 200 bps) and latency is too high for real-time hazard avoidance.",
+    "DO NOT use standard GPS fixes for location triangulation, as GPS signals do not penetrate water; you must use Dead Reckoning combined with Doppler Velocity Log (DVL) calibration.",
+    "DO NOT apply generic noise cancellation algorithms (like those for telephony), as ocean noise exhibits non-stationary, colored spectral characteristics requiring domain-specific filtering."
+  ],
+  "key_technical_challenges": [
+    "Solving the Time Difference of Arrival (TDOA) ambiguity problem when gliders are moving relative to the sound source at varying speeds and depths.",
+    "Managing strict power budgets on battery-operated gliders while running heavy DSP (Digital Signal Processing) workloads for beamforming.",
+    "Implementing fault-tolerant consensus algorithms for swarm coordination when acoustic communication links suffer from multi-path fading and signal loss."
+  ],
+  "recommended_stack": {
+    "language": "Rust \u2014 chosen for memory safety in critical real-time DSP loops and deterministic execution under resource constraints.",
+    "framework": "ROS 2 (Robot Operating System) with CyberRT middleware \u2014 provides the necessary DDS-based communication layer for heterogeneous underwater robotics.",
+    "database_engine": "InfluxDB \u2014 optimized for high-write throughput time-series data from hydrophone sensors and sensor fusion logs.",
+    "cache": "null \u2014 edge devices have insufficient RAM for caching; data must be processed in a streaming fashion.",
+    "message_broker": "Eclipse Mosquitto (MQTT) \u2014 lightweight protocol suitable for intermittent, low-bandwidth acoustic uplinks.",
+    "special_services": [
+      "Spectral Subtraction Noise Suppression Service",
+      "Beamforming Vector Calculator Service"
+    ]
+  },
+  "compliance_flags": [
+    "MMPA (Marine Mammal Protection Act) Section 101(a)(5)(A)",
+    "ISO 19847 (Marine vessels \u2014 Underwater noise measurement)",
+    "NATO STANAG 4586"
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "archetype": "Automated In-Situ Uranium Mine Remediation Monitoring and Control System",
+  "domain": "Environmental Remediation of Uranium Mining Sites",
+  "description": "This system monitors and controls the remediation of in-situ uranium mines, ensuring the removal of contaminants and restoring groundwater quality. It is used by environmental remediation teams and regulatory agencies. The system must handle complex hydrological models, real-time sensor data, and strict EPA regulations.",
+  "rules": [
+    "MUST integrate with EPA's Comprehensive Environmental Response, Compensation, and Liability Act (CERCLA) guidelines",
+    "MUST comply with Nuclear Regulatory Commission (NRC) standards for radiation safety",
+    "MUST support real-time data ingestion from sensors monitoring groundwater levels, pH, and contaminant concentrations",
+    "MUST perform hydrological modeling using MODFLOW or equivalent",
+    "MUST generate reports in EPA's Electronic Data Deliverable (EDD) format"
+  ],
+  "anti_patterns": [
+    "DO NOT use a simple CRUD-based data model, as it cannot capture complex hydrological relationships",
+    "DO NOT rely solely on manual data entry, as it can lead to errors and delays",
+    "DO NOT neglect to implement robust data validation and quality control measures"
+  ],
+  "key_technical_challenges": [
+    "Developing a scalable data ingestion pipeline for real-time sensor data",
+    "Integrating complex hydrological models with real-time monitoring data",
+    "Ensuring data security and compliance with EPA and NRC regulations"
+  ],
+  "recommended_stack": {
+    "language": "Python, due to its extensive libraries for scientific computing and data analysis",
+    "framework": "Flask or Django, for building robust and scalable web applications",
+    "database_engine": "PostgreSQL, for its support of advanced data types and spatial queries",
+    "cache": "Redis, for caching frequently accessed data and improving performance",
+    "message_broker": "RabbitMQ, for handling real-time data ingestion and processing",
+    "special_services": [
+      "EPA's EDD API",
+      "NRC's radiation safety APIs"
+    ]
+  },
+  "compliance_flags": [
+    "CERCLA",
+    "NRC",
+    "EPA"
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "archetype": "Automated Subsurface Aquifer Recharge Monitoring and Control System for Managed Aquifer Recharge (MAR) Sites",
+  "domain": "Hydrogeology and Water Resources Management",
+  "description": "This system monitors and controls the recharge of aquifers through artificial recharge basins, ensuring optimal water quality and minimizing environmental impacts. It is used by water resource managers and hydrogeologists to manage MAR sites. The system must handle complex hydrological data, integrate with sensor networks, and comply with regulations governing water quality and environmental protection.",
+  "rules": [
+    "MUST adhere to the International Association of Hydrogeologists (IAH) guidelines for MAR site design and operation",
+    "MUST integrate with standardized water quality monitoring protocols, such as the US EPA's National Water Quality Monitoring Council (NWQMC) framework",
+    "MUST comply with local and national regulations regarding water resource management and environmental protection",
+    "MUST ensure data accuracy and reliability through regular sensor calibration and validation",
+    "MUST provide real-time alerts and notifications for anomalies in water quality or system performance"
+  ],
+  "anti_patterns": [
+    "DO NOT use a one-size-fits-all approach to monitoring and control, as MAR sites have unique hydrological and environmental characteristics",
+    "DO NOT neglect to consider the impact of climate change and variability on MAR site operation and water quality",
+    "DO NOT fail to integrate with existing water resource management systems and infrastructure"
+  ],
+  "key_technical_challenges": [
+    "Integrating with diverse sensor networks and data formats",
+    "Developing predictive models for aquifer recharge and water quality",
+    "Ensuring scalability and flexibility for varying MAR site configurations and hydrological conditions"
+  ],
+  "recommended_stack": {
+    "language": "Python, due to its extensive libraries for scientific computing and data analysis",
+    "framework": "Django, for its robust support for complex data models and APIs",
+    "database_engine": "PostgreSQL, for its ability to handle large datasets and spatial data",
+    "cache": "Redis, for its high-performance caching capabilities",
+    "message_broker": "RabbitMQ, for its reliable and scalable message queuing",
+    "special_services": [
+      "Geospatial analysis services (e.g., GeoPandas)",
+      "Water quality modeling libraries (e.g., OpenWaterAnalytics)"
+    ]
+  },
+  "compliance_flags": [
+    "Safe Drinking Water Act (SDWA)",
+    "Clean Water Act (CWA)"
+  ]
+}

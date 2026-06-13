@@ -1,0 +1,38 @@
+{
+  "archetype": "Real-Time In-Vessel Plasma Disruption Mitigation & Magnetic Flux Controller for Spherical Tokamak Fusion Reactors",
+  "domain": "Magnetic Confinement Fusion Energy (Spherical Tokamak Operations)",
+  "description": "A hard real-time control system that monitors multi-megahertz magnetic probe data to predict and actively suppress plasma disruptions in spherical tokamaks by orchestrating vertical stabilizer coils and gas puffing valves within microsecond windows. It is used by fusion reactor operators and safety controllers to prevent catastrophic damage to the vacuum vessel walls from runaway electron beams and thermal quenches. The technical difficulty lies in executing complex non-linear control algorithms on FPGA/ bare-metal architectures with zero tolerance for latency jitter while correlating noisy sensor data from superconducting magnet environments.",
+  "rules": [
+    "MUST implement control loops with sub-10 microsecond deterministic latency using FPGA-based logic (e.g., Xilinx UltraScale+ or Intel Stratix) to react to MHD instability growth rates.",
+    "MUST adhere to IEC 61508 SIL-4 functional safety standards for all actuator commands, ensuring fail-safe logic overrides any software-level anomalies.",
+    "MUST process continuous wavelet transform (CWT) features on magnetic field derivative signals to distinguish between benign edge-localized modes (ELMs) and impending major disruptions.",
+    "MUST interface with the Reactor Control System (RCS) via a redundant, hard-wired optical link protocol (e.g., custom UDP over fiber with CRC-32 integrity checks) to bypass standard OS network stacks.",
+    "MUST dynamically adjust the control gain matrix in real-time based on the evolving plasma beta and q-profile to maintain stability margins during the current ramp-up phase."
+  ],
+  "anti_patterns": [
+    "DO NOT use a General Purpose OS (Linux/Windows) for the primary control loop execution, as context switching and interrupt latency are unpredictable and will cause loss of plasma control.",
+    "DO NOT rely on cloud-based anomaly detection for the mitigation trigger, as network latency and packet loss render remote feedback control physically impossible for millisecond-scale events.",
+    "DO NOT implement standard PID controllers without adaptive gain scheduling, as plasma dynamics are highly non-linear and time-varying, leading to instability during high-beta operations."
+  ],
+  "key_technical_challenges": [
+    "Processing terabytes of magnetic probe data in real-time to compute plasma current centroid and shape parameters within a single control cycle.",
+    "Synchronizing the timing of multiple independent actuator systems (coil power supplies, neutral beam injection, gas valves) to within 1 microsecond of each other.",
+    "Designing a fault-tolerant architecture that can seamlessly switch from active control to passive safe-shutdown modes if the primary sensor array fails during a disruption event."
+  ],
+  "recommended_stack": {
+    "language": "C++ (C++17) with strict real-time extensions for deterministic memory management and direct register access",
+    "framework": "RT-Linux (PREEMPT_RT) or RTOS (VxWorks) for the supervisory layer, combined with VHDL/Verilog for the FPGA core logic",
+    "database_engine": "TimescaleDB with hypertables for high-frequency time-series logging of disruption events and sensor telemetry",
+    "cache": "null (Direct memory access and register-mapped buffers are required for zero-latency sensor ingestion)",
+    "message_broker": "ZeroMQ (ZMQ) with in-process sockets for inter-process communication between the sensor acquisition module and the control algorithm",
+    "special_services": [
+      "Real-Time MHD Mode Identification Engine",
+      "Vertical Stability Actuator Coordination Service"
+    ]
+  },
+  "compliance_flags": [
+    "IEC 61508 (Functional Safety of E/E/PE Safety-Related Systems)",
+    "ITER Nuclear Safety Standards (INS)",
+    "IEEE 1516 (High Level Architecture for Distributed Simulation) for digital twin validation"
+  ]
+}

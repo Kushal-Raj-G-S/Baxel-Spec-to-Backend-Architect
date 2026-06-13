@@ -1,0 +1,38 @@
+{
+  "archetype": "Real-Time In-Situ Cryogenic Neutron Flux Tomography & Control Rod Worth Calibration Engine for Modular High-Temperature Gas Reactors",
+  "domain": "Advanced Nuclear Fission Engineering (HTGR/SMR)",
+  "description": "This system ingests millisecond-latency data from fission gas release detectors and superconducting neutron monitors to reconstruct 3D core power distribution and dynamically adjust control rod worth in real-time. It is used by reactor physicists to prevent xenon oscillations and localized hot spots in high-temperature gas-cooled reactors. The technical difficulty lies in solving inverse neutron transport equations on edge hardware while compensating for thermal expansion of graphite moderators and helium coolant density fluctuations.",
+  "rules": [
+    "MUST adhere to IEC 61513 (Nuclear Safety Instrumentation and Control) SIL-4 reliability standards for all control logic paths.",
+    "MUST utilize the IEEE 493 (Golden Book) statistical models for component failure probability to predict sensor drift in high-radiation environments.",
+    "MUST interface with legacy Main-Bus DCS systems via redundant IEC 61850 MMS/GOOSE messaging profiles with sub-microsecond jitter guarantees.",
+    "MUST implement deterministic real-time scheduling (POSIX.1-2008) to ensure control loop closure within 5ms of neutron flux anomaly detection.",
+    "MUST enforce strict air-gapped data diodes for any telemetry sent to off-site regulatory bodies, preventing external write-back to the core control plane."
+  ],
+  "anti_patterns": [
+    "DO NOT use asynchronous event-driven architectures for core shutdown logic, as race conditions could lead to failure to scram during a reactivity insertion accident.",
+    "DO NOT rely on cloud-based machine learning models for real-time control rod positioning due to latency uncertainty and lack of deterministic guarantees in safety-critical loops.",
+    "DO NOT implement standard CRUD database transactions for core state logging; use append-only, immutable time-series storage with cryptographic hashing to satisfy NRC audit trails."
+  ],
+  "key_technical_challenges": [
+    "Solving the multi-group neutron diffusion equation in real-time on constrained edge compute nodes amidst high electromagnetic interference (EMI).",
+    "Compensating for the non-linear thermal-hydraulic coupling between helium coolant density changes and graphite moderator temperature coefficients.",
+    "Synchronizing heterogeneous sensor arrays (self-powered neutron detectors, fission chambers, and thermocouples) with microsecond precision despite varying cable propagation delays."
+  ],
+  "recommended_stack": {
+    "language": "Rust with `no_std` support for memory safety and deterministic garbage collection in safety-critical control loops.",
+    "framework": "RTEMS (Real-Time Executive for Multiprocessor Systems) or QNX Neutrino RTOS for hard real-time kernel requirements.",
+    "database_engine": "InfluxDB 2.0 (Enterprise Edition) optimized for high-write throughput time-series data with schema enforcement for sensor metadata.",
+    "cache": "n/a (Cache invalidation is too risky; use direct memory access to FPGA buffers for control decisions).",
+    "message_broker": "ZeroMQ (ZMTP) configured for deterministic, low-latency inter-process communication within the safety instrumented system.",
+    "special_services": [
+      "Monte Carlo N-Particle (MCNP) Simulation Engine for real-time neutron cross-section lookups",
+      "Xenon-135 Oscillation Predictor using Kalman Filtering"
+    ]
+  },
+  "compliance_flags": [
+    "10 CFR 50 Appendix B (Quality Assurance Criteria for Nuclear Power Plants)",
+    "IEC 61508 (Functional Safety of Electrical/Electronic/Programmable Electronic Safety-related Systems)",
+    "NISTIR 8259 (Cybersecurity Capability Maturity Model for Critical Infrastructure)"
+  ]
+}

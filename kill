@@ -1,0 +1,9 @@
+netstat -ano | findstr :8000
+
+taskkill /PID 12345 /F
+
+kill all
+taskkill /IM node.exe /F
+taskkill /IM python.exe /F
+taskkill /IM uvicorn.exe /F
+taskkill /IM npm.exe /F

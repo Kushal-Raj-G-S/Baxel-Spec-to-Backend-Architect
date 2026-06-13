@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p \"backend_backup_$\\(date +%Y%m%d_%H%M%S\\)\")",
+      "Bash(cp -r backend \"backend_backup_$\\(date +%Y%m%d_%H%M%S\\)/\")",
+      "Bash(python -m pip install -q -r requirements.txt)",
+      "Bash(python -c \"from app.main import app; print\\('Backend imports successfully!'\\)\")",
+      "Bash(timeout 5 uvicorn app.main:app --host 0.0.0.0 --port 8000)",
+      "Bash(timeout 10 uvicorn app.main:app --host 0.0.0.0 --port 8000)",
+      "Bash(curl -s http://localhost:8000/profile/me)",
+      "Bash(curl -s -X POST http://localhost:8000/projects -H \"Content-Type: application/json\" -d '{\"name\":\"Test Project\",\"description\":\"A test project\"}')",
+      "Bash(curl -s http://localhost:8000/projects)",
+      "Bash(pkill -f uvicorn)",
+      "Bash(curl -s http://localhost:8000/projects/proj_1)",
+      "Bash(curl -s http://localhost:8000/projects/proj_1/history)",
+      "Bash(curl -s http://localhost:8000/projects/history)",
+      "Bash(curl -s http://localhost:8000/profile/plan)",
+      "Bash(timeout 15 uvicorn app.main:app --host 0.0.0.0 --port 8000)",
+      "Bash(curl -s -X POST http://localhost:8000/projects -H \"Content-Type: application/json\" -d '{\"name\":\"Test Project 2\",\"description\":\"Another test project\"}')",
+      "Bash(timeout 20 uvicorn app.main:app --host 0.0.0.0 --port 8000)",
+      "Bash(curl -s -X POST http://localhost:8000/projects -H \"Content-Type: application/json\" -d '{\"name\":\"Final Test Project\",\"description\":\"Final test\"}')"
+    ],
+    "additionalDirectories": [
+      "E:\\BMSIT\\Personal Ai projects\\1 Internship-Resume Projects\\6_Baxel\\backend"
+    ]
+  }
+}

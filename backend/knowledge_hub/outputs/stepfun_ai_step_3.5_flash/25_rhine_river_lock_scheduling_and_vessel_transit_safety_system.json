@@ -1,0 +1,40 @@
+{
+  "archetype": "Rhine River Lock Scheduling and Vessel Transit Safety System",
+  "domain": "Inland Waterway Multinational Port and Lock Authority Operations",
+  "description": "A real-time deterministic scheduling and safety orchestration system for complex lock chambers on the Rhine, managing vessel convoys, water level balancing, and legacy mechanical gate/valve PLCs across German, French, and Dutch jurisdictions. It is technically hard due to the need for millisecond-precision coordination between heterogeneous SCADA hardware, multilingual operator interfaces, and dynamic constraint-solving for vessel size/type/urgency while meeting strict transnational water level and transit time protocols.",
+  "rules": [
+    "MUST enforce the Central Commission for the Navigation of the Rhine (CCNR) 'Police Regulations for the Navigation of the Rhine' (RPNR) for convoy composition and right-of-way.",
+    "MUST integrate with national water level telemetry (PEGEL Online DE/NL) and lock basin volume calculations to prevent hydraulic shock.",
+    "MUST support synchronous scheduling across multiple adjacent locks (e.g., Iffezheim, Gambsheim) with dead reckoning for vessel ETA prediction using AIS and radar.",
+    "MUST provide a bilingual (DE/FR) or trilingual (DE/FR/NL) operator console with unambiguous command confirmation due to multinational crew and authority overlap.",
+    "MUST log all commands and sensor states in an immutable audit trail compliant with EU Regulation (EU) 2019/1239 on European inland waterway transport data."
+  ],
+  "anti_patterns": [
+    "DO NOT treat locks as independent nodes\u2014hydraulic coupling between sequential locks requires basin volume forecasting and cannot be scheduled in isolation.",
+    "DO NOT rely on vessel self-reported dimensions\u2014must cross-check against official RWS (Rijkswaterstaat) vessel registry via BICS (Barge Information and Communication System) to prevent lock chamber collisions.",
+    "DO NOT use standard web-based UI stacks\u2014operator terminals require 24/7 sunlight-readable displays, physical-hardware-button overlay for emergency stop, and sub-200ms command-to-actuator latency."
+  ],
+  "key_technical_challenges": [
+    "Hard real-time deterministic control loop interfacing with 30+ year old Siemens/Allen-Bradley PLCs via RS-485 and Profibus with no network jitter tolerance.",
+    "Multi-agent constraint optimization for convoy sequencing where a single oversized vessel can block the entire corridor for hours, requiring predictive rerouting to smaller locks.",
+    "Sensor fusion failure mitigation\u2014when primary water level pressure transducers fail, the system must interpolate from redundant ultrasonic gauges and historical flow models within 5 seconds."
+  ],
+  "recommended_stack": {
+    "language": "Rust for safety-critical PLC gateway services and deterministic scheduling engine",
+    "framework": "Actix for high-concurrency HTTP/WebSocket operator dashboards with strict latency budgets",
+    "database_engine": "TimescaleDB for high-frequency time-series sensor data (1kHz gate position, water level) and event logging",
+    "cache": "Redis for in-memory current-state vessel convoy model and lock allocation locks",
+    "message_broker": "Apache Kafka for durable, ordered event streaming between distributed lock control nodes and central planning",
+    "special_services": [
+      "Legacy PLC Integration Service (libmodbus/opc-ua over serial)",
+      "Multilingual Speech Synthesis Service for automated bridge/radio announcements per RPNR Art. 4.02",
+      "Hydraulic Simulation Microservice (computational fluid dynamics pre-computation for water volume forecasting)"
+    ]
+  },
+  "compliance_flags": [
+    "RPNR (Rhine Navigation Police Regulations)",
+    "EU Regulation 2019/1239 (Inland Waterway Transport Data Exchange)",
+    "ISO 14726 (Shipboard marking for identification of controls)",
+    "National Waterway Authority Safety Directives (e.g., WSV Germany, VNF France)"
+  ]
+}

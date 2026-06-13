@@ -1,0 +1,37 @@
+{
+  "archetype": "Automated High-Value Asset Tracking and Security Clearance Management System for NATO Military Bases",
+  "domain": "Military Logistics and Security",
+  "description": "This system tracks and secures high-value assets such as military equipment, vehicles, and sensitive materials across NATO military bases, ensuring compliance with NATO's asset tracking and security protocols. It is used by military logistics personnel, security officers, and base commanders. The system's complexity stems from integrating with existing NATO systems, adhering to strict security protocols, and handling sensitive information.",
+  "rules": [
+    "MUST integrate with NATO's Standardization Agreement (STANAG) 4406 for asset tracking and identification",
+    "MUST comply with NATO's Security Clearance Levels (SCL) and access control protocols",
+    "MUST support GPS and RFID tracking technologies for real-time asset location",
+    "MUST implement encryption and secure data storage in accordance with NATO's Cyber Security Guidelines",
+    "MUST provide automated alerts and notifications for security breaches or asset anomalies"
+  ],
+  "anti_patterns": [
+    "DO NOT use open-source GPS tracking libraries without proper security vetting",
+    "DO NOT store sensitive information in unencrypted form",
+    "DO NOT neglect regular system audits and security assessments"
+  ],
+  "key_technical_challenges": [
+    "Developing a scalable and secure data storage solution for sensitive asset information",
+    "Integrating with existing NATO systems and protocols while ensuring interoperability",
+    "Implementing real-time tracking and alert systems for high-value assets"
+  ],
+  "recommended_stack": {
+    "language": "Java - due to its robust security features and widespread adoption in military and government applications",
+    "framework": "Spring Boot - for its ease of use and extensive security features",
+    "database_engine": "PostgreSQL - for its robust security features and support for GIS data",
+    "cache": "Redis - for its high performance and secure data storage",
+    "message_broker": "Apache Kafka - for its high-throughput and secure messaging capabilities",
+    "special_services": [
+      "NATO's Asset Tracking Service",
+      "NATO's Security Clearance Verification Service"
+    ]
+  },
+  "compliance_flags": [
+    "NATO's Security Clearance Levels (SCL)",
+    "NATO's Cyber Security Guidelines"
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "archetype": "Real-Time Multi-Spectral LIDAR Point Cloud Registration & Structural Integrity Anomaly Detector for High-Voltage Overhead Transmission Line Corrugated Insulator Flashover Prediction",
+  "domain": "High-Voltage Power Grid Asset Management & Predictive Maintenance",
+  "description": "A specialized edge-compute system that fuses data from synchronized terrestrial LiDAR and hyperspectral imaging sensors mounted on drone swarms to detect micro-fractures and conductive contamination on ceramic insulators before flashover occurs. It is used by grid reliability engineers to prevent catastrophic brownouts, requiring sub-millisecond fusion of Terabyte-scale point clouds with real-time atmospheric refractivity models to distinguish between harmless condensation and dangerous conductive salt deposits.",
+  "rules": [
+    "MUST ingest and process raw .las/.laz LiDAR point clouds and hyperspectral radiance matrices in real-time (sub-50ms latency) using IEEE 1588 PTP for sensor synchronization.",
+    "MUST adhere to IEC 60815 standards for\u6c61\u79fd (pollution) classification, calculating equivalent salt deposit density (ESDD) based on spectral reflectance ratios.",
+    "MUST implement deterministic scheduling for edge inference to guarantee worst-case execution time (WCET) compliance in high-interference RF environments near substations.",
+    "MUST utilize non-volatile memory architectures to log pre-fault waveform data for forensic analysis in compliance with NERC CIP-007 cyber-physical security requirements.",
+    "MUST dynamically compensate for drone vibration and atmospheric scattering effects using Kalman Filtering on the point cloud registration pipeline."
+  ],
+  "anti_patterns": [
+    "DO NOT use standard HTTP/REST APIs for sensor data ingestion; the latency and overhead will cause the system to miss transient flashover precursors.",
+    "DO NOT rely on cloud-only processing; network latency to central data centers makes real-time hazard avoidance impossible for autonomous drone swarms.",
+    "DO NOT use generic object detection models trained on RGB images alone; they fail to detect invisible conductive contaminants on non-metallic insulator surfaces."
+  ],
+  "key_technical_challenges": [
+    "Aligning multi-sensor data streams (LiDAR, thermal, hyperspectral) with millimeter-level precision despite high-frequency drone oscillation and wind shear.",
+    "Performing real-time 3D Voronoi tessellation and volumetric analysis on massive point clouds directly on embedded edge hardware with limited thermal headroom.",
+    "Developing algorithms to differentiate between harmless fog/mist and electrically conductive salt deposition using only spectral signature analysis in low-light conditions."
+  ],
+  "recommended_stack": {
+    "language": "Rust \u2014 Provides memory safety guarantees with zero-cost abstractions for deterministic real-time signal processing.",
+    "framework": "ROS 2 (Humble) with Real-Time Kernel (PREEMPT_RT) \u2014 Native support for hard real-time communication between sensor drivers and inference engines.",
+    "database_engine": "TimescaleDB with PostGIS extension \u2014 Optimized for high-velocity time-series sensor data and geospatial indexing of grid assets.",
+    "cache": "Redis with Resilient Persistence \u2014 For rapid state synchronization between drone swarm nodes.",
+    "message_broker": "NATS \u2014 High-performance, low-latency messaging suitable for edge-to-edge drone swarm coordination.",
+    "special_services": [
+      "Spectral Unmixing Engine (Python/C++ hybrid) for isolating contaminant signatures",
+      "Physics-Informed Neural Network (PINN) for predicting flashover probability based on humidity and voltage load"
+    ]
+  },
+  "compliance_flags": [
+    "NERC CIP (Critical Infrastructure Protection)",
+    "IEC 61850 (Communications networks and systems for substations)",
+    "FAA Part 107 (Commercial Drone Operations)",
+    "ANSI C2 (National Electrical Safety Code)"
+  ]
+}

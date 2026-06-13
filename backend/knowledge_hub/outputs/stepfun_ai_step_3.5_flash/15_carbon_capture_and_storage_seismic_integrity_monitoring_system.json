@@ -1,0 +1,40 @@
+{
+  "archetype": "Carbon Capture and Storage Seismic Integrity Monitoring System",
+  "domain": "Geological Carbon Sequestration",
+  "description": "Real-time system that ingests multi-parameter sensor data (seismic, wellhead pressure, microgravity) from active CO2 injection wells to detect and localize potential leakage or caprock fracturing. Used by geophysicists, reservoir engineers, and regulators to ensure long-term storage integrity and compliance; technically hard due to the fusion of high-velocity seismic stream data with sparse well logs and the need for sub-second alerting on anomalous microseismic events.",
+  "rules": [
+    "MUST adhere to API standards like WITSML for well sensor data and OGC SensorThings for geospatial sensor fusion.",
+    "MUST enforce data provenance chains compliant with ISO 27916 (Geological CO2 storage) and jurisdiction-specific monitoring plans.",
+    "MUST interface with legacy downhole hardware via RS-232/485 serial MODBUS or proprietary Vendor-Specific Protocols (VSPs).",
+    "MUST store raw seismic waveforms (SEG-Y format) alongside processed events and metadata for regulatory audit trails.",
+    "MUST implement a certified fail-safe state that automatically throttles injection rates upon detection of a credible leakage signature."
+  ],
+  "anti_patterns": [
+    "DO NOT use generic time-series databases without native SEG-Y support\u2014loss of waveform fidelity invalidates seismic interpretation.",
+    "DO NOT rely solely on scheduled batch processing; microseismic events preceding leakage require sub-second detection latency.",
+    "DO NOT decouple seismic event detection from well integrity analytics; false positives from surface noise must be cross-correlated with pressure/temperature anomalies."
+  ],
+  "key_technical_challenges": [
+    "Scaling real-time processing of multi-channel seismic streams (hundreds of sensors) to detect microseismic events (M < 0) amidst industrial noise.",
+    "Fusing heterogeneous, asynchronous data sources (seismic, InSAR, well logs) into a unified subsurface model with consistent spatial referencing.",
+    "Achieving deterministic low-latency (<500ms) from event detection to regulatory-grade alert generation with cryptographic evidence logs."
+  ],
+  "recommended_stack": {
+    "language": "Python (SciPy/Obspy) + C++ (performance-critical seismic filtering); Python dominates geoscience libraries, C++ for real-time DSP.",
+    "framework": "FastAPI + Celery; asynchronous APIs for sensor ingestion, Celery for distributed seismic processing workflows.",
+    "database_engine": "TimescaleDB (hybrid) + S3; Timescale for time-series metrics/events, S3 for immutable SEG-Y blob storage with metadata in Postgres.",
+    "cache": "Redis; caching recent event clusters and model states for low-latency dashboard queries.",
+    "message_broker": "Apache Kafka; high-throughput, ordered ingestion from distributed sensor gateways.",
+    "special_services": [
+      "Seismic Event Detection Service (STA/LTA + ML)",
+      "Well Integrity Analyzer (pressure transient analysis)",
+      "Regulatory Report Generator (EPA Class VI templates)"
+    ]
+  },
+  "compliance_flags": [
+    "EPA Class VI (US)",
+    "EU CCS Directive",
+    "ISO 27916:2017",
+    "OGP/IOGP Reporting Standards"
+  ]
+}

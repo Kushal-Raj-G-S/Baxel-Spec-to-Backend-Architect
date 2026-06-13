@@ -1,0 +1,37 @@
+{
+  "archetype": "Automated Coral Reef Monitoring and Bleaching Alert System for Marine Conservation Reserves",
+  "domain": "Marine Conservation Biology",
+  "description": "This system uses satellite and underwater sensor data to monitor coral reef health, detect early signs of bleaching, and alert conservation teams to take proactive measures. It is used by marine biologists and conservationists to protect vulnerable coral reef ecosystems. The system must integrate with satellite imaging protocols, underwater sensor hardware, and machine learning algorithms to detect subtle changes in coral health.",
+  "rules": [
+    "MUST integrate with NASA's Landsat 8 satellite imaging protocol to retrieve high-resolution coral reef imagery",
+    "MUST support underwater sensor hardware from manufacturers like Sea-Bird Electronics and RBR",
+    "MUST implement machine learning algorithms to detect early signs of coral bleaching, such as changes in reflectance and fluorescence",
+    "MUST comply with the International Coral Reef Initiative (ICRI) guidelines for coral reef monitoring and conservation",
+    "MUST provide real-time alerts and notifications to conservation teams via SMS, email, and mobile app"
+  ],
+  "anti_patterns": [
+    "DO NOT rely solely on visual inspections, as they can be subjective and infrequent",
+    "DO NOT use generic machine learning algorithms without domain-specific training data",
+    "DO NOT neglect to account for variations in water temperature, salinity, and other environmental factors"
+  ],
+  "key_technical_challenges": [
+    "Integrating satellite and underwater sensor data with machine learning algorithms to detect early signs of coral bleaching",
+    "Developing a robust and scalable system to handle large volumes of satellite imagery and sensor data",
+    "Ensuring accurate and reliable alert systems to notify conservation teams in real-time"
+  ],
+  "recommended_stack": {
+    "language": "Python, due to its extensive libraries for scientific computing and machine learning",
+    "framework": "Django, for its robust support for real-time data processing and alert systems",
+    "database_engine": "PostgreSQL, for its ability to handle large volumes of spatial data and sensor readings",
+    "cache": "Redis, for its high-performance caching capabilities",
+    "message_broker": "RabbitMQ, for its reliable and scalable message queuing",
+    "special_services": [
+      "NASA's Landsat 8 API",
+      "Sea-Bird Electronics' underwater sensor API"
+    ]
+  },
+  "compliance_flags": [
+    "International Coral Reef Initiative (ICRI) guidelines",
+    "Marine Conservation Biology regulations"
+  ]
+}

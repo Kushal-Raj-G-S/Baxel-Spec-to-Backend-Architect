@@ -1,0 +1,40 @@
+{
+  "archetype": "Conservation Environment Logging and Anomaly Prediction System (CELAPS)",
+  "domain": "Cultural Heritage Asset Preservation",
+  "description": "A real-time monitoring and predictive analytics system for museum, archive, and gallery conservation labs. It aggregates micro-climate data (temperature, RH, light, pollutants, vibration) from hundreds of wireless sensors placed on storage shelves, display cases, and transit crates to prevent irreversible damage to unique, irreplaceable artifacts. The system must detect sub-visible environmental shifts that cause chemical decay (e.g., hydrolysis of paper, salt efflorescence in stone) and predict hazardous events like HVAC failure or flood risk.",
+  "rules": [
+    "MUST comply with ISO 11799 (Storage of cultural property) and ISO 18911 (Imaging materials \u2014 Storage practices) environmental parameters, which define tight, material-specific tolerances (e.g., \u00b12% RH for photographic materials, \u00b11\u00b0C for certain paintings).",
+    "MUST integrate with legacy environmental control hardware (e.g., HVAC systems from 1980s, standalone data loggers) using BACnet, Modbus RTU over RS-485, and analog 4-20mA signal converters.",
+    "MUST implement a 'calibration drift' management workflow because sensor accuracy degrades over time and cannot be manually verified without removing artifacts, requiring statistical drift detection against reference instruments.",
+    "MUST produce audit-ready, legally defensible time-series data chains with cryptographic hashing for each reading, as environmental logs can be critical evidence in insurance claims or litigation following damage.",
+    "MUST support 'transit mode' with burst logging at 1-second intervals during artifact movement, then seamlessly merge with stationary lab logs, maintaining continuity of the artifact's environmental history across different facilities."
+  ],
+  "anti_patterns": [
+    "DO NOT use standard consumer IoT platforms (e.g., AWS IoT Core template) \u2014 they assume device replaceability and cloud-centric processing, but conservation sensors are often proprietary, non-IP, and some museums have zero external internet connectivity for security.",
+    "DO NOT treat all 'anomalies' as equal \u2014 a 0.5\u00b0C spike for 5 minutes may be catastrophic for a vellum manuscript but irrelevant for a ceramic vase; the system must model damage potential per artifact material profile, not just generic thresholds.",
+    "DO NOT rely on cloud-based machine learning training alone \u2014 prediction models must be explainable to conservators (e.g., SHAP values) and retrainable on-site with local data to respect data sovereignty and avoid shipping sensitive artifact location histories."
+  ],
+  "key_technical_challenges": [
+    "Synchronizing sub-second timestamp accuracy across hundreds of heterogeneous sensors with different internal clocks and battery-powered sleep cycles, while accounting for timezone/DST changes across global institutions.",
+    "Building a 'virtual sensor' fusion layer that combines slow, high-accuracy reference instruments (e.g., chilled mirror hygrometers) with dense, low-cost network sensors to create a high-resolution environmental map without violating the reference instrument's calibration authority.",
+    "Implementing a damage-probability model that incorporates non-linear material science kinetics (e.g., Arrhenius equation for temperature-driven decay) and artifact-specific 'dose-response' curves, where damage accumulates from both magnitude and duration of deviation."
+  ],
+  "recommended_stack": {
+    "language": "Rust \u2014 for sensor ingestion daemons due to zero-cost abstractions, memory safety for long-running processes, and fine-grained control over serial port timing and low-level hardware communication.",
+    "framework": "Actix-web (Rust) or Elixir/Phoenix \u2014 for the real-time dashboard and alerting API; Elixir's BEAM VM is excellent for managing thousands of concurrent sensor connection states with soft real-time requirements.",
+    "database_engine": "TimescaleDB (PostgreSQL extension) \u2014 for high-frequency time-series with relational joins to artifact metadata, material profiles, and conservation treatment histories; supports continuous aggregates for long-term trend analysis.",
+    "cache": "Redis with RedisTimeSeries module \u2014 for in-memory sliding-window calculations (e.g., last 24h RH standard deviation) to power instant dashboard updates and fast alert rule evaluation without hitting the main DB.",
+    "message_broker": "MQTT broker (e.g., EMQX) with bridge support for legacy BACnet/Modbus gateways \u2014 handles sensor telemetry at scale, but MUST be deployed on-premise with TLS client certificates; no cloud MQTT brokers due to data sovereignty.",
+    "special_services": [
+      "Custom BACnet/Modbus protocol adapter service (in Rust/C++) that polls legacy controllers, normalizes data to a canonical schema, and injects into MQTT with original raw payload for audit.",
+      "Material Degradation Kinetics Engine (Python/C++ hybrid) that runs Monte Carlo simulations of artifact aging based on current environmental data and material-specific models from the Getty Conservation Institute's research databases."
+    ]
+  },
+  "compliance_flags": [
+    "ISO 11799:2015",
+    "ISO 18911:2015",
+    "NIST SP 800-88 (for data sanitization when decommissioning sensors containing artifact location history)",
+    "Cultural Property Export Laws (e.g., if system logs are subpoenaed in an artifact repatriation case)",
+    "GDPR/CCPA (if system tracks personally identifiable information of conservators or lenders)"
+  ]
+}

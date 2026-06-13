@@ -1,0 +1,37 @@
+{
+  "archetype": "Automated Fishery Quota Management and Vessel Monitoring System for EU Fisheries",
+  "domain": "Marine Conservation and Fisheries Management",
+  "description": "This system helps manage fishing quotas and monitor vessel activity in real-time to prevent overfishing and ensure compliance with EU regulations. It is used by fisheries authorities and vessel operators to track catches, vessel locations, and fishing gear usage. The system must integrate with various data sources, including vessel monitoring systems, catch reporting databases, and weather services, making it technically challenging.",
+  "rules": [
+    "MUST comply with EU Common Fisheries Policy and Maritime Spatial Planning Directive",
+    "MUST integrate with Vessel Monitoring System (VMS) data feeds using the IHO S-100 standard",
+    "MUST support catch reporting using the EU's Fisheries Control Regulation (EC) No 1224/2009",
+    "MUST account for variable fishing gear usage and bycatch rates",
+    "MUST provide real-time alerts for quota breaches and vessel non-compliance"
+  ],
+  "anti_patterns": [
+    "DO NOT use a simple database query to determine quota breaches, as it fails to account for variable catch rates and bycatch",
+    "DO NOT rely solely on manual data entry for catch reporting, as it is prone to errors and delays",
+    "DO NOT neglect to consider the impact of weather conditions on fishing activity and quota management"
+  ],
+  "key_technical_challenges": [
+    "Integrating with diverse data sources and formats, including VMS, catch reports, and weather data",
+    "Developing a robust and scalable algorithm for quota management and breach detection",
+    "Ensuring real-time performance and alerting capabilities for vessel monitoring and quota management"
+  ],
+  "recommended_stack": {
+    "language": "Rust + its strong focus on concurrency and performance makes it suitable for real-time data processing",
+    "framework": "Actix-web + its support for WebSockets and real-time data streaming",
+    "database_engine": "PostgreSQL + its support for spatial data types and efficient querying",
+    "cache": "Redis + its in-memory data storage for fast access to quota and vessel data",
+    "message_broker": "Apache Kafka + its support for real-time data processing and alerting",
+    "special_services": [
+      "EU Fisheries Data Service",
+      "IHO S-100 VMS data feed"
+    ]
+  },
+  "compliance_flags": [
+    "EU Common Fisheries Policy",
+    "Maritime Spatial Planning Directive"
+  ]
+}

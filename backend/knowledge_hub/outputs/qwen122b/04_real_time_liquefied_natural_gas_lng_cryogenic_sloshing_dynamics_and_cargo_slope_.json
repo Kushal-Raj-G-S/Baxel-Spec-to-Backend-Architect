@@ -1,0 +1,38 @@
+{
+  "archetype": "Real-Time Liquefied Natural Gas (LNG) Cryogenic Sloshing Dynamics & Cargo Slope Compensation System",
+  "domain": "Maritime LNG Carrier Operations",
+  "description": "This system ingests millisecond-frequency motion data from IMUs and pressure sensors aboard LNG carriers to model complex fluid-structure interactions during cryogenic sloshing. It automatically calculates and executes dynamic tank volume compensation strategies to prevent structural resonance and boil-off gas (BOG) spikes in real-time, requiring integration with legacy ship automation networks.",
+  "rules": [
+    "MUST process sensor telemetry at <= 10ms latency to predict sloshing resonance before it exceeds structural safety thresholds.",
+    "MUST adhere to IEC 61131-3 standards for logic implementation when interfacing with legacy PLCs controlling valve actuators.",
+    "MUST utilize the NMEA 2000 and MODBUS TCP protocols to ingest raw data from inertial navigation systems and tank gauging units.",
+    "MUST implement deterministic locking mechanisms to ensure control loop stability even during network partitioning in satellite bands.",
+    "MUST generate audit trails compliant with IMO (International Maritime Organization) Ballast Water Management and SOLAS Chapter II-1 regulations."
+  ],
+  "anti_patterns": [
+    "DO NOT use eventual consistency for control state; a delay in valve actuation due to network lag can cause catastrophic tank wall rupture.",
+    "DO NOT rely solely on cloud-based inference; the system must retain full local computation capability when satellite connectivity is lost in polar routes.",
+    "DO NOT abstract hardware drivers into generic middleware; specific cryogenic sensor drift characteristics require direct, low-level calibration handling."
+  ],
+  "key_technical_challenges": [
+    "Modeling non-linear fluid dynamics of cryogenic nitrogen/methane mixtures under variable G-force vectors in real-time.",
+    "Synchronizing high-frequency vibration data with slow-responding mechanical valve actuators to avoid phase-lag induced oscillation.",
+    "Ensuring deterministic execution of safety-critical loops on hardware with limited thermal headboard in extreme sub-zero or tropical environments."
+  ],
+  "recommended_stack": {
+    "language": "Rust - Provides memory safety without garbage collection pauses, essential for hard real-time control loops.",
+    "framework": "NMEA 0183/NMEA 2000 SDKs - Native support for maritime sensor protocols without translation overhead.",
+    "database_engine": "TimescaleDB - Optimized for time-series sensor data with hypertable compression for long-term voyage analysis.",
+    "cache": "null",
+    "message_broker": "ZeroMQ - Allows for high-throughput, low-latency publish/subscribe patterns without the overhead of a full broker.",
+    "special_services": [
+      "Cryogenic Fluid Dynamics Simulation Engine",
+      "Real-time Harmonic Resonance Predictor"
+    ]
+  },
+  "compliance_flags": [
+    "SOLAS (Safety of Life at Sea)",
+    "IEC 61508 (Functional Safety)",
+    "ClassNK Ship Type Approval"
+  ]
+}

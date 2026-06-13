@@ -24,13 +24,13 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #111510;
+  background: #1F261D;
 }
 
 ::-webkit-scrollbar-thumb {
   background: rgba(194, 214, 140, 0.4);
   border-radius: 6px;
-  border: 3px solid #111510;
+  border: 3px solid #1F261D;
   transition: background 0.3s ease;
 }
 
@@ -124,16 +124,16 @@ body {
 .baxel-shell {
   position: relative;
   min-height: 100vh;
-  background-image: linear-gradient(120deg, rgba(247, 231, 206, 0.5), rgba(235, 233, 224, 0.8) 45%, rgba(201, 242, 234, 0.5)),
+  background-image: linear-gradient(120deg, rgba(31, 38, 29, 0.5), rgba(42, 58, 46, 0.8) 45%, rgba(61, 79, 63, 0.5)),
     radial-gradient(circle at 1px 1px, rgba(15, 15, 15, 0.05) 1px, transparent 0);
   background-size: auto, 18px 18px;
   overflow: visible;
 }
 
 .glass {
-  background: rgba(255, 255, 255, 0.6);
-  border: 1px solid rgba(15, 15, 15, 0.08);
-  box-shadow: 0 24px 60px rgba(15, 15, 15, 0.04);
+  background: rgba(31, 38, 29, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.04);
   backdrop-filter: blur(16px);
 }
 
@@ -142,14 +142,14 @@ body {
   letter-spacing: 0.24em;
   font-size: 0.7rem;
   font-weight: 600;
-  color: #3b3a36;
+  color: #C2D68C;
 }
 
 .code-pill {
   font-family: var(--font-mono), monospace;
-  background: rgba(11, 13, 18, 0.05);
-  color: #0b0d12;
-  border: 1px solid rgba(11, 13, 18, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: #FFFFFF;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   padding: 0.35rem 0.6rem;
   border-radius: 999px;
   font-size: 0.75rem;
@@ -175,7 +175,7 @@ body {
 .orb.sun {
   width: 260px;
   height: 260px;
-  background: radial-gradient(circle, rgba(240, 93, 35, 0.28), rgba(240, 93, 35, 0));
+  background: radial-gradient(circle, rgba(194, 214, 140, 0.28), rgba(194, 214, 140, 0));
   top: -60px;
   right: -40px;
 }
@@ -183,7 +183,7 @@ body {
 .orb.mint {
   width: 220px;
   height: 220px;
-  background: radial-gradient(circle, rgba(0, 194, 168, 0.24), rgba(0, 194, 168, 0));
+  background: radial-gradient(circle, rgba(134, 158, 88, 0.24), rgba(134, 158, 88, 0));
   bottom: 140px;
   left: -80px;
   animation-delay: 2s;
@@ -214,8 +214,8 @@ body {
 
 .hover-rise:hover {
   transform: translateY(-6px);
-  box-shadow: 0 30px 70px rgba(15, 15, 15, 0.12);
-  border-color: rgba(15, 15, 15, 0.18);
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.12);
+  border-color: rgba(255, 255, 255, 0.18);
 }
 
 .btn-glow {
@@ -250,8 +250,8 @@ body {
   position: absolute;
   inset: 0;
   background: radial-gradient(480px 320px at var(--mx) var(--my),
-      rgba(240, 93, 35, 0.22),
-      rgba(0, 194, 168, 0.16),
+      rgba(194, 214, 140, 0.22),
+      rgba(134, 158, 88, 0.16),
       transparent 70%);
   opacity: 0.65;
   pointer-events: none;
@@ -264,7 +264,7 @@ body {
   position: absolute;
   inset: 0;
   background: radial-gradient(320px 220px at calc(var(--mx) + 12%) calc(var(--my) + 10%),
-      rgba(15, 15, 15, 0.16),
+      rgba(0, 0, 0, 0.16),
       transparent 60%);
   pointer-events: none;
   opacity: 0.6;
@@ -301,10 +301,10 @@ body {
 
 .metric-card {
   border-radius: 24px;
-  border: 1px solid rgba(15, 15, 15, 0.12);
-  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
   padding: 18px;
-  box-shadow: 0 20px 40px rgba(15, 15, 15, 0.08);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
   min-width: 220px;
   scroll-snap-align: start;
 }
@@ -370,7 +370,7 @@ body {
   right: 0;
   bottom: -6px;
   height: 2px;
-  background: linear-gradient(90deg, rgba(240, 93, 35, 0.8), rgba(0, 194, 168, 0.8));
+  background: linear-gradient(90deg, rgba(194, 214, 140, 0.8), rgba(134, 158, 88, 0.8));
   transform: scaleX(0);
   transform-origin: left;
   transition: transform 200ms ease;

@@ -1,0 +1,41 @@
+{
+  "archetype": "Port State Control Inspection Risk Engine & Workflow System",
+  "domain": "Maritime Safety & Regulatory Compliance",
+  "description": "A real-time system that aggregates global vessel data, calculates detention risk scores based on 50+ IMO/flag state criteria, and orchestrates the boarding workflow for Port State Control Officers (PSCOs) during unannounced inspections. It must integrate with vessel AIS tracks, hull inspection history, crew certification databases, and regional memoranda of understanding (MoU) targeting lists to prioritize targets and generate legally defensible detention orders.",
+  "rules": [
+    "MUST ingest and normalize AIS (NMEA 0183/2000) and LRIT data streams in real-time, correlating with the IHS Markit vessel registry and Equasis ownership data.",
+    "MUST implement the Paris MoU inspection targeting factor calculation (inspection days since last, deficiency history, vessel age, flag performance, etc.) exactly as defined in the MoU's annual guidelines.",
+    "MUST produce detention reports that digitally sign and hash evidence (photos,\u8bc1\u4e66 copies, crew testimonies) to meet IMO Resolution A.1117(29) for electronic certificates and chain of custody.",
+    "MUST enforce the 'no less favorable treatment' clause of the IMO's ISM Code by preventing inspections based solely on flag or company nationality without documented risk factors.",
+    "MUST support offline mode for PSCOs boarding vessels with no connectivity, syncing geotagged evidence and forms upon return to shore via NATO STANAG 5522-compliant data transfer."
+  ],
+  "anti_patterns": [
+    "DO NOT build a generic case management CRM\u2014maritime inspections have rigid, sequential steps (boarding \u2192 examination \u2192 evidence \u2192 decision \u2192 appeal) with mandatory 24-hour detention notification to flag state and IMO GISIS.",
+    "DO NOT rely on a single static risk model\u2014risk factors change weekly based on new MoU targeting lists, recent deficiencies in the region, and weather routing deviations that suggest clandestine ballast water discharge.",
+    "DO NOT store crew certificates as simple PDFs\u2014they must be validated against the IMO's Crew Certificate Verification System (CCVS) and flagged for forgery patterns (e.g., inconsistent IMO numbers across multiple certificates).",
+    "DO NOT assume stable connectivity\u2014inspection vessels operate in remote ports where satellite bandwidth is 2.4 kbps; image compression and delta-sync are non-negotiable."
+  ],
+  "key_technical_challenges": [
+    "Real-time correlation of vessel AIS position with port stay duration to detect 'cancelled' port calls that may indicate hiding from inspections, using probabilistic hidden Markov models on sparse data.",
+    "Automated extraction of textual deficiency descriptions from unstructured PSCO notes into standardized IMO deficiency codes (F-016, S-034, etc.) using NLP trained on 20 years of inspection reports in 30+ languages.",
+    "Geofencing-based alerting when a high-risk vessel alters course toward a port, integrating with VTS (Vessel Traffic Service) radar feeds and predicting ETA with tidal/current offsets for inspection team dispatch."
+  ],
+  "recommended_stack": {
+    "language": "Java 17 (LTS) with strong typing for complex regulatory rule chaining and mature JDBC for legacy maritime database drivers",
+    "framework": "Quarkus with RESTEasy Reactive\u2014low memory footprint for containerized deployment on port authority servers with limited resources",
+    "database_engine": "TimescaleDB (PostgreSQL extension)\u2014optimized for time-series AIS data and historical inspection trend analysis with continuous aggregates",
+    "cache": "Hazelcast IMDG\u2014distributed cache for real-time vessel risk scores shared across multiple port jurisdictions in a MoU region",
+    "message_broker": "RabbitMQ with MQTT plugin\u2014handles both high-volume AIS streams and low-bandwidth inspection form submissions via satellite link",
+    "special_services": [
+      "GDAL/OGR service for automated detection of hull structural corrosion from drone inspection photos using computer vision",
+      "Blockchain notary service (Hyperledger Indy) for immutable logging of detention decisions to prevent retroactive alteration by port states under political pressure"
+    ]
+  },
+  "compliance_flags": [
+    "IMO Resolution A.1117(29) - Guidelines for Port State Control Officers",
+    "Paris MoU on Port State Control - Annual Targeting Factor Guidelines",
+    "EU Regulation (EU) 2019/423 on Port State Control (transposing IMO rules into EU law)",
+    "USCG 46 CFR Part 5 - Enforcement of International Regulations",
+    "FSMA (Food Safety Modernization Act) if vessel carries perishable cargo\u2014detention may trigger FDA hold"
+  ]
+}

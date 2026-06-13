@@ -1,0 +1,38 @@
+{
+  "archetype": "Real-Time In-Situ Borehole Gamma-Ray Spectroscopy & Lithostratigraphic Boundaries Classifier",
+  "domain": "Downhole Geophysics & Mineral Exploration",
+  "description": "This system processes high-energy gamma-ray spectra from multi-detector wireline logging tools in real-time to identify lithological boundaries and ore grades while the drill string is stationary or moving slowly. It is used by geologists and drilling engineers to make immediate cut-and-fill decisions in deep boreholes where signal attenuation and harsh physical conditions (radiation, pressure, heat) make data transmission and processing extremely difficult. The technical difficulty lies in performing complex inverse problems and noise filtering on edge devices within seconds of acquisition to prevent costly drilling errors or missing high-grade ore zones.",
+  "rules": [
+    "MUST implement strict adherence to the Logging Industry Standard (LIS) and DLIS formats for all data serialization and telemetry.",
+    "MUST decouple signal acquisition (kHz sample rates) from spectral analysis (ms latency) using deterministic real-time kernels to prevent buffer overruns during tool movement.",
+    "MUST enforce radiation-hardened algorithmic constraints, including dead-time correction models for high-count-rate environments exceeding 100,000 counts per second.",
+    "MUST integrate with proprietary telemetry modems using BPSK/QPSK modulation over single-conductor wireline cables with bandwidths often under 100 kbps.",
+    "MUST apply ISO 19458 (Petroleum and natural gas industries \u2014 Well logging \u2014 Data exchange) validation rules for all output metadata."
+  ],
+  "anti_patterns": [
+    "DO NOT use cloud-first batch processing architectures; the latency of uploading raw spectral data to the cloud for analysis is too high to prevent drilling accidents or missed targets.",
+    "DO NOT rely on generic machine learning models trained on surface geological data; downhole physics (borehole diameter, mud density, tool standoff) requires physics-informed neural networks (PINNs) trained on synthetic downhole simulations.",
+    "DO NOT use non-deterministic garbage collection cycles in the core processing loop, as memory pauses can result in lost high-frequency spectral peaks critical for element identification."
+  ],
+  "key_technical_challenges": [
+    "Compensation for 'Standoff Effect' where the distance between the tool and the borehole wall varies dynamically, distorting gamma-ray counts and requiring real-time geometric correction.",
+    "Separation of background noise (cosmic radiation, tool casing interference) from formation signal in low-statistics environments within milliseconds.",
+    "Managing extreme thermal throttling on embedded FPGAs located 3-5 km underground where operating temperatures exceed 175\u00b0C."
+  ],
+  "recommended_stack": {
+    "language": "Rust \u2014 Provides memory safety without garbage collection pauses, essential for real-time signal processing in constrained embedded environments.",
+    "framework": "Zephyr RTOS \u2014 A secure, scalable real-time operating system designed for resource-constrained microcontrollers and harsh industrial IoT environments.",
+    "database_engine": "TimescaleDB \u2014 Optimized for high-velocity time-series ingestion of spectral data points while maintaining SQL compatibility for geological reporting.",
+    "cache": "None \u2014 Data must be processed and persisted or transmitted immediately; caching introduces unacceptable latency and data loss risks in continuous logging.",
+    "message_broker": "ZeroMQ \u2014 Lightweight, socket-based messaging allowing low-latency, high-throughput communication between acquisition modules and analysis engines over serial/wireline links.",
+    "special_services": [
+      "Physics-Informed Spectral Unfolding Engine",
+      "Real-Time Tool Standoff & Mud Compensation Module"
+    ]
+  },
+  "compliance_flags": [
+    "ISO 19458 (LIS/DLIS)",
+    "API RP 57 (Reporting Standards)",
+    "NFPA 497 (Classified Locations for Electrical Equipment)"
+  ]
+}

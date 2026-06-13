@@ -1,0 +1,41 @@
+{
+  "archetype": "Real-Time Superconducting Magnet Quench Propagation & Energy Extraction Controller for ITER-Class Tokamak Fusion Reactors",
+  "domain": "Magnetic Confinement Fusion Energy",
+  "description": "This system monitors superconducting coil voltage and temperature gradients at microsecond intervals to detect quench initiation events, automatically triggering energy extraction circuits to prevent magnet destruction. It serves as the critical safety interlock for fusion reactor operations, requiring deterministic reaction times under 100 microseconds to manage megajoules of stored magnetic energy. The technical difficulty lies in synchronizing heterogeneous sensor data with high-voltage power electronics while adhering to nuclear safety instrumentation standards.",
+  "rules": [
+    "MUST implement data acquisition via VMEbus or MicroTCA.4 backplanes using VME-64X protocols with deterministic jitter < 1 microsecond.",
+    "MUST adhere to IEC 61508 SIL-4 safety integrity levels for all logic determining energy extraction trigger thresholds.",
+    "MUST process raw sensor data (voltage taps, strain gauges, fiber-optic temperature sensors) without any buffering that introduces latency variance.",
+    "MUST support a 'Hot-Standby' redundancy model with sub-millisecond state synchronization between active and passive controller pairs.",
+    "MUST generate audit trails in NIST-compliant formats for every state transition and operator override for nuclear regulatory review.",
+    "MUST interface with the Power Supply System (PSS) using proprietary high-speed serial links (e.g., CANopen High Speed or custom FPGA-to-FPGA links)."
+  ],
+  "anti_patterns": [
+    "DO NOT use garbage-collected languages for the primary control loop as unpredictable pause times could lead to catastrophic magnet burn-out.",
+    "DO NOT implement cloud-based telemetry or batch processing for real-time safety logic; the network latency is too high for millisecond-scale physics phenomena.",
+    "DO NOT rely on standard TCP/IP stacks for sensor aggregation; the protocol overhead and retransmission delays are unacceptable for quench detection.",
+    "DO NOT hardcode static thresholds for quench detection; the system must dynamically adjust based on real-time magnetic field strength and plasma current profiles."
+  ],
+  "key_technical_challenges": [
+    "Achieving sub-100 microsecond end-to-end latency from sensor input to IGBT gate signal activation during a quench event.",
+    "Fusing noisy data from thousands of distinct sensor modalities (voltage, temperature, strain, acoustic) into a single coherent 'Quench Probability' metric in real-time.",
+    "Designing a fail-safe state machine that guarantees a controlled energy dump even if the primary logic processor suffers a single-event upset (SEU) caused by neutron radiation."
+  ],
+  "recommended_stack": {
+    "language": "Rust (with no_std crates) for memory safety guarantees without garbage collection pauses.",
+    "framework": "QNX Neutrino RTOS for hard real-time scheduling and microkernel isolation.",
+    "database_engine": "TimescaleDB for high-write ingestion of time-series operational logs (non-safety critical), with FPGA-embedded SRAM for immediate control state.",
+    "cache": "Direct FPGA block RAM and L1/L2 CPU caches strictly managed via DMA to avoid coherence overhead.",
+    "message_broker": "ZeroMQ (via UDP multicast) for internal component signaling where latency is paramount; otherwise direct memory access.",
+    "special_services": [
+      "Radiation-Hardened FPGA Bitstream Manager for dynamic reconfiguration of control logic.",
+      "Differential Voltage Summation Engine for early quench signature detection in superconducting coils."
+    ]
+  },
+  "compliance_flags": [
+    "IEC 61508 (Functional Safety)",
+    "10 CFR Part 50 (US Nuclear Reactor Licensing)",
+    "ISO 9001 (Quality Management for Nuclear Components)",
+    "ITER Project Safety Standards (ITER-DOC-0001)"
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "archetype": "Automated Wildlife Corridor Connectivity Analysis and Conservation Planning System for Transboundary Protected Areas",
+  "domain": "Conservation Biology and Wildlife Ecology",
+  "description": "This system uses satellite and drone imagery, sensor data, and machine learning algorithms to analyze and predict wildlife migration patterns, identifying critical corridors and habitats for conservation. It is used by transboundary protected area managers, conservation biologists, and wildlife ecologists to inform habitat restoration and connectivity projects. The system must integrate diverse data sources and comply with international conservation agreements.",
+  "rules": [
+    "MUST integrate data from satellite imagery providers (e.g., Planet Labs, DigitalGlobe) and adhere to Open Geospatial Consortium (OGC) standards",
+    "MUST incorporate sensor data from wildlife tracking devices (e.g., GPS collars, camera traps) and comply with Animal Telemetry Network (ATN) protocols",
+    "MUST utilize machine learning algorithms to analyze and predict wildlife migration patterns, adhering to species-specific habitat modeling guidelines",
+    "MUST provide real-time alerts and notifications to conservation managers for critical habitat connectivity events",
+    "MUST ensure data security and access controls to protect sensitive wildlife location data"
+  ],
+  "anti_patterns": [
+    "DO NOT rely solely on static habitat maps, as they may not accurately reflect dynamic wildlife migration patterns",
+    "DO NOT neglect to incorporate human-wildlife conflict data, which can impact conservation planning",
+    "DO NOT overlook the importance of stakeholder engagement and participation in conservation planning"
+  ],
+  "key_technical_challenges": [
+    "Integrating and processing large datasets from diverse sources, including satellite imagery, sensor data, and machine learning models",
+    "Developing accurate and reliable wildlife migration pattern predictions using machine learning algorithms",
+    "Ensuring data security and access controls to protect sensitive wildlife location data"
+  ],
+  "recommended_stack": {
+    "language": "Python, due to its extensive libraries for geospatial analysis and machine learning",
+    "framework": "Django, for its robust support for geospatial data and scalable architecture",
+    "database_engine": "PostGIS, for its ability to store and query large geospatial datasets",
+    "cache": "Redis, for its high-performance caching capabilities",
+    "message_broker": "RabbitMQ, for its reliable and scalable message queuing",
+    "special_services": [
+      " Planet Labs API",
+      "Google Earth Engine"
+    ]
+  },
+  "compliance_flags": [
+    "Convention on International Trade in Endangered Species of Wild Fauna and Flora (CITES)",
+    "United Nations Environment Programme (UNEP) guidelines"
+  ]
+}

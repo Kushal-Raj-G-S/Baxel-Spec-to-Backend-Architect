@@ -1,0 +1,38 @@
+{
+  "archetype": "Multi-Modal Loom Pattern Defect Detection & Warp Tension Harmonic Dampening System for High-Speed Jacquard Weaving",
+  "domain": "Industrial Textile Manufacturing & Precision Loom Automation",
+  "description": "A real-time edge computing system that synchronizes high-speed tension sensor arrays with hyperspectral line-scan cameras to detect micro-fiber anomalies and predict warp breakage before they occur. Used by mill operators and predictive maintenance engineers, it is technically challenging due to the need to correlate mechanical vibration harmonics (10kHz+) with visual defect patterns at 40m/s fabric speeds while adhering to strict deterministic latency requirements.",
+  "rules": [
+    "MUST process sensor data via IEEE 1451.4 smart transducer interface standards to ensure deterministic sampling rates under 500 microseconds.",
+    "MUST implement a digital twin of the loom's mechanical kinematics to predict tension spikes caused by shuttle velocity changes before physical breakage occurs.",
+    "MUST support the proprietary STOLL or Picanol loom communication protocols (e.g., CANopen or specific proprietary Ethernet variants) for immediate actuator braking.",
+    "MUST enforce ISO 9001 traceability by embedding defect metadata directly into the fabric's digital thread using serialized unique identifiers.",
+    "MUST maintain signal integrity in an environment with extreme electromagnetic interference (EMI) from high-current motor drives using shielded differential signaling."
+  ],
+  "anti_patterns": [
+    "DO NOT use asynchronous HTTP polling for sensor data, as the millisecond latency will result in catastrophic loom stoppages and fabric waste.",
+    "DO NOT rely on cloud-only inference models, as the round-trip network latency exceeds the reaction time required to prevent a 'loose warp' catastrophe.",
+    "DO NOT use generic image processing libraries without hardware-accelerated FPGA offloading, as the throughput required (100+ megapixels per second) will saturate standard CPU pipelines."
+  ],
+  "key_technical_challenges": [
+    "Synchronizing high-frequency mechanical vibration data with low-latency optical flow analysis to distinguish between actual fiber defects and motion blur artifacts at 40m/s.",
+    "Implementing a hard-real-time control loop that can override the mechanical loom brake within 200 microseconds of a predicted critical tension threshold breach.",
+    "Managing the massive influx of high-resolution line-scan imagery (16-bit depth) alongside telemetry streams without dropping packets or introducing jitter on an industrial LAN."
+  ],
+  "recommended_stack": {
+    "language": "Rust with embedded no_std support for deterministic memory management and zero-cost abstractions in high-frequency loops.",
+    "framework": "Zephyr RTOS or VxWorks for hard real-time scheduling guarantees on edge microcontrollers.",
+    "database_engine": "TimescaleDB (PostgreSQL extension) for time-series storage of vibration telemetry combined with relational data for defect logs.",
+    "cache": "Redis with Redis Streams for buffering high-throughput image frames before asynchronous processing.",
+    "message_broker": "Eclipse Mosquitto (MQTT) with QoS 2 for guaranteed delivery of critical alarm states to the SCADA system.",
+    "special_services": [
+      "FPGA-based Edge Inference Engine for real-time CNN defect classification",
+      "Mechanical Harmonic Analysis Service for vibration pattern recognition"
+    ]
+  },
+  "compliance_flags": [
+    "ISO 13849 (Safety of Machinery)",
+    "IEC 61131-3 (Industrial Automation)",
+    "ISO 9001 (Quality Management Systems)"
+  ]
+}

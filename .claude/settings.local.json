@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(uvicorn app.main:app --reload --host 0.0.0.0 --port 8000)",
+      "Bash('json in content.lower\\(\\)\\) *)",
+      "Bash(python -c ' *)",
+      "Bash(python test_llm_output.py)",
+      "Bash(python test_json_extraction.py)",
+      "Bash(python test_rideflow.py)",
+      "Bash(python debug_rideflow.py)",
+      "Bash(python test_direct_extraction.py)",
+      "Bash(python test_medium_complexity.py)",
+      "Bash(python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000)",
+      "Bash(python -c \"from app.services.pipeline_service import run_pipeline; result = run_pipeline\\('A simple blog with posts and comments', 'starter'\\); print\\(f'Entities: {len\\(result.get\\(\\\\\"entities\\\\\", []\\)\\)}, Endpoints: {len\\(result.get\\(\\\\\"endpoints\\\\\", []\\)\\)}, Model: {result.get\\(\\\\\"__meta\\\\\", {}\\).get\\(\\\\\"model\\\\\", \\\\\"N/A\\\\\"\\)}'\\)\")",
+      "Bash(python -c \"from app.services.pipeline_service import run_pipeline; result = run_pipeline\\('A simple todo list', 'starter'\\); print\\(f'Entities: {len\\(result.get\\(\\\\\"entities\\\\\", []\\)\\)}, Endpoints: {len\\(result.get\\(\\\\\"endpoints\\\\\", []\\)\\)}, Complexity: {result.get\\(\\\\\"__meta\\\\\", {}\\).get\\(\\\\\"input_complexity\\\\\", {}\\).get\\(\\\\\"level\\\\\", \\\\\"N/A\\\\\"\\)}'\\)\")",
+      "Bash(python -c \"from app.services.pipeline_service import _analyze_input_complexity; complexity = _analyze_input_complexity\\('An e-commerce platform where customers browse products, add items to cart, place orders, and track shipments'\\); print\\('Entities:', complexity['entities']\\); print\\('Features:', complexity['features']\\); print\\('Level:', complexity['level']\\)\")",
+      "Bash(python -c \"from app.services.pipeline_service import run_pipeline; result = run_pipeline\\('An e-commerce platform where customers browse products, add items to cart, place orders, and track shipments', 'starter'\\); print\\('Entities:', result.get\\('entities'\\)\\); print\\('Type:', type\\(result.get\\('entities'\\)\\)\\); print\\('First entity type:', type\\(result.get\\('entities', []\\)[0]\\) if result.get\\('entities'\\) else 'None'\\)\")",
+      "Bash(python -c \"from app.services.pipeline_service import run_pipeline; result = run_pipeline\\('A simple todo list app', 'starter'\\); print\\(f'Complexity: {result.get\\(\\\\\"__meta\\\\\", {}\\).get\\(\\\\\"input_complexity\\\\\", {}\\).get\\(\\\\\"level\\\\\", \\\\\"N/A\\\\\"\\)}'\\); print\\(f'Entities: {len\\(result.get\\(\\\\\"entities\\\\\", []\\)\\)}'\\); print\\(f'Endpoints: {len\\(result.get\\(\\\\\"endpoints\\\\\", []\\)\\)}'\\); print\\(f'Rules: {len\\(result.get\\(\\\\\"rules\\\\\", []\\)\\)}'\\); print\\(f'Entity names: {[e[\\\\\"name\\\\\"] for e in result.get\\(\\\\\"entities\\\\\", []\\)]}'\\)\")"
+    ]
+  }
+}

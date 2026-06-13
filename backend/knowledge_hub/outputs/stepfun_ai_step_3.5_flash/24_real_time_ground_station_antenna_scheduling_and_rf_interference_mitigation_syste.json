@@ -1,0 +1,39 @@
+{
+  "archetype": "Real-Time Ground Station Antenna Scheduling & RF Interference Mitigation System for LEO Mega-Constellations",
+  "domain": "Satellite Ground Network Operations",
+  "description": "Orchestrates contact windows for thousands of low-Earth orbit satellites across a global network of ground antennas, dynamically adjusting schedules based on orbital predictions, regulatory frequency licensing, and real-time RF interference detection to maximize data downlink while preventing harmful interference. It is technically hard due to the combinatorial optimization problem of scheduling, the need for sub-second reaction to orbital decay and space weather, and strict adherence to international spectrum allocation treaties.",
+  "rules": [
+    "MUST enforce schedule compliance with ITU Radio Regulations and national filings (e.g., FCC Part 25, Ofcom) via automated validation against a master spectrum license database.",
+    "MUST ingest and propagate orbital elements using SGP4/SDP4 models, with real-time updates from tracking data and space weather alerts (e.g., from NOAA SWPC).",
+    "MUST integrate with RF spectrum sensors and employ real-time interference geolocation (using TDOA/FDOA) to\u6682\u505c and re-route contacts upon detection of unauthorized emissions.",
+    "MUST generate and archive contact plans in CCSDS 503.0-B-2 (Cross Support Plan) format for interoperability between operator and ground station networks.",
+    "MUST implement a deterministic, fault-tolerant state machine for antenna command sequencing, with hard real-time deadlines for handover between contacts."
+  ],
+  "anti_patterns": [
+    "DO NOT use a static, pre-computed weekly schedule\u2014LEO orbits decay and drift, making static schedules obsolete within hours and causing missed contacts.",
+    "DO NOT ignore regulatory filing data; scheduling a transmission on a frequency not licensed for a specific orbital slot or geographic beam is a violation with severe penalties.",
+    "DO NOT treat antennas as simple sockets\u2014each antenna's azimuth/elevation rate limits, frequency band, and tracking algorithm must be modeled as a first-class constraint."
+  ],
+  "key_technical_challenges": [
+    "Solving the multi-objective, dynamic scheduling problem (thousands of satellites, hundreds of antennas, milliseconds of precision) under changing constraints (weather, maintenance, interference) requires hybrid constraint programming and heuristic algorithms.",
+    "Achieving sub-second re-scheduling in response to a detected interference event or a satellite's emergency maneuver while maintaining schedule stability for other contacts.",
+    "Creating a unified data model that harmonizes disparate orbital element formats (TLE, OEM), antenna control protocols (SCPS, CCSDS R&O), and spectrum license databases from multiple national regulators."
+  ],
+  "recommended_stack": {
+    "language": "Rust (for performance-critical scheduling core & antenna control) + Python (for data ingest, analysis, and API glue)",
+    "framework": "Actix/axum for high-performance Rust HTTP/gRPC services, with a separate Celery/Arq task queue for async orbital propagation jobs",
+    "database_engine": "TimescaleDB (hypertables for time-series telemetry & pass predictions) + PostGIS (for antenna site spatial queries & coverage polygons)",
+    "cache": "Redis (for real-time schedule state, antenna lock management, and fast lookup of active contact parameters)",
+    "message_broker": "Apache Kafka (for immutable event streams of orbital updates, interference alerts, and schedule change events)",
+    "special_services": [
+      "Custom SGP4/SDP4 propagator service with space weather drag model integration (e.g., using NRL MSISE-00)",
+      "Regulatory License Compliance Microservice that maps ITU footnotes and national allocations to frequency/timestep constraints",
+      "RF Interference Detection & Geolocation Adapter that ingests data from spectrum analyzers (e.g., using RTSA formats) and triggers schedule abort"
+    ]
+  },
+  "compliance_flags": [
+    "ITU Radio Regulations (RR) Articles 9-11 (Frequency Allocation & Notification)",
+    "National Licensing Regulations (e.g., US FCC Part 25, UK Ofcom WTA)",
+    "CCSDS 503.0-B-2 (Cross Support Planning) for inter-operator coordination"
+  ]
+}

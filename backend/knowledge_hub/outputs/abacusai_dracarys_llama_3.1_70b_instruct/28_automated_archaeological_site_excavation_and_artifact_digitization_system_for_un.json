@@ -1,0 +1,37 @@
+{
+  "archetype": "Automated Archaeological Site Excavation and Artifact Digitization System for UNESCO World Heritage Sites",
+  "domain": "Cultural Heritage Preservation and Archaeology",
+  "description": "This system aids archaeologists in excavating and documenting artifacts at UNESCO World Heritage Sites by automating site mapping, artifact digitization, and data management. It ensures compliance with international preservation standards and enhances collaboration among global research teams. Technical challenges include integrating diverse sensor data, ensuring accurate 3D modeling, and maintaining data integrity across distributed teams.",
+  "rules": [
+    "MUST adhere to UNESCO's World Heritage Convention and ICOMOS (International Council on Monuments and Sites) standards for site preservation and documentation",
+    "MUST integrate data from various sensors (e.g., LiDAR, thermal imaging, ground-penetrating radar) for comprehensive site mapping",
+    "MUST support 3D modeling and photogrammetry for accurate artifact representation",
+    "MUST ensure data interoperability and collaboration across different research teams and institutions",
+    "MUST maintain a chain of custody for digital artifacts and ensure their long-term preservation"
+  ],
+  "anti_patterns": [
+    "DO NOT rely solely on manual documentation methods, as they are error-prone and inefficient",
+    "DO NOT neglect to consider the unique challenges of working in diverse, often remote, environmental conditions",
+    "DO NOT overlook the need for data standardization and interoperability to facilitate collaboration and reuse"
+  ],
+  "key_technical_challenges": [
+    "Developing an integrated data pipeline for diverse sensor data and 3D modeling outputs",
+    "Ensuring accurate and efficient artifact digitization and recognition using computer vision techniques",
+    "Designing a scalable and secure data management system for distributed research teams"
+  ],
+  "recommended_stack": {
+    "language": "Python, for its extensive libraries and tools for scientific computing, data analysis, and machine learning",
+    "framework": "Django, for its robust support for complex, data-driven applications and its large community of developers",
+    "database_engine": "PostgreSQL, for its strong support for geospatial data and its ability to handle large datasets",
+    "cache": "Redis, for its high performance and ease of integration with Python and Django",
+    "message_broker": "RabbitMQ, for its flexibility and scalability in handling diverse data streams",
+    "special_services": [
+      "Computer Vision APIs (e.g., Google Cloud Vision)",
+      "Geospatial data processing libraries (e.g., GDAL)"
+    ]
+  },
+  "compliance_flags": [
+    "UNESCO World Heritage Convention",
+    "ICOMOS standards for site preservation and documentation"
+  ]
+}

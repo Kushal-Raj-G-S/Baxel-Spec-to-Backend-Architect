@@ -1,0 +1,39 @@
+{
+  "archetype": "Real-Time Cryogenic Hydrogen Embrittlement & Embankment Stability Predictor for Liquid Hydrogen Storage",
+  "domain": "Liquid Hydrogen Infrastructure & Materials Science",
+  "description": "A safety-critical distributed system that ingests real-time data from fiber-optic Brillouin scattering sensors and acoustic emission arrays to predict hydrogen-induced embrittlement in steel storage tanks before catastrophic failure. It correlates sub-millikelvin temperature gradients, pressure fluctuation harmonics, and local magnetic permeability shifts to forecast micro-fracture propagation in real-time. The system is deployed at large-scale hydrogen refueling hubs and green hydrogen production plants where current regulations require predictive maintenance rather than scheduled inspection.",
+  "rules": [
+    "MUST process sensory data streams at sub-10ms intervals using IEEE 1451.5 compliant wireless sensor nodes to detect acoustic emissions associated with micro-crack formation.",
+    "MUST implement deterministic state transitions adhering to IEC 61508 SIL-3 safety integrity levels for any automated valve isolation logic.",
+    "MUST utilize finite element analysis (FEA) mesh updating algorithms that run on the edge to simulate stress distribution changes based on real-time thermal contraction coefficients.",
+    "MUST enforce strict data locality for cryptographic signing of safety logs using NIST SP 800-185 SHAKE128 to prevent tampering with forensic accident data.",
+    "MUST interface with legacy SCADA protocols (IEC 60870-5-104) while simultaneously ingesting high-frequency vibration data from piezoelectric transducers via proprietary binary framing."
+  ],
+  "anti_patterns": [
+    "DO NOT rely on cloud-only batch processing for anomaly detection \u2014 latency in detecting a propagating crack in liquid hydrogen tanks (which can lead to BLEVEs) renders reactive cloud analysis fatal.",
+    "DO NOT use generic SQL transactional locking for sensor ingestion \u2014 the write throughput of high-frequency acoustic sensors will cause deadlocks, violating real-time safety windows.",
+    "DO NOT approximate material fatigue models with linear regression \u2014 hydrogen embrittlement is a highly non-linear, stochastic process requiring physics-informed neural networks or Monte Carlo simulations to be accurate."
+  ],
+  "key_technical_challenges": [
+    "Synchronizing multi-modal sensor data (thermal, acoustic, magnetic, strain) sampled at different frequencies (1Hz to 1MHz) with nanosecond precision to correlate physical phenomena accurately.",
+    "Running complex, physics-based finite element simulations on edge devices with limited computational power without introducing latency that compromises the safety loop.",
+    "Maintaining system integrity and remote update capability in environments with extreme electromagnetic interference (EMI) and cryogenic temperatures that affect standard electronics."
+  ],
+  "recommended_stack": {
+    "language": "Rust \u2014 Provides memory safety guarantees and zero-cost abstractions essential for SIL-3 safety-critical embedded systems.",
+    "framework": "Zephyr RTOS \u2014 A real-time operating system designed for constrained, safety-critical devices with built-in support for IEC 61508 certification.",
+    "database_engine": "TimescaleDB with hypertables partitioned by time and sensor_id \u2014 Optimized for high-velocity time-series data with efficient compression for archival forensic analysis.",
+    "cache": "Redis with persistent AOF (Append Only File) and minimal TTL \u2014 To buffer high-throughput sensor bursts before ingestion while ensuring no data loss on restart.",
+    "message_broker": "MQTT with QoS 2 and TLS 1.3 \u2014 Standard for industrial IoT telemetry where guaranteed delivery and message ordering are non-negotiable for safety events.",
+    "special_services": [
+      "Physics-Informed Neural Network (PINN) Inference Engine for micro-fracture prediction",
+      "Brillouin Scattering Signal Processing Module for strain mapping"
+    ]
+  },
+  "compliance_flags": [
+    "IEC 61508 (Functional Safety)",
+    "NFPA 2 (Hydrogen Technologies Code)",
+    "ASME BPVC Section VIII (Pressure Vessels)",
+    "ATEX Directive (Explosive Atmospheres)"
+  ]
+}

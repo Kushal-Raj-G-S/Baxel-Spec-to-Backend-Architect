@@ -1,0 +1,38 @@
+{
+  "archetype": "Automated Insect Farm Monitoring and Breeding Optimization System for Edible Insect Production",
+  "domain": "Insect Farming for Food and Feed",
+  "description": "This system monitors and controls environmental conditions, feed distribution, and breeding cycles in large-scale insect farms, ensuring optimal production of edible insects for human consumption and animal feed. Insect farm managers and breeders use the system to improve yield, reduce disease, and optimize resource allocation. The system integrates with various sensors, automated feeding systems, and climate control units, making it a complex IoT-based solution.",
+  "rules": [
+    "MUST adhere to strict biosecurity protocols to prevent disease outbreaks, as per FAO guidelines",
+    "MUST integrate with automated feeding systems that dispense specific feed formulations based on insect species and life stage",
+    "MUST support real-time monitoring of temperature, humidity, and CO2 levels, with alerts for deviations from optimal ranges",
+    "MUST implement a breeding program that optimizes genetic diversity and reduces inbreeding, using algorithms based on population genetics principles",
+    "MUST ensure data integrity and security, as per EU GDPR and FDA regulations, for sensitive information on insect health, breeding, and production"
+  ],
+  "anti_patterns": [
+    "DO NOT use a generic SCADA system without modifications, as it may not account for the unique requirements of insect farming",
+    "DO NOT neglect to incorporate machine learning algorithms for predictive analytics, which can help optimize production and reduce waste",
+    "DO NOT overlook the need for user-friendly interfaces for farm workers, who may not have extensive technical expertise"
+  ],
+  "key_technical_challenges": [
+    "Developing a scalable IoT architecture that can handle a large number of sensors and devices",
+    "Integrating with diverse automated feeding systems and climate control units from various manufacturers",
+    "Implementing a robust data analytics platform that can process large amounts of data from various sources and provide actionable insights"
+  ],
+  "recommended_stack": {
+    "language": "Python, due to its extensive libraries for data analysis, machine learning, and IoT development",
+    "framework": "Flask, for building a scalable and modular web application",
+    "database_engine": "PostgreSQL, for its ability to handle large amounts of data and support for advanced analytics",
+    "cache": "Redis, for its high performance and ease of use",
+    "message_broker": "RabbitMQ, for its reliability and flexibility",
+    "special_services": [
+      "Insect farm management software",
+      "Automated feeding system API"
+    ]
+  },
+  "compliance_flags": [
+    "FAO Biosecurity Guidelines",
+    "EU GDPR",
+    "FDA Regulations"
+  ]
+}

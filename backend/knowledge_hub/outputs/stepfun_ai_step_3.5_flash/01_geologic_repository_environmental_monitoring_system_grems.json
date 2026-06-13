@@ -1,0 +1,40 @@
+{
+  "archetype": "Geologic Repository Environmental Monitoring System (GREMS)",
+  "domain": "Nuclear Waste Disposal - Deep Geological Repository Operations",
+  "description": "A real-time, safety-critical system that continuously monitors the multi-physics environment (seismic, hydrogeological, geochemical, radiological) within and around a deep underground nuclear waste repository (e.g., >500m depth). It ingests data from thousands of permanently installed, hardened sensors, performs on-the-fly data validation and anomaly detection against baseline models, and provides authenticated, immutable audit trails for regulatory bodies like the U.S. Nuclear Regulatory Commission (NRC) to demonstrate long-term containment integrity over millennia.",
+  "rules": [
+    "MUST adhere to IEC 62305 standards for lightning and surge protection of underground sensor networks.",
+    "MUST implement EPA Method 9095B sampling protocols for periodic in-situ brine chemistry validation against automated sensor readings.",
+    "MUST generate data and metadata compliant with the International Atomic Energy Agency (IAEA) Safety Standards Series No. SSG-14 for geological repositories.",
+    "MUST use cryptographic hashing (SHA-3) at the sensor node level to create an immutable chain of custody for each data point, preventing retroactive alteration.",
+    "MUST operate on a 'conservative licensing basis' where any unexplained sensor deviation triggers a mandatory, pre-defined 'Technical Safety Issue' report to the regulator within 72 hours, regardless of perceived risk level."
+  ],
+  "anti_patterns": [
+    "DO NOT treat it as a generic IoT/SCADA system \u2014 standard PLCs and wireless networks fail due to extreme pressure, temperature, and long-term corrosion; requires purpose-built, hermetically sealed, passive (inductive) coupling for data extraction.",
+    "DO NOT use relational databases for primary storage \u2014 the 100+ year time-series data with varying sample rates and schema evolution requires a purpose-built temporal database with built-in data lifecycle policies for 'active' vs. 'archival' tiers.",
+    "DO NOT assume cloud connectivity \u2014 the repository may be in a remote, radio-silent location; the system must be capable of years of fully autonomous operation with cached, compressed data bursts via satellite when available.",
+    "DO NOT rely on manual calibration \u2014 sensor drift in deep geothermal/brine environments is nonlinear; the system must implement continuous, automated cross-sensor validation using physics-based ensemble models."
+  ],
+  "key_technical_challenges": [
+    "Designing a power and data retrieval system for sensors sealed in boreholes 500m+ deep that must function for 50+ years without maintenance, using energy harvesting from subsurface vibrations or thermal gradients.",
+    "Creating a multi-sensor data fusion engine that can detect subtle, correlated anomalies (e.g., a minor pressure increase coinciding with a specific ion concentration spike and micro-seismic event) that individually are within normal variance but together indicate a developing fracture pathway.",
+    "Implementing a cryptographic and audit system that satisfies NRC 10 CFR Part 71 requirements for 'digital data integrity' where the verification mechanism itself must be verifiable 300 years later with technology that may not exist."
+  ],
+  "recommended_stack": {
+    "language": "Rust \u2014 for memory safety and deterministic real-time performance in embedded sensor aggregators and critical fusion algorithms.",
+    "framework": "Actix + embedded-hal \u2014 for building highly concurrent, deterministic services that can run on both ruggedized x86 edge servers and ARM-based microcontrollers in sensor pods.",
+    "database_engine": "TimescaleDB (PostgreSQL extension) \u2014 native support for hypertables, continuous aggregates, and compression policies essential for petabytes of heterogeneous time-series data over 100-year horizons.",
+    "cache": "Redis with RedisTimeSeries module \u2014 for sub-second alerting on real-time streams from the most critical sensor clusters before persistence.",
+    "message_broker": "Apache Pulsar with tiered storage \u2014 for durable, geo-replicated streaming between underground data concentrators and surface facilities, with built-in support for long-term backlog retention.",
+    "special_services": [
+      "Physics-based Digital Twin Service: A running simulation of the repository's geological model that ingest sensor data to update and re-calibrate in near-real-time.",
+      "Regulatory Reporting Microservice: Automatically generates NRC Form 740/741 and IAEA reports directly from the immutable audit ledger, pre-populated with required metadata and chain-of-custody hashes."
+    ]
+  },
+  "compliance_flags": [
+    "NRC 10 CFR Part 60 - Licenses for disposal of high-level radioactive wastes in geologic repositories",
+    "EPA 40 CFR Part 191 - Environmental standards for the disposal of high-level radioactive waste",
+    "IAEA SSG-14 - Geological disposal facilities for radioactive waste: Safety Requirements",
+    "ISO 19450:2015 - Safety of machinery \u2014 Safety-related parts of control systems \u2014 Principles for design and development"
+  ]
+}

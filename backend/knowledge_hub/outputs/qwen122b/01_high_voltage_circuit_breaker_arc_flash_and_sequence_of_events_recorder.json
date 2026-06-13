@@ -1,0 +1,38 @@
+{
+  "archetype": "High-Voltage Circuit Breaker Arc Flash & Sequence-Of-Events Recorder",
+  "domain": "Utility Grid Substation Protection Automation",
+  "description": "A deterministic, hard-real-time system that parses IEC 61850 GOOSE/SV streams from digital relays to detect arc flash events within 4 milliseconds and trigger physical tripping mechanisms. It serves grid protection engineers and utility operators, requiring nanosecond-precision timestamp synchronization across distributed hardware to reconstruct fault sequences in high-voltage environments.",
+  "rules": [
+    "MUST implement IEEE 1588-2008 PTP (Precision Time Protocol) with hardware timestamping to ensure sub-microsecond clock synchronization across all substation devices.",
+    "MUST process IEC 61850-8-1 GOOSE messages with deterministic jitter under 50 microseconds to guarantee protection relay coordination.",
+    "MUST support IEC 60255 standards for functional safety (SIL 2/3) regarding failure detection and safe shutdown procedures.",
+    "MUST maintain a write-ahead log (WAL) on non-volatile memory that survives total power loss to preserve the exact sequence of events during catastrophic grid failures.",
+    "MUST enforce strict memory partitioning to prevent any user-space application from blocking the real-time protection kernel."
+  ],
+  "anti_patterns": [
+    "DO NOT use garbage-collected languages or dynamic memory allocation during the fault detection loop, as GC pauses could delay tripping signals and cause equipment destruction.",
+    "DO NOT rely on standard TCP/IP networking stacks for critical trip signals; use connectionless UDP or dedicated fiber-optic point-to-point links to avoid retransmission latency.",
+    "DO NOT aggregate logging data in real-time for analysis; raw waveform data (COMTRADE) must be buffered locally before any remote transmission to prevent network congestion from masking critical fault signatures."
+  ],
+  "key_technical_challenges": [
+    "Synchronizing distributed sampling across geographically separated bays with <1 microsecond skew to accurately calculate differential protection currents.",
+    "Implementing hardware-accelerated digital signal processing (DSP) for FFT analysis of transient waveforms within a 2ms execution window.",
+    "Ensuring cyber-physical security where encryption overhead does not exceed the strict timing budgets required for emergency grid isolation."
+  ],
+  "recommended_stack": {
+    "language": "C17 with strict static analysis constraints",
+    "framework": "RT-Kernel (e.g., RT-Linux with PREEMPT_RT patch or VxWorks)",
+    "database_engine": "Time-Series DB with WAL (e.g., TimescaleDB on a dedicated read-only replica for post-mortem)",
+    "cache": "Hardware-managed L1/L2 cache with locked memory regions",
+    "message_broker": "ZeroMQ with in-process bindings for sub-millisecond IPC",
+    "special_services": [
+      "GOOSE Message Parser with ASN.1 BER decoding",
+      "COMTRADE Waveform Reconstructor"
+    ]
+  },
+  "compliance_flags": [
+    "IEC 62351 (Grid Cybersecurity)",
+    "NERC CIP (Critical Infrastructure Protection)",
+    "IEEE C37.118 (Synchrophasor Measurement)"
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "archetype": "Real-Time Cryogenic Bladder Fatigue & Polar Moment of Inertia Shifter for Orbital Propellant Management",
+  "domain": "In-Space Propellant Logistics and Deep-Space Cryogenic Fluid Dynamics",
+  "description": "A deterministic control system that orchestrates the complex fluid sloshing and thermal stratification of superfluid liquid hydrogen in microgravity environments during long-duration coasting phases. It utilizes onboard high-speed accelerometers and capacitive cavity sensors to calculate the instantaneous polar moment of inertia, actively deploying ultrasonic vibration arrays and thermal dipsticks to prevent propellant boiling-off and ensure reliable engine re-ignition. The system must operate with hard real-time guarantees on a radiation-hardened processor, fusing physics-based CFD models with sensor telemetry to mitigate the 'slosh-induced tumbling' risk in vacuum conditions.",
+  "rules": [
+    "MUST implement a deterministic Real-Time Operating System (RTOS) kernel capable of sub-100 microsecond interrupt latency to handle propellant slosh dynamics, as standard OS schedulers introduce unacceptable jitter.",
+    "MUST adhere to ECSS-Q-ST-80C standards for software reliability in space applications, requiring formal method verification (e.g., SPARK Ada) for all flight-critical path code.",
+    "MUST interface with legacy telemetry protocols such as CCSDS (Consultative Committee for Space Data Systems) AOS/TC for command uplink and downlink, ensuring rigid packet synchronization.",
+    "MUST utilize a radiation-hardened FPGA for the initial sensor fusion layer to offload heavy computational loads (like Fast Fourier Transforms of acoustic signals) before they hit the main CPU, preventing single-event upsets.",
+    "MUST implement a 'Safe Mode' logic that defaults to a passive thermal equilibrium state if dual-redundant sensor disagreement exceeds 0.5%, preventing catastrophic fuel venting due to sensor noise."
+  ],
+  "anti_patterns": [
+    "DO NOT use standardized cloud-based machine learning models for real-time control decisions, as the inference latency and network dependency are incompatible with the 2-second light-speed delay limits and total network isolation of deep space.",
+    "DO NOT implement dynamic memory allocation (malloc/free) during flight operations, as memory fragmentation in a radiation environment can lead to silent data corruption or heap exhaustion.",
+    "DO NOT rely on 'event-driven' architectures for the primary fluid control loop; the physics of cryogenic sloshing is continuous and requires a fixed-frequency, synchronous control loop to maintain stability."
+  ],
+  "key_technical_challenges": [
+    "Modeling and compensating for non-linear, multi-modal fluid slosh behavior in zero-g where surface tension dominates gravity, requiring real-time solution of the Navier-Stokes equations on embedded hardware.",
+    "Mitigating Single-Event Effects (SEE) and latch-ups in the sensor fusion algorithms caused by cosmic ray impacts, requiring triple-modular redundancy (TMR) voting logic in software.",
+    "Calibrating capacitive level sensors in the presence of micro-vibrations from spacecraft attitude control thrusters which create false-positive fluid level readings."
+  ],
+  "recommended_stack": {
+    "language": "SPARK Ada \u2014 Provides provably correct memory safety and determinism, essential for flight-critical avionics.",
+    "framework": "VxWorks 7 \u2014 A hard real-time operating system with a proven track record in NASA and ESA missions.",
+    "database_engine": "SQLite (in-memory, WAL mode) \u2014 Lightweight, ACID-compliant, and widely used in space telemetry logging where no network is available.",
+    "cache": "null \u2014 Hardware cache is managed by the CPU; software cache is avoided to prevent cache coherency issues in multi-core radiation-hardened processors.",
+    "message_broker": "null \u2014 Point-to-point message passing via shared memory or lock-free queues within the RTOS to ensure zero-latency communication.",
+    "special_services": [
+      "CFD Reduced-Order Model (ROM) Solver for Slosh Dynamics",
+      "Radiation Hardness Assurance (RHA) Watchdog Service"
+    ]
+  },
+  "compliance_flags": [
+    "ECSS-E-ST-40C (Software Engineering)",
+    "NASA-STD-8719.13 (Software Safety)",
+    "ISO 14669 (Space Systems - Flight Software)"
+  ]
+}

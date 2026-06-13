@@ -285,30 +285,30 @@ export default function SettingsPage() {
     <AppShell>
       <div className="glass rounded-3xl p-8">
         <p className="label">Settings</p>
-        <h1 className="mt-3 text-2xl font-semibold text-ink">Profile</h1>
-        <p className="mt-2 text-sm text-dune">Update your account details and profile photo.</p>
+        <h1 className="mt-3 text-2xl font-semibold text-white">Profile</h1>
+        <p className="mt-2 text-sm text-white/60">Update your account details and profile photo.</p>
 
         <div className="mt-6 flex items-center gap-4">
           {avatarDisplayUrl ? (
             <img src={avatarDisplayUrl} alt="Profile" className="h-16 w-16 rounded-full object-cover" />
           ) : (
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-ink text-bone text-lg">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/10 text-white text-lg">
               {(fullName || email || "U").slice(0, 1).toUpperCase()}
             </div>
           )}
-          <label className="rounded-full border border-dune/40 px-4 py-2 text-sm cursor-pointer">
+          <label className="rounded-full border border-white/40 px-4 py-2 text-sm cursor-pointer text-white">
             {uploading ? "Uploading..." : "Upload photo"}
             <input type="file" accept="image/*" className="hidden" onChange={uploadAvatar} />
           </label>
         </div>
 
-        <div className="mt-10 rounded-2xl border border-dune/20 bg-white/70 p-5">
-          <p className="text-xs uppercase tracking-[0.2em] text-dune">Plan & Billing</p>
-          <h2 className="mt-2 text-xl font-semibold text-ink">{plan?.plan_name || "Loading plan..."}</h2>
-          <p className="mt-1 text-sm text-dune">
+        <div className="mt-10 rounded-2xl border border-white/20 bg-white/5 p-5">
+          <p className="text-xs uppercase tracking-[0.2em] text-[#C2D68C]">Plan & Billing</p>
+          <h2 className="mt-2 text-xl font-semibold text-white">{plan?.plan_name || "Loading plan..."}</h2>
+          <p className="mt-1 text-sm text-white/60">
             Status: {(plan?.status || "active").toUpperCase()} • Projects {plan?.projects_used_this_month ?? 0}/{plan?.monthly_project_limit ?? 1} • Runs {plan?.runs_used_this_month ?? 0}/{plan?.monthly_run_limit ?? 3}
           </p>
-          <p className="mt-2 text-xs text-dune">
+          <p className="mt-2 text-xs text-white/60">
             Billing period: {plan?.billing_period || `${plan?.period_start ? new Date(plan.period_start).toLocaleDateString() : "-"} to ${plan?.period_end ? new Date(plan.period_end).toLocaleDateString() : "-"}`}
           </p>
           {plan?.manage_url ? (
@@ -316,12 +316,12 @@ export default function SettingsPage() {
               href={plan.manage_url}
               target="_blank"
               rel="noreferrer"
-              className="mt-4 inline-block rounded-full border border-dune/40 px-4 py-2 text-sm text-ink"
+              className="mt-4 inline-block rounded-full border border-white/40 px-4 py-2 text-sm text-white"
             >
               Manage billing
             </a>
           ) : (
-            <button className="mt-4 rounded-full border border-dune/40 px-4 py-2 text-sm text-ink">
+            <button className="mt-4 rounded-full border border-white/40 px-4 py-2 text-sm text-white">
               Upgrade plan
             </button>
           )}
@@ -329,18 +329,18 @@ export default function SettingsPage() {
 
         <form className="mt-8 space-y-4" onSubmit={saveProfile}>
           <div>
-            <label className="text-xs uppercase tracking-[0.2em] text-dune">Email</label>
+            <label className="text-xs uppercase tracking-[0.2em] text-white/60">Email</label>
             <input
-              className="mt-2 w-full rounded-2xl border border-dune/20 bg-white/70 px-4 py-3 text-sm"
+              className="mt-2 w-full rounded-2xl border border-white/20 bg-white/5 px-4 py-3 text-sm text-white"
               value={email}
               disabled
             />
           </div>
 
           <div>
-            <label className="text-xs uppercase tracking-[0.2em] text-dune">Username</label>
+            <label className="text-xs uppercase tracking-[0.2em] text-white/60">Username</label>
             <input
-              className="mt-2 w-full rounded-2xl border border-dune/20 bg-white/70 px-4 py-3 text-sm"
+              className="mt-2 w-full rounded-2xl border border-white/20 bg-white/5 px-4 py-3 text-sm text-white"
               value={username}
               onChange={(event) => setUsername(event.target.value.replace(/\s+/g, "").toLowerCase())}
               placeholder="your-username"
@@ -348,23 +348,23 @@ export default function SettingsPage() {
           </div>
 
           <div>
-            <label className="text-xs uppercase tracking-[0.2em] text-dune">Full name</label>
+            <label className="text-xs uppercase tracking-[0.2em] text-white/60">Full name</label>
             <input
-              className="mt-2 w-full rounded-2xl border border-dune/20 bg-white/70 px-4 py-3 text-sm"
+              className="mt-2 w-full rounded-2xl border border-white/20 bg-white/5 px-4 py-3 text-sm text-white"
               value={fullName}
               onChange={(event) => setFullName(event.target.value)}
               placeholder="Your full name"
             />
           </div>
 
-          <button className="rounded-full bg-ink px-5 py-2 text-sm text-bone" disabled={saving}>
+          <button className="rounded-full bg-[#C2D68C] px-5 py-2 text-sm text-[#1F261D]" disabled={saving}>
             {saving ? "Saving..." : "Save changes"}
           </button>
-          <p className="text-xs text-dune">{statusMessage}</p>
+          <p className="text-xs text-white/60">{statusMessage}</p>
         </form>
 
-        <form className="mt-10 rounded-2xl border border-dune/20 bg-white/70 p-5" onSubmit={savePreferences}>
-          <p className="text-xs uppercase tracking-[0.2em] text-dune">Preferences</p>
+        <form className="mt-10 rounded-2xl border border-white/20 bg-white/5 p-5" onSubmit={savePreferences}>
+          <p className="text-xs uppercase tracking-[0.2em] text-[#C2D68C]">Preferences</p>
 
           {showPreferenceToast ? (
             <p className="mt-3 rounded-xl border border-emerald-300/70 bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
@@ -374,9 +374,9 @@ export default function SettingsPage() {
 
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             <div>
-              <label className="text-xs uppercase tracking-[0.2em] text-dune">Role</label>
+              <label className="text-xs uppercase tracking-[0.2em] text-white/60">Role</label>
               <select
-                className="mt-2 w-full rounded-2xl border border-dune/20 bg-white px-4 py-3 text-sm"
+                className="mt-2 w-full rounded-2xl border border-white/20 bg-white/5 px-4 py-3 text-sm text-white"
                 value={preferenceRole}
                 onChange={(event) => setPreferenceRole(event.target.value as PreferenceRole)}
               >
@@ -388,9 +388,9 @@ export default function SettingsPage() {
             </div>
 
             <div>
-              <label className="text-xs uppercase tracking-[0.2em] text-dune">Experience level</label>
+              <label className="text-xs uppercase tracking-[0.2em] text-white/60">Experience level</label>
               <select
-                className="mt-2 w-full rounded-2xl border border-dune/20 bg-white px-4 py-3 text-sm"
+                className="mt-2 w-full rounded-2xl border border-white/20 bg-white/5 px-4 py-3 text-sm text-white"
                 value={preferenceExperience}
                 onChange={(event) => setPreferenceExperience(event.target.value as PreferenceExperience)}
               >
@@ -401,9 +401,9 @@ export default function SettingsPage() {
             </div>
 
             <div>
-              <label className="text-xs uppercase tracking-[0.2em] text-dune">What are you here to do?</label>
+              <label className="text-xs uppercase tracking-[0.2em] text-white/60">What are you here to do?</label>
               <select
-                className="mt-2 w-full rounded-2xl border border-dune/20 bg-white px-4 py-3 text-sm"
+                className="mt-2 w-full rounded-2xl border border-white/20 bg-white/5 px-4 py-3 text-sm text-white"
                 value={preferenceIntent}
                 onChange={(event) => setPreferenceIntent(event.target.value as PreferenceIntent)}
               >
@@ -415,9 +415,9 @@ export default function SettingsPage() {
             </div>
 
             <div>
-              <label className="text-xs uppercase tracking-[0.2em] text-dune">Where did you hear about us?</label>
+              <label className="text-xs uppercase tracking-[0.2em] text-white/60">Where did you hear about us?</label>
               <select
-                className="mt-2 w-full rounded-2xl border border-dune/20 bg-white px-4 py-3 text-sm"
+                className="mt-2 w-full rounded-2xl border border-white/20 bg-white/5 px-4 py-3 text-sm text-white"
                 value={preferenceHeardAbout}
                 onChange={(event) => setPreferenceHeardAbout(event.target.value as PreferenceHeardAbout)}
               >
@@ -431,9 +431,9 @@ export default function SettingsPage() {
 
           {preferenceHeardAbout === "other" ? (
             <div className="mt-4">
-              <label className="text-xs uppercase tracking-[0.2em] text-dune">Tell us where</label>
+              <label className="text-xs uppercase tracking-[0.2em] text-white/60">Tell us where</label>
               <input
-                className="mt-2 w-full rounded-2xl border border-dune/20 bg-white px-4 py-3 text-sm"
+                className="mt-2 w-full rounded-2xl border border-white/20 bg-white/5 px-4 py-3 text-sm text-white"
                 value={preferenceHeardAboutOther}
                 onChange={(event) => setPreferenceHeardAboutOther(event.target.value)}
                 placeholder="Type source"
@@ -441,10 +441,10 @@ export default function SettingsPage() {
             </div>
           ) : null}
 
-          <button className="mt-5 rounded-full bg-ink px-5 py-2 text-sm text-bone" disabled={savingPreferences}>
+          <button className="mt-5 rounded-full bg-[#C2D68C] px-5 py-2 text-sm text-[#1F261D]" disabled={savingPreferences}>
             {savingPreferences ? "Saving..." : "Save preferences"}
           </button>
-          <p className="mt-3 text-xs text-dune">{preferenceStatus}</p>
+          <p className="mt-3 text-xs text-white/60">{preferenceStatus}</p>
         </form>
       </div>
     </AppShell>

@@ -1,0 +1,37 @@
+{
+  "archetype": "Automated Fireworks Display Synchronization and Safety Monitoring System for Large-Scale Public Events",
+  "domain": "Pyrotechnics and Public Event Safety",
+  "description": "This system coordinates and monitors large-scale fireworks displays, ensuring precise timing and safety protocols are followed. Event organizers and pyrotechnicians use it to plan, execute, and monitor displays in real-time. The system must integrate with various hardware components and adhere to strict safety regulations.",
+  "rules": [
+    "MUST integrate with industry-standard firing systems (e.g., pyromate, fireone)",
+    "MUST comply with NFPA 1123 and 1124 standards for fireworks display safety",
+    "MUST account for wind direction and speed to adjust firing timing and altitude",
+    "MUST provide real-time monitoring of display progress and alert operators to any issues",
+    "MUST generate detailed reports for post-event analysis and regulatory compliance"
+  ],
+  "anti_patterns": [
+    "DO NOT assume a fixed firing schedule without considering environmental factors",
+    "DO NOT rely solely on manual input for display setup and execution",
+    "DO NOT neglect to implement redundancy in critical system components"
+  ],
+  "key_technical_challenges": [
+    "Developing a robust and fault-tolerant communication protocol for firing system integration",
+    "Creating a sophisticated wind and weather forecasting system for real-time adjustments",
+    "Designing a user-friendly and intuitive interface for operators to monitor and control the display"
+  ],
+  "recommended_stack": {
+    "language": "C++ - for its performance and reliability in real-time systems",
+    "framework": "Qt - for its robustness and ease of use in building complex user interfaces",
+    "database_engine": "PostgreSQL - for its ability to handle large amounts of data and provide detailed reporting",
+    "cache": "Redis - for its high-performance caching capabilities",
+    "message_broker": "RabbitMQ - for its reliability and flexibility in message queuing",
+    "special_services": [
+      "Weather API integration",
+      "Firing system API integration"
+    ]
+  },
+  "compliance_flags": [
+    "NFPA 1123",
+    "NFPA 1124"
+  ]
+}

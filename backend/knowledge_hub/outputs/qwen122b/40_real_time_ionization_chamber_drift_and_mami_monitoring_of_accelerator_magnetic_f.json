@@ -1,0 +1,38 @@
+{
+  "archetype": "Real-Time Ionization Chamber Drift & MAMI (Monitoring of Accelerator Magnetic fields) Correction Engine for Proton Therapy Beam Delivery",
+  "domain": "Particle Beam Radiosurgery & Medical Physics",
+  "description": "A deterministic control system that synchronizes cyclotron beam extraction with gantry rotation and patient positioning to correct for magnetic field hysteresis and ionization chamber drift in real-time during proton therapy. It is used by medical physicists and radiation oncologists to ensure sub-millimeter beam placement accuracy, requiring the fusion of high-frequency particle physics telemetry with low-latency mechanical actuation feedback loops under strict radiation safety interlocks.",
+  "rules": [
+    "MUST implement IEC 60601-2-64 compliance for medical electrical equipment safety limits and fail-safe logic.",
+    "MUST process data via the DICOM RT Plan and DICOM RT Dose standards for beam trajectory mapping.",
+    "MUST sustain sub-100 microsecond control loops for beam modulation to prevent dose overshoot in healthy tissue.",
+    "MUST integrate with proprietary accelerator hardware protocols (e.g., VMEbus or CANopen for cyclotron control) without jitter.",
+    "MUST enforce a dual-channel redundancy architecture where independent logic modules must agree before beam activation is permitted."
+  ],
+  "anti_patterns": [
+    "DO NOT use asynchronous event-driven architectures for the core safety interlock logic, as race conditions could result in lethal radiation dosage errors.",
+    "DO NOT rely on cloud-based latency for beam control decisions; the system must operate entirely on a localized, air-gapped real-time kernel.",
+    "DO NOT use probabilistic data models for beam position; only deterministic, hard-bound calculations are acceptable for clinical treatment delivery."
+  ],
+  "key_technical_challenges": [
+    "Compensating for the 'magnetic memory' effect (hysteresis) in superconducting gantry magnets during rapid rotation changes.",
+    "Synchronizing the millisecond-scale cyclotron extraction pulses with the mechanical rotation of a multi-ton gantry to within 0.1mm spatial accuracy.",
+    "Filtering high-voltage noise from the ionization chamber feedback loop without removing genuine beam current variance signals."
+  ],
+  "recommended_stack": {
+    "language": "Rust + one-line reason: Guarantees memory safety and zero-cost abstractions for hard real-time constraints.",
+    "framework": "PREEMPT-RT Linux Kernel + one-line reason: Provides deterministic latency for hardware interrupt handling.",
+    "database_engine": "TimescaleDB + one-line reason: Optimized for high-write time-series telemetry from beam sensors.",
+    "cache": "null",
+    "message_broker": "DDS (Data Distribution Service) + one-line reason: Industry standard for real-time, publish-subscribe communication in safety-critical systems.",
+    "special_services": [
+      "Hysteresis Compensation Modeler",
+      "Radiation Safety Interlock Orchestrator"
+    ]
+  },
+  "compliance_flags": [
+    "IEC 60601-2-64",
+    "FDA 21 CFR Part 820",
+    "HIPAA (for patient data correlation)"
+  ]
+}

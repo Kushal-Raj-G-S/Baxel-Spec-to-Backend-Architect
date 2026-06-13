@@ -1,0 +1,37 @@
+{
+  "archetype": "Automated High-Risk Patient Stratification and Intervention Planning System for Hospital-Acquired Sepsis Prevention",
+  "domain": "Hospital Infection Control and Critical Care",
+  "description": "This system identifies high-risk patients for hospital-acquired sepsis and generates personalized intervention plans to prevent sepsis onset. It is used by critical care clinicians and infection control specialists. The system must integrate with electronic health records, analyze real-time vital sign data, and comply with CDC guidelines for sepsis prevention.",
+  "rules": [
+    "MUST integrate with EHR systems using HL7 FHIR standards",
+    "MUST analyze real-time vital sign data from bedside monitors",
+    "MUST apply CDC guidelines for sepsis prevention and early detection",
+    "MUST generate personalized intervention plans based on patient risk factors and medical history",
+    "MUST provide real-time alerts to clinicians for high-risk patients"
+  ],
+  "anti_patterns": [
+    "DO NOT rely solely on retrospective analysis of patient data \u2014 sepsis prevention requires real-time intervention",
+    "DO NOT use generic machine learning models without domain-specific feature engineering",
+    "DO NOT neglect to account for hospital-specific infection control protocols and policies"
+  ],
+  "key_technical_challenges": [
+    "Real-time data integration and analysis from disparate sources (EHR, bedside monitors, lab results)",
+    "Development of accurate and interpretable machine learning models for patient risk stratification",
+    "Designing user-friendly and actionable intervention plans for clinicians"
+  ],
+  "recommended_stack": {
+    "language": "Python \u2014 for its extensive libraries and community support in healthcare and machine learning",
+    "framework": "Flask \u2014 for building scalable and secure web applications",
+    "database_engine": "PostgreSQL \u2014 for its robust support of relational data and CDC-compliant data storage",
+    "cache": "Redis \u2014 for caching patient data and reducing database query latency",
+    "message_broker": "Apache Kafka \u2014 for handling real-time data streams and alerts",
+    "special_services": [
+      "EHR integration service (e.g. Redox)",
+      "Clinical decision support service (e.g. UpToDate)"
+    ]
+  },
+  "compliance_flags": [
+    "HIPAA",
+    "CDC guidelines for sepsis prevention"
+  ]
+}

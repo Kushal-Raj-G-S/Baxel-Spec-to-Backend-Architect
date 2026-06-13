@@ -1,0 +1,40 @@
+{
+  "archetype": "Geologic Repository Nuclear Waste Automated Monitoring & Integrity System (GRONA-MIS)",
+  "domain": "Deep geological nuclear waste disposal facility operations",
+  "description": "A real-time, multi-sensor fusion system that monitors the physical, chemical, and radiological integrity of underground nuclear waste canisters within a sealed, multi-barrier repository. It is used by nuclear facility engineers and national regulator reviewers to detect deviations from the 10,000-year safety case, such as groundwater chemistry shifts, micro-seismic events, or container corrosion, triggering automated procedural responses and forensic data preservation.",
+  "rules": [
+    "MUST comply with IAEA Safety Standards Series (SSS) and national nuclear regulator criteria (e.g., US 10 CFR 60, EU Directive 2011/70/Euratom) for data integrity, audit trails, and alarm logic.",
+    "MUST integrate heterogeneous sensor protocols: analog current loops (4-20mA) for corrosion probes, digital RS-485/MODBUS for seismic and pressure sensors, and custom radiation spectrometry (e.g., CANBERRA DIGITAL DMCA) over Ethernet/IP.",
+    "MUST enforce cryptographic data signing and immutable write-once storage for all sensor readings to satisfy legal admissibility for future generations and regulator evidence requirements.",
+    "MUST implement deterministic, hard real-time processing for seismic and gas release alarms with sub-second latency, running on an isolated safety-critical network segment air-gapped from corporate IT.",
+    "MUST model and compare sensor data against a validated, physics-based 'Base Line Evolution Model' that simulates repository conditions over millennia, using outputs from codes like TOUGH2 or PFLOTRAN."
+  ],
+  "anti_patterns": [
+    "DO NOT assume cloud-native or always-on connectivity. The system must operate in a deep-underground, electromagnetically shielded environment with scheduled, secure data bursts to the surface; continuous high-bandwidth links are not permitted.",
+    "DO NOT treat sensors as plug-and-play. Every sensor deployment requires a rigorous calibration and qualification protocol documented in a 'Sensor Data Package' that is legally part of the facility's safety case.",
+    "DO NOT use generic time-series databases without chain-of-custody extensions. Data must be stored with 'provenance bundles' that link raw bytes to calibration certificates, technician IDs, and chain-of-custody timestamps in a tamper-evident ledger."
+  ],
+  "key_technical_challenges": [
+    "Fusing low-SNR, asynchronous sensor data from thousands of points across heterogeneous, radiation-hardened fieldbuses into a single coherent repository state model while maintaining deterministic alarm timing.",
+    "Designing a 50+ year data architecture that remains semantically interpretable by future software/hardware generations, including format migration strategies and self-describing data packets with embedded metadata dictionaries.",
+    "Implementing a safety-critical, formally verified alarm logic engine that can combine inputs from physics models, live sensor feeds, and manual inspector logs without single points of failure, meeting SIL 3 (Safety Integrity Level) requirements."
+  ],
+  "recommended_stack": {
+    "language": "Rust (for sensor ingestion services & safety-critical logic) - Provides memory safety, zero-cost abstractions, and real-time control without a GC, critical for long-running underground processes.",
+    "framework": "Actix-web (for secure surface data ingestion API) - High-performance, actor-based model handles concurrent sensor data bursts efficiently with strong type safety.",
+    "database_engine": "TimescaleDB (hypertables for high-frequency sensor data) + PostgreSQL with pgcrypto extensions. Chosen for its native time-series optimization, relational integrity for metadata, and robust cryptographic functions for data signing.",
+    "cache": "Redis (strictly for in-memory buffering of latest sensor states for the operator dashboard, configured as volatile ephemeral store with AOF disabled to prevent metadata persistence that could violate chain-of-custody).",
+    "message_broker": "Eclipse Mosquitto (MQTT broker) on a dedicated VLAN for local sensor network pub/sub. Used for lightweight, asynchronous telemetry distribution between underground nodes with QoS 2 for guaranteed delivery of critical alarms.",
+    "special_services": [
+      "Custom 'Provenance Ledger' microservice: A private, permissioned blockchain-like append-only log (using PostgreSQL + cryptographic hash chains) to immutably record every data transformation, calibration event, or manual override.",
+      "Physics Model Adapter Service: A FaaS-like container that runs licensed simulation codes (TOUGH2) on a scheduled basis, ingesting their output to update the baseline model and generate deviation thresholds."
+    ]
+  },
+  "compliance_flags": [
+    "IAEA Safety Standards - SSG-1 (Fundamentals of Safety)",
+    "IAEA SSG-14 (Safety of Radioactive Waste Management)",
+    "National Nuclear Regulator License Condition LC 20 (Records)",
+    "ISO 19450:2015 (Nuclear energy - Quality assurance for safety)",
+    "10 CFR 50, Appendix B (Quality Assurance Criteria for Nuclear Power Plants) - applied by analogy to waste facilities"
+  ]
+}

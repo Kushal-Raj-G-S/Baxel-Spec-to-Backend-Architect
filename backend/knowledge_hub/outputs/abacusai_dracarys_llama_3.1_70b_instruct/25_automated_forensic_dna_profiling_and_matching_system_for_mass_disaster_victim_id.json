@@ -1,0 +1,38 @@
+{
+  "archetype": "Automated Forensic DNA Profiling and Matching System for Mass Disaster Victim Identification",
+  "domain": "Forensic Genetics and Mass Disaster Response",
+  "description": "This system automates the process of DNA profiling and matching for mass disaster victim identification, used by forensic experts and disaster response teams. It integrates with various DNA analysis software and hardware, and must comply with strict quality control and data security standards. The system's complexity lies in handling large amounts of DNA data, ensuring accurate matching, and meeting regulatory requirements.",
+  "rules": [
+    "MUST integrate with DNA analysis software such as STRmix and TrueAllele",
+    "MUST comply with ISO 17025 and ISO 27001 standards for forensic laboratories",
+    "MUST support multiple DNA profiling kits and instruments, including ABI and Illumina",
+    "MUST implement data encryption and access controls to ensure confidentiality and integrity",
+    "MUST meet the requirements of the National DNA Index System (NDIS) for DNA profile upload and search"
+  ],
+  "anti_patterns": [
+    "DO NOT use a generic data warehouse for storing DNA profiles, as it may compromise data security and compliance",
+    "DO NOT rely solely on manual data entry for DNA profile upload, as it may lead to errors and inefficiencies",
+    "DO NOT neglect to implement audit trails and access logs, as they are critical for regulatory compliance and data security"
+  ],
+  "key_technical_challenges": [
+    "Developing an efficient algorithm for DNA profile matching and search",
+    "Integrating with various DNA analysis software and hardware",
+    "Ensuring data security and compliance with regulatory standards"
+  ],
+  "recommended_stack": {
+    "language": "Python + due to its extensive libraries for bioinformatics and data analysis",
+    "framework": "Flask + for building a scalable and secure web application",
+    "database_engine": "PostgreSQL + for its support of advanced data types and indexing",
+    "cache": "Redis + for improving performance and reducing database queries",
+    "message_broker": "RabbitMQ + for handling asynchronous tasks and data processing",
+    "special_services": [
+      "DNA sequencing service",
+      "Forensic laboratory information management system"
+    ]
+  },
+  "compliance_flags": [
+    "ISO 17025",
+    "ISO 27001",
+    "NDIS"
+  ]
+}

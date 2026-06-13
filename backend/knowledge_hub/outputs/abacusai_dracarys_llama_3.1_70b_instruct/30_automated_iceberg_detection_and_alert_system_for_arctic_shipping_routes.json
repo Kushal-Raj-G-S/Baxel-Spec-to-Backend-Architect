@@ -1,0 +1,37 @@
+{
+  "archetype": "Automated Iceberg Detection and Alert System for Arctic Shipping Routes",
+  "domain": "Arctic Maritime Shipping and Navigation",
+  "description": "This system uses satellite and sensor data to detect and track icebergs in Arctic shipping routes, alerting vessels and maritime authorities to potential hazards. It is used by shipping companies, maritime authorities, and research institutions. The system must accurately detect and track icebergs in real-time, adhering to international maritime regulations and standards.",
+  "rules": [
+    "MUST adhere to International Maritime Organization (IMO) regulations for Arctic shipping",
+    "MUST integrate with existing Automatic Identification System (AIS) infrastructure",
+    "MUST use satellite data from the European Space Agency's (ESA) Copernicus program",
+    "MUST incorporate data from ship-based radar and sensor systems",
+    "MUST provide alerts and warnings in accordance with the International Convention for the Safety of Life at Sea (SOLAS)"
+  ],
+  "anti_patterns": [
+    "DO NOT rely solely on satellite data, as it may not provide sufficient resolution in Arctic regions",
+    "DO NOT ignore ship-based sensor data, as it provides critical real-time information",
+    "DO NOT fail to account for sea ice drift and movement in iceberg tracking"
+  ],
+  "key_technical_challenges": [
+    "Accurate detection and tracking of icebergs in low-resolution satellite images",
+    "Integration of disparate data sources (satellite, radar, sensor) in real-time",
+    "Ensuring system reliability and uptime in harsh Arctic environments"
+  ],
+  "recommended_stack": {
+    "language": "Python + its extensive libraries for satellite image processing and geospatial analysis",
+    "framework": "Django + its built-in support for real-time data processing and alerts",
+    "database_engine": "PostGIS + its spatial database capabilities for storing and querying iceberg locations",
+    "cache": "Redis + its ability to handle high-volume, low-latency data",
+    "message_broker": "RabbitMQ + its support for real-time messaging and alerts",
+    "special_services": [
+      "ESA's Copernicus API",
+      "AIS data feed"
+    ]
+  },
+  "compliance_flags": [
+    "IMO Polar Code",
+    "SOLAS"
+  ]
+}

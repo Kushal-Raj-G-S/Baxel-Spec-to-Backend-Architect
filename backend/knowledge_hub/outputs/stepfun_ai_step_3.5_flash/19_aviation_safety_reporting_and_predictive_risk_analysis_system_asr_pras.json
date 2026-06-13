@@ -1,0 +1,40 @@
+{
+  "archetype": "Aviation Safety Reporting and Predictive Risk Analysis System (ASR-PRAS)",
+  "domain": "Commercial Aviation Safety Management",
+  "description": "Aggregates and correlates real-time flight data (FDM/FOQA), incident reports (via ICAO ADREP), air traffic control alerts, and maintenance logs to generate dynamic safety risk profiles for airlines and regulators. Its complexity stems from integrating heterogeneous, time-critical data streams under stringent global compliance frameworks while providing predictive analytics for proactive hazard mitigation.",
+  "rules": [
+    "MUST ingest and normalize data per ICAO Annex 13, FAA AC 120-92B, and EUROCONTROL specifications using standards like AIXM 5.1 for aeronautical data and ADREP for reporting.",
+    "MUST enforce role-based data access aligned with ICAO State Safety Program (SSP) principles and airline proprietary data confidentiality agreements.",
+    "MUST provide immutable audit trails for all risk assessments and model outputs to satisfy EASA Part 121 and FAA Part 121 regulatory oversight requirements.",
+    "MUST support offline data synchronization for remote/airborne scenarios with eventual consistency guarantees for global fleet data.",
+    "MUST implement geospatial fencing and temporal validation for all flight phase data to prevent erroneous risk modeling from corrupted GPS or timing inputs."
+  ],
+  "anti_patterns": [
+    "DO NOT use batch-only processing; safety risks require sub-minute latency from data ingestion to alert generation for in-flight threats.",
+    "DO NOT create a centralized monolithic data lake without distributed edge processing; bandwidth constraints and data sovereignty laws mandate regional preprocessing hubs.",
+    "DO NOT rely on manual data entry for incident reports; human factors introduce critical delays and inaccuracies invalidating predictive model training."
+  ],
+  "key_technical_challenges": [
+    "Correlating sparse, high-dimensional time-series flight data (1000+ parameters/sec) with unstructured narrative incident reports using domain-specific NLP.",
+    "Building globally accurate predictive models with heavily imbalanced data (millions of normal flights vs. dozens of incidents) while avoiding false positives that burden operational teams.",
+    "Ensuring deterministic replay and forensic reproducibility of risk scores across distributed nodes with network partitions during global fleet analysis."
+  ],
+  "recommended_stack": {
+    "language": "Rust (memory safety for real-time processing of avionics data streams with zero-cost abstractions)",
+    "framework": "Custom async runtime built on Tokio (for high-throughput, low-latency stream processing with fine-grained resource control)",
+    "database_engine": "TimescaleDB (optimized for time-series flight data with native compression and continuous aggregates for trend analysis)",
+    "cache": "Redis Cluster with RedisTimeSeries module (for sub-second risk score caching and alert fan-out to AOC/FOC consoles)",
+    "message_broker": "Apache Pulsar (supports multi-region replication, tiered storage, and exact-once semantics for critical alert delivery)",
+    "special_services": [
+      "Terrain Awareness and Warning System (TAWS) event deconfliction service",
+      "Crew Fatigue Risk Calculator integrating flight/duty time per FAR 117/EASA FTG"
+    ]
+  },
+  "compliance_flags": [
+    "ICAO Annex 13 (Aircraft Accident Investigation)",
+    "FAA AC 120-92B (Safety Management Systems)",
+    "EASA Part 121 (Air Operations)",
+    "EU 965/2012 (Occurrence Reporting)",
+    "IATA IS-BAO (Audit Standards)"
+  ]
+}

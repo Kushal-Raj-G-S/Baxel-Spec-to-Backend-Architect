@@ -1,0 +1,38 @@
+{
+  "archetype": "Automated Oil Spill Fate Modeling and Response Planning System for Arctic Offshore Drilling Operations",
+  "domain": "Arctic Offshore Oil and Gas Exploration",
+  "description": "This system predicts the trajectory and fate of oil spills in Arctic waters, providing critical decision support for offshore drilling operators and response teams. It integrates real-time oceanographic and meteorological data, leveraging machine learning models to forecast oil spill behavior and optimize response strategies. The system must account for the unique challenges of Arctic operations, including sea ice coverage and harsh weather conditions.",
+  "rules": [
+    "MUST adhere to the Oil Spill Response Plan (OSRP) guidelines set by the Bureau of Safety and Environmental Enforcement (BSEE)",
+    "MUST incorporate the International Maritime Organization's (IMO) Polar Code requirements for Arctic operations",
+    "MUST utilize real-time data from oceanographic and meteorological sensors, including sea ice coverage and currents",
+    "MUST account for the properties of oil in cold water, including viscosity and density changes",
+    "MUST provide decision support for response teams, including optimal response strategies and resource allocation"
+  ],
+  "anti_patterns": [
+    "DO NOT rely solely on historical data, as Arctic ocean conditions can be highly variable and unpredictable",
+    "DO NOT neglect the impact of sea ice on oil spill behavior and response strategies",
+    "DO NOT overlook the need for real-time data integration and model updates to ensure accurate predictions"
+  ],
+  "key_technical_challenges": [
+    "Developing machine learning models that can accurately predict oil spill behavior in Arctic waters",
+    "Integrating real-time data from diverse sources, including oceanographic and meteorological sensors",
+    "Optimizing response strategies in a dynamic and uncertain environment"
+  ],
+  "recommended_stack": {
+    "language": "Python - ideal for scientific computing and machine learning tasks",
+    "framework": "Flask - suitable for building data-driven web applications",
+    "database_engine": "PostgreSQL - supports spatial data types and efficient querying",
+    "cache": "Redis - for caching frequently accessed data and reducing database queries",
+    "message_broker": "RabbitMQ - for integrating with external data sources and services",
+    "special_services": [
+      "National Oceanic and Atmospheric Administration (NOAA) API",
+      "BSEE's OSRP API"
+    ]
+  },
+  "compliance_flags": [
+    "OSRP guidelines",
+    "Polar Code",
+    "BSEE regulations"
+  ]
+}

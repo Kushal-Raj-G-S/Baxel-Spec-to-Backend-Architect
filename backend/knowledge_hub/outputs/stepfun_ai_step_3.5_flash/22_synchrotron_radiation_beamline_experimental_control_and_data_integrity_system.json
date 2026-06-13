@@ -1,0 +1,38 @@
+{
+  "archetype": "Synchrotron Radiation Beamline Experimental Control and Data Integrity System",
+  "domain": "Photon Science Facility Operations",
+  "description": "A deterministic real-time control system orchestrating high-precision motorized optical components, vacuum systems, and detectors during sub-second experiments, while ensuring immutable metadata capture and raw data integrity for peer-reviewed publication. Technical hardness stems from nanosecond-level timing synchronization across heterogeneous hardware, radiation-hardened component interfacing, and the need to guarantee no data loss or corruption during multi-hour user beamtime runs.",
+  "rules": [
+    "MUST enforce the EPICS or TANGO control system protocol for device communication and state management.",
+    "MUST adhere to the NeXus scientific data format standard for hierarchical, self-describing experimental data.",
+    "MUST implement a 'sample environment log' with atomic timestamping from a GPS-disciplined oscillator for absolute temporal correlation across all sensors.",
+    "MUST provide a 'data freeze' mechanism that cryptographically hashes the complete dataset and metadata immediately post-run, preventing any subsequent alteration.",
+    "MUST integrate with the facility's central accounting system to enforce pre-paid beamtime quotas and automatic experiment termination on quota expiry."
+  ],
+  "anti_patterns": [
+    "DO NOT use standard HTTP/REST for primary device control\u2014its non-deterministic latency violates hard real-time requirements for beam stability.",
+    "DO NOT store raw photon event data in a relational database\u2014the write throughput and schema-less nature of binary detector arrays require specialized binary formats or object stores.",
+    "DO NOT separate control and data acquisition networks\u2014copper-based control traffic can induce EMI in sensitive analog detector signals, requiring physically isolated, fiber-optic segmented networks."
+  ],
+  "key_technical_challenges": [
+    "Achieving sub-100 microsecond closed-loop feedback between a photon counting detector and a piezo-driven mirror to suppress beam jitter during experiments.",
+    "Developing a 'misaligned beam' auto-recovery procedure that can safely retract expensive monochromator crystals without human intervention after a vacuum breach.",
+    "Implementing a 'data gap' detection and forensic reconstruction system that can identify and flag missing frames caused by network switch buffer overflows during sustained 10 Gb/s data bursts."
+  ],
+  "recommended_stack": {
+    "language": "Rust or C++ with real-time extensions (e.g., RTAI) for deterministic, memory-safe control loops interfacing with VME/VXI bus hardware.",
+    "framework": "EPICS Base (C++) or TANGO (C++/Python) as the established distributed control framework, not a generic web framework.",
+    "database_engine": "TimescaleDB (PostgreSQL) for time-series metadata and experiment logs; object store (Ceph/S3) for immutable raw binary data blobs.",
+    "cache": "Redis for in-memory state replication across IOC (Input/Output Controller) nodes within the control system network.",
+    "message_broker": "ZeroMQ with PUSH/PULL pattern for low-latency, brokerless data streaming between detector front-ends and aggregation servers.",
+    "special_services": [
+      "EPICS Channel Access Gateway for secure, firewall-traversing client connections",
+      "Custom 'NeXus Validator' service that enforces schema compliance pre-ingestion"
+    ]
+  },
+  "compliance_flags": [
+    "ISO 27001 (Data Security for Sensitive Research)",
+    "IEC 61508 (Functional Safety for high-power magnet/power supply control)",
+    "FAIR Data Principles (Findable, Accessible, Interoperable, Reusable) for published datasets"
+  ]
+}

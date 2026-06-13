@@ -1,0 +1,39 @@
+{
+  "archetype": "High-Precision Continuous Glucose Monitor (CGM) Interstitial Fluid Lag Compensation & Hypoglycemia Risk Forecasting Engine",
+  "domain": "Class II/III Medical Device Software & Diabetes Management",
+  "description": "A real-time embedded inference system that processes raw electrochemical sensor data to predict blood glucose levels 30-60 minutes ahead, compensating for physiological lag and sensor noise. It is used by Type 1 Diabetics and clinicians to automatically adjust insulin pump delivery rates or trigger urgent alerts, requiring sub-second latency and absolute algorithmic determinism to prevent life-threatening under-dosing or overdosing.",
+  "rules": [
+    "MUST implement algorithms compliant with IEC 62304 for Medical Device Software Lifecycle processes, ensuring traceability from requirements to code.",
+    "MUST process data streams adhering to IEEE 11073 Patient Data Application Profile (PDAP) for real-time glucose transmission between devices.",
+    "MUST guarantee a maximum latency of <200ms from sensor read to clinical decision output to meet safety-critical timing constraints.",
+    "MUST utilize deterministic floating-point arithmetic or fixed-point libraries to ensure bitwise reproducibility across different hardware revisions.",
+    "MUST enforce strict cryptographic signing of all firmware updates and data logs to satisfy FDA 21 CFR Part 11 electronic records requirements."
+  ],
+  "anti_patterns": [
+    "DO NOT use non-deterministic garbage collection pauses in the main control loop, as this can cause missed insulin delivery windows leading to DKA.",
+    "DO NOT rely on cloud-based latency for real-time hypoglycemia alerts; the critical safety logic must reside on the edge device due to network unreliability.",
+    "DO NOT use probabilistic AI models without a fallback deterministic rule set, as unexplained 'black box' decisions are unacceptable for FDA clearance."
+  ],
+  "key_technical_challenges": [
+    "Calibrating the mathematical model to account for the 10-15 minute physiological lag between blood glucose and interstitial fluid glucose concentrations under varying stress levels.",
+    "Filtering high-frequency electrochemical noise from the sensor without introducing phase lag that would invalidate the predictive window.",
+    "Managing thermal drift and battery voltage fluctuations in the sensor signal processing chain to maintain accuracy over a 14-day sensor lifespan."
+  ],
+  "recommended_stack": {
+    "language": "Rust \u2014 Provides memory safety guarantees without a garbage collector, essential for preventing runtime panics in safety-critical loops.",
+    "framework": "Zephyr RTOS \u2014 A lightweight, real-time operating system with built-in support for medical device certification and low-power peripherals.",
+    "database_engine": "SQLite (WAL mode) or Flatbuffers \u2014 Ensures atomic, crash-resistant logging of sensor data and treatment events for post-mortem forensic analysis.",
+    "cache": null,
+    "message_broker": null,
+    "special_services": [
+      "Real-Time Embedded Kalman Filter Engine",
+      "Physiological Lag Compensation Module"
+    ]
+  },
+  "compliance_flags": [
+    "FDA 510(k)",
+    "IEC 62304",
+    "GDPR/HIPAA Data Privacy",
+    "ISO 13485"
+  ]
+}

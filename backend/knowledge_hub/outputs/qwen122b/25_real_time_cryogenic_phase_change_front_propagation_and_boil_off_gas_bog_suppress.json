@@ -1,0 +1,39 @@
+{
+  "archetype": "Real-Time Cryogenic Phase-Change Front Propagation & Boil-Off Gas (BOG) Suppression Controller for LNG Carrier Sloshing Dampening",
+  "domain": "Offshore LNG Carrier Navigation & Cryogenic Cargo Management",
+  "description": "This system orchestrates the redistribution of Liquid Natural Gas (LNG) within partially filled membrane tanks during rough seas to prevent destructive sloshing impacts while simultaneously managing the boil-off gas pressure through predictive thermal modeling. Used by Chief Officers and automated ballast control systems, it is technically demanding because it requires fusing real-time inertial measurement unit (IMU) data with complex computational fluid dynamics (CFD) approximations to react within milliseconds to prevent structural failure of the containment membranes.",
+  "rules": [
+    "MUST adhere to the IACS (International Association of Classification Societies) Unified Requirements for LNG Carriers regarding sloshing impact pressure limits.",
+    "MUST interface with legacy PLCs using Modbus TCP or CANopen to control fuel gas supply valves and ballast water pumps within a deterministic 50ms cycle time.",
+    "MUST utilize the ISO 80000 standards for thermodynamic variables when calculating enthalpy changes during the phase shift from liquid to gas.",
+    "MUST implement a dual-redundant architecture compliant with IEC 61508 SIL 3 (Safety Integrity Level) for all critical control loops.",
+    "MUST ingest and process high-frequency data streams from distributed fiber-optic temperature sensors embedded in the tank insulation layers."
+  ],
+  "anti_patterns": [
+    "DO NOT rely on asynchronous HTTP REST APIs for control commands, as the network latency variability in satellite-linked offshore environments will cause catastrophic lag in tank stabilization.",
+    "DO NOT use generic machine learning models trained on static datasets, as the fluid dynamics of sloshing are non-linear and require real-time physics-based simulation updates based on current sea state.",
+    "DO NOT decouple the safety shutdown logic from the primary control loop, as any disconnection in the fail-safe chain violates maritime SOLAS (Safety of Life at Sea) regulations."
+  ],
+  "key_technical_challenges": [
+    "Modeling the chaotic multiphase flow interactions of LNG and its vapor within a moving reference frame with millimeter-precision accuracy.",
+    "Synchronizing sensor fusion data from accelerometers, gyroscopes, and fiber-optic temperature arrays occurring at different sampling rates (1kHz vs 10Hz) without jitter.",
+    "Executing a complex stability optimization algorithm on edge hardware with limited thermal dissipation in a hazardous (explosive gas) environment.",
+    "Predicting the 'sloshing pressure front' trajectory 2-3 seconds ahead of time to preemptively adjust ballast levels before impact peaks."
+  ],
+  "recommended_stack": {
+    "language": "Rust - Provides memory safety guarantees while delivering the deterministic performance required for real-time control systems in safety-critical environments.",
+    "framework": "FFI bindings with C++ CFD libraries (like OpenFOAM) - Necessary to leverage existing, validated fluid dynamics solvers without re-implementing them.",
+    "database_engine": "TimescaleDB - Optimized for high-write throughput of time-series sensor data with precise retention policies for voyage compliance reporting.",
+    "cache": "Redis Stream for real-time event buffering and back-pressure management between sensor ingestion and the control loop.",
+    "message_broker": "ZeroMQ for deterministic, low-latency publish-subscribe communication between the edge controller and the ship's bridge display terminals.",
+    "special_services": [
+      "Real-time Spectral Sloshing Frequency Analyzer",
+      "Predictive Boil-Off Gas (BOG) Generation Rate Estimator"
+    ]
+  },
+  "compliance_flags": [
+    "SOLAS Chapter II-1 (Construction - Structure, Subdivision and Stability, Machinery and Electrical Installations)",
+    "IGC Code (International Code for the Construction and Equipment of Ships Carrying Liquefied Gases in Bulk)",
+    "IEC 61508 (Functional Safety of Electrical/Electronic/Programmable Electronic Safety-related Systems)"
+  ]
+}

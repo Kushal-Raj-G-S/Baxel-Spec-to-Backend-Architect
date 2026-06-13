@@ -1,0 +1,39 @@
+{
+  "archetype": "Tokamak Plasma Discharge Real-Time Control and Anomaly Mitigation System",
+  "domain": "Magnetic Confinement Fusion Research",
+  "description": "Manages high-energy plasma discharges in experimental fusion reactors (tokamaks), coordinating heating systems, magnetic coils, and diagnostic sensors while actively mitigating instabilities like disruptions. Used by fusion research engineers and plasma physicists, its core difficulty lies in enforcing deterministic 100\u00b5s control loops over terabyte/sec data streams from heterogeneous, radiation-hardened hardware.",
+  "rules": [
+    "MUST adhere to ITER Engineering Design Activities (EDA) data and control protocol specifications for inter-subsystem communication.",
+    "MUST enforce safety-certified, hard real-time processing deadlines (<100\u00b5s) for plasma position and shape control loops.",
+    "MUST integrate with legacy, vendor-specific diagnostic hardware interfaces (e.g., digitizers, interferometers) via proprietary VME/VXI or PCIe drivers.",
+    "MUST maintain a provably immutable audit trail for all control actions and parameter changes for IAEA safeguards verification.",
+    "MUST operate in a synchronized, UTC-timestamped global context across distributed subsystems using IEEE 1588 Precision Time Protocol (PTP)."
+  ],
+  "anti_patterns": [
+    "DO NOT implement as a cloud-native or containerized application; network jitter and hypervisor overhead violate hard real-time constraints.",
+    "DO NOT use standard web-based authentication/OAuth; control system access requires physical presence and hardware token-based authorization per ITER security protocols.",
+    "DO NOT rely on eventual consistency or batch processing; all control state must be synchronously replicated across active controllers with zero divergence."
+  ],
+  "key_technical_challenges": [
+    "Achieving deterministic, low-latency processing of 1TB+/sec raw diagnostic data streams (e.g., fast framing cameras, microwave reflectometers) to extract actionable plasma parameters in <1ms.",
+    "Building a predictive model for plasma disruptions that runs in real-time (<500\u00b5s) using high-dimensional sensor inputs to trigger mitigation systems (e.g., massive gas injection).",
+    "Integrating and time-aligning data from hundreds of heterogeneous, non-networked sensors (magnetic probes, neutron detectors, soft X-ray arrays) with varying sampling rates and latencies."
+  ],
+  "recommended_stack": {
+    "language": "C++/Rust for performance-critical control loops and hardware drivers; Python for offline analysis and model training.",
+    "framework": "EPICS (Experimental Physics and Industrial Control System) for distributed, real-time control and SCADA integration; custom Linux kernel modules for low-level hardware access.",
+    "database_engine": "TimescaleDB for high-frequency time-series storage of discharge diagnostics; HDF5 for bulk experimental data archiving.",
+    "cache": "Redis for low-latency state sharing between real-time controllers; null for archival tier.",
+    "message_broker": "Apache Pulsar with zero-copy broadcasting for high-throughput, low-latency pub/sub of diagnostic data to processing clusters.",
+    "special_services": [
+      "FPGA-based real-time data acquisition and preprocessing units",
+      "Synchronized timing master server using White Rabbit PTP",
+      "Safety-critical interlock system (independent, fail-safe PLC network)"
+    ]
+  },
+  "compliance_flags": [
+    "IAEA INFCIRC/225/Rev.5 (Physical Protection of Nuclear Material)",
+    "ITER Safety Case and Licensing Requirements",
+    "IEC 61508 SIL-2 for safety-related control systems"
+  ]
+}

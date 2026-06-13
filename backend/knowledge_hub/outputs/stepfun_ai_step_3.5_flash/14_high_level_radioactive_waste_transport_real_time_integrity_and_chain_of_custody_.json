@@ -1,0 +1,41 @@
+{
+  "archetype": "High-Level Radioactive Waste Transport Real-Time Integrity and Chain-of-Custody Orchestration System",
+  "domain": "Nuclear Logistics and Regulatory Compliance",
+  "description": "A safety-critical system that monitors, authenticates, and logs all parameters of legal high-level radioactive waste (HLW) transport casks during multi-jurisdictional transit, ensuring continuous physical integrity, radiation containment, and unbroken regulatory chain-of-custody from repository/shutdown site to interim storage or processing facility. It integrates with cask-mounted sensor suites, GPS/INS navigation, and government radiation portal monitors, providing cryptographic audit trails for IAEA and national regulators like the NRC and Euratom.",
+  "rules": [
+    "MUST enforce cryptographic signing of all sensor data at the source device per IAEA INFCIRC/225/Rev.5 (Physical Protection of Nuclear Material) and SSR-6 (Regulations for the Safe Transport of Radioactive Material).",
+    "MUST implement geofencing with automatic regulatory authority alerting if a transport deviates from an pre-approved, licensed route or schedule.",
+    "MUST maintain a dual-write, immutable audit log\u2014one stream locally on the transport vehicle's Hardware Security Module (HSM) and one stream to a regulator-owned cloud endpoint\u2014with no single point of failure.",
+    "MUST authenticate and validate data from third-party radiation portal monitors and weigh-in-motion scales at jurisdictional checkpoints using mutually authenticated TLS and pre-shared public keys.",
+    "MUST provide a 'tamper-evident' operator interface that locks all controls and initiates a silent security protocol if unauthorized physical or network access is detected, per national nuclear transport security regulations."
+  ],
+  "anti_patterns": [
+    "DO NOT rely on standard commercial GPS alone; it must be fused with inertial navigation and dead reckoning to detect and log GPS spoofing/jamming, a known threat in nuclear transport.",
+    "DO NOT use a generic blockchain for audit trails; the deterministic, append-only log must be formally verified and compatible with legacy regulator systems that require specific, non-repudiable digital signature standards (e.g., FIPS 186-4).",
+    "DO NOT design for eventual consistency; all critical integrity checks (cask seal status, radiation levels, door locks) must be synchronously validated with the central system or fall back to a safe, communications-blackout mode with local quorum-based decision making."
+  ],
+  "key_technical_challenges": [
+    "Achieving sub-second, reliable telemetry from moving vehicles across heterogeneous, often low-bandwidth networks (cellular, satellite, private radio) with guaranteed message ordering and no data loss during coverage gaps.",
+    "Designing a hardened, real-time embedded agent on the cask that can perform cryptographic operations, sensor fusion, and fail-safe decision logic on resource-constrained, radiation-hardened hardware.",
+    "Integrating with a fragmented global regulatory landscape where each country/state has different data format requirements (e.g., US NRC Form 741 vs. EU's SURE system) for manifest and event reporting, requiring dynamic, configurable data transformation pipelines."
+  ],
+  "recommended_stack": {
+    "language": "Rust for embedded cask agent (memory safety, no GC, direct hardware access) and Go for central orchestration services (concurrency, network services).",
+    "framework": "Actix/axum for Rust embedded HTTP server; Gin for Go orchestration APIs. Custom FIPS 140-2 Level 3 validated crypto module using OpenSSL or dedicated HSM SDKs.",
+    "database_engine": "TimescaleDB for high-frequency time-series sensor data; PostgreSQL with pgcrypto for relational audit logs and manifest data. Immutable append-only tables with BRIN indexing for regulatory queries.",
+    "cache": "Redis with ACLs and TLS for transient state and recent checkpoint data, with explicit discard on security event.",
+    "message_broker": "Apache Pulsar with geo-replication and tiered storage to handle guaranteed delivery across disconnected networks, using its built-in support for delayed messages for scheduled checkpoint alerts.",
+    "special_services": [
+      "Custom hardware abstraction layer (HAL) for interfacing with radiation sensors (e.g., Ludlum Model 44-9), seal switches, and door interlocks via CAN bus/RS-485.",
+      "Regulatory Reporting Transformation Service: A rules engine (Drools) that dynamically maps internal event schemas to jurisdiction-specific XML/EDIFACT manifest formats for automated filings.",
+      "Adversary Emulation & Simulation Service: A digital twin of the transport that injects sensor faults, network partitions, and physical tamper scenarios to test system resilience offline."
+    ]
+  },
+  "compliance_flags": [
+    "IAEA SSR-6 (2018 Edition)",
+    "US NRC 10 CFR Part 71 (Packaging and Transport of Radioactive Material)",
+    "EU ADR (European Agreement concerning the International Carriage of Dangerous Goods by Road)",
+    "ICAO Technical Instructions (for air transport)",
+    "National nuclear transport security directives (e.g., US DOE Order 460.2D, UK Nuclear Industries Security Regulations)"
+  ]
+}

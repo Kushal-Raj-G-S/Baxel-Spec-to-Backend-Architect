@@ -1,0 +1,39 @@
+{
+  "archetype": "Real-Time Dielectric Breakdown Probability & Partial Discharge Phase-Resolved Mapping Engine for High-Voltage SF6 Insulated Gas Circuit Breakers",
+  "domain": "High-Voltage Power Transmission Asset Management",
+  "description": "This system ingests nanosecond-resolution current and voltage transients alongside acoustic emission data from live gas-insulated switchgear (GIS) to predict dielectric breakdown events before they occur. It is used by grid reliability engineers to correlate micro-arcing signatures with specific fault geometries, requiring the fusion of physics-based simulation with real-time signal processing. The technical difficulty lies in processing terabytes of high-frequency waveform data in real-time while adhering to IEC 60447 compliance for partial discharge classification.",
+  "rules": [
+    "MUST strictly adhere to IEC 60270 and IEEE C37.04 standards for partial discharge characterization and high-voltage equipment testing.",
+    "MUST implement deterministic real-time processing with sub-microsecond latency to capture transient arcs that last only a few cycles of the 50/60Hz grid frequency.",
+    "MUST support Phase-Resolved Partial Discharge (PRPD) pattern analysis using IEC 62478 optical and acoustic sensor fusion protocols.",
+    "MUST ensure data integrity for regulatory reporting under NERC CIP cybersecurity frameworks for critical infrastructure protection.",
+    "MUST utilize hardware-in-the-loop (HIL) simulation capabilities to validate breakdown models against known fault signatures before deployment."
+  ],
+  "anti_patterns": [
+    "DO NOT rely on post-event batch processing, as dielectric breakdown can cause catastrophic equipment explosion within milliseconds of initial arcing.",
+    "DO NOT use generic anomaly detection models without domain-specific feature engineering for PRPD 'fingerprints,' as noise from corona discharge and external interference creates high false-positive rates.",
+    "DO NOT decouple the signal acquisition layer from the analysis engine, as synchronization drift between voltage phase angles and acoustic sensors will render the phase-resolved mapping invalid."
+  ],
+  "key_technical_challenges": [
+    "Synchronizing heterogeneous data streams (UHF electromagnetic sensors, acoustic emission transducers, and optical current transformers) with nanosecond precision across Ethernet networks.",
+    "Performing real-time Fast Fourier Transform (FFT) and Wavelet Decomposition on 100MHz+ sampling rates without dropping packets or introducing jitter.",
+    "Modeling the non-linear, stochastic physics of SF6 gas ionization and arc propagation in varying thermal and pressure conditions using embedded approximations."
+  ],
+  "recommended_stack": {
+    "language": "Rust \u2014 Guarantees memory safety and deterministic real-time execution required for high-voltage protection logic.",
+    "framework": "Tokio with custom real-time kernel patches \u2014 Provides asynchronous I/O with sub-millisecond latency guarantees for sensor polling.",
+    "database_engine": "TimescaleDB with compressed hypertables \u2014 Optimized for high-velocity time-series ingestion and rapid querying of historical discharge patterns.",
+    "cache": "RocksDB (embedded) \u2014 Provides low-latency, persistent key-value storage for stateful signal buffering on edge nodes.",
+    "message_broker": "ZeroMQ (ZMQ) \u2014 Offers deterministic, lock-free messaging for streaming high-bandwidth waveform data between acquisition and analysis nodes.",
+    "special_services": [
+      "Real-time PRPD Pattern Classifier (PyTorch ONNX Runtime)",
+      "SF6 Gas Dielectric Strength Physics Simulator"
+    ]
+  },
+  "compliance_flags": [
+    "IEC 60447",
+    "IEEE C37.04",
+    "NERC CIP-005-6",
+    "IEC 61850"
+  ]
+}

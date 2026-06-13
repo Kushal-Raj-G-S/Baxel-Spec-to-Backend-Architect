@@ -1,0 +1,38 @@
+{
+  "archetype": "Real-Time In-Vessel Plasma Disruption Mitigation & Magnetic Flux Controller for Tokamak Fusion Reactors",
+  "domain": "Magnetic Confinement Fusion Energy Operations",
+  "description": "This system ingests terabytes/sec of magnetic probe, interferometer, and soft X-ray data to predict plasma disruptions milliseconds before they occur, actively triggering cryogenic pellet injection and magnetic coil adjustments to save the reactor internals. It is used by plasma physicists and reactor safety systems in facilities like ITER or SPARC, requiring deterministic real-time processing that bridges the gap between scientific research and industrial safety criticality.",
+  "rules": [
+    "MUST enforce hard real-time latency constraints (<100 microseconds) for control loop execution to prevent first-wall damage during plasma disruptions",
+    "MUST implement IEC 61508 SIL-3 safety integrity levels for all command-and-control signal paths to ensure fail-safe shutdown procedures",
+    "MUST handle high-frequency data streams from hundreds of diagnostic sensors using standard IEC 61850 protocols adapted for high-speed acquisition",
+    "MUST perform on-the-fly numerical integration of Grad-Shafranov equilibrium equations to reconstruct plasma boundary shapes without cloud dependency",
+    "MUST maintain strict temporal synchronization (PTP IEEE 1588) across distributed acquisition nodes to ensure phase coherence in magnetic field reconstruction"
+  ],
+  "anti_patterns": [
+    "DO NOT use asynchronous event loops or garbage-collected runtimes for the primary control path, as non-deterministic pauses can trigger catastrophic thermal loads",
+    "DO NOT rely on batch processing or cloud-based machine learning inference for disruption prediction, as network latency variations render the prediction obsolete",
+    "DO NOT decouple the sensor acquisition layer from the actuation layer, as the microsecond-scale coupling between magnetic field collapse and pellet injection is critical for survival"
+  ],
+  "key_technical_challenges": [
+    "Solving the Grad-Shafranov inverse problem in real-time with sub-millisecond computational latency using sparse matrix solvers on FPGA or GPU clusters",
+    "Managing massive data volume from high-bandwidth diagnostic sensors while maintaining strict temporal alignment for multi-modal fusion analysis",
+    "Designing a fail-safe control architecture that transitions from AI-driven prediction to hardcoded physics-based rules upon sensor anomaly detection without human intervention"
+  ],
+  "recommended_stack": {
+    "language": "Rust + C++ (for zero-copy, memory-safe, deterministic control loops)",
+    "framework": "ZeroMQ with static allocation (for guaranteed latency messaging without kernel context switches)",
+    "database_engine": "TimescaleDB with continuous aggregates (for high-compression time-series telemetry storage)",
+    "cache": "Redis with persistent AOF (for low-latency state snapshotting during failover)",
+    "message_broker": "Eclipse Org.eclipse.m2e (lightweight, in-memory broker for intra-node synchronization)",
+    "special_services": [
+      "Real-time MHD (Magnetohydrodynamic) Stability Analyzer",
+      "Cryogenic Pellet Injector Trajectory Optimizer"
+    ]
+  },
+  "compliance_flags": [
+    "IEC 61508 (Functional Safety)",
+    "DOE Order 413.3B (Project Management for Construction)",
+    "ISO/IEC 62304 (Medical Device Software - adapted for high-reliability control)"
+  ]
+}

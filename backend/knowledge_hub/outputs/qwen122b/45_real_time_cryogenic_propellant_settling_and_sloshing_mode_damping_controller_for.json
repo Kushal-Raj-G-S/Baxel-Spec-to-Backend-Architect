@@ -1,0 +1,38 @@
+{
+  "archetype": "Real-Time Cryogenic Propellant Settling & Sloshing Mode Damping Controller for In-Space Refueling Maneuvers",
+  "domain": "Cislunar Logistics & Orbital Propellant Transfer Operations",
+  "description": "This system orchestrates the microgravity fluid dynamics of cryogenic hydrogen/oxygen during orbital refueling, calculating real-time sloshing resonances to adjust tank ullage pressurization and active baffle heater patterns. Used by mission control for autonomous rendezvous vehicles, it prevents catastrophic tank stratification and structural loads during liquid transfer in zero-G environments. The technical difficulty lies in solving non-linear computational fluid dynamics (CFD) in real-time on edge hardware while adhering to strict radiation-hardened latency constraints.",
+  "rules": [
+    "MUST strictly adhere to NASA-STD-3001 (Human Rating Requirements) for fluid control system response times < 50ms to prevent slosh-induced attitude loss.",
+    "MUST utilize CCSDS (Consultative Committee for Space Data Systems) Blue Book File Formats for telemetry and command link reliability over deep-space distances.",
+    "MUST implement redundant state-machine logic compliant with ECSS-E-ST-40C (Software Engineering) to handle single-event upsets (SEUs) common in radiation zones.",
+    "MUST integrate with ISO 14624 standards for cryogenic fluid measurement and density modeling in microgravity.",
+    "MUST enforce deterministic execution schedules (e.g., AUTOSAR Adaptive or similar) to guarantee hard real-time processing of inertial measurement unit (IMU) and pressure sensor fusion data."
+  ],
+  "anti_patterns": [
+    "DO NOT use standard TCP/IP for critical control loops, as packet loss or jitter can cause unstable feedback in fluid resonance damping; use TTP/C or SpaceWire instead.",
+    "DO NOT rely on cloud-based AI inference for real-time slosh mitigation, as the light-lag latency from Earth to LEO/GEO makes closed-loop control impossible.",
+    "DO NOT model fluid dynamics using laminar flow assumptions, as cryogenic propellants in microgravity exhibit complex multiphase turbulence and surface tension dominance."
+  ],
+  "key_technical_challenges": [
+    "Solving Navier-Stokes equations for multiphase cryogenic flow in microgravity within 20ms on radiation-hardened processors with limited FLOPS.",
+    "Fusing noisy data from capacitive gauge sensors, accelerometers, and acoustic level meters under conditions of extreme thermal gradients (-253\u00b0C to +40\u00b0C).",
+    "Predicting and mitigating 'slosh-induced attitude instability' where fluid momentum couples with the spacecraft's reaction control system (RCS) thrusters."
+  ],
+  "recommended_stack": {
+    "language": "Ada 2012 \u2014 Mandatory for safety-critical real-time systems in aerospace due to built-in strong typing, contract programming, and determinism.",
+    "framework": "RTA-OS (Real-Time Architecture) or VxWorks 653 \u2014 Certifiable partitioned OS ensuring temporal isolation of critical fluid control tasks.",
+    "database_engine": "SQLite (with Zero-Config mode) or a custom Ring Buffer \u2014 For high-speed, crash-consistent logging of transient pressure events without transactional overhead.",
+    "cache": "Hardware-level L1/L2 Cache (Managed via Memory Protection Unit) \u2014 Software caching is often too unpredictable for hard real-time constraints.",
+    "message_broker": "DDS (Data Distribution Service) with RTPS over SpaceWire \u2014 Ensures publish-subscribe reliability with deterministic latency for sensor fusion.",
+    "special_services": [
+      "Real-time CFD Solver (Reduced Order Model)",
+      "Radiation Hardening-by-Software (RHBS) Scrubbing Service"
+    ]
+  },
+  "compliance_flags": [
+    "ECSS-E-ST-40C (Space Engineering - Software)",
+    "MIL-STD-883H (Test Method Standard for Microcircuits)",
+    "NASA NPR 8705.4 (Risk Classification for Flight Projects)"
+  ]
+}

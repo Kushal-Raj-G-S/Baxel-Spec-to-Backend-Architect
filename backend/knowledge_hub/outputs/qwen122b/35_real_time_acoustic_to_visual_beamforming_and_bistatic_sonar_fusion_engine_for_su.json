@@ -1,0 +1,38 @@
+{
+  "archetype": "Real-Time Acoustic-to-Visual Beamforming & Bistatic Sonar Fusion Engine for Subsea Unexploded Ordnance (UXO) Classification",
+  "domain": "Maritime Defense Engineering & Offshore Geophysical Survey",
+  "description": "This system fuses data from multi-static sonar arrays and optical sensors to classify and geolocate unexploded ordnance on the seabed in turbid environments, used by ROV operators and naval survey teams. It requires real-time signal processing to disentangle multi-path acoustic reflections from actual threats while adhering to strict military-grade encryption and latency constraints.",
+  "rules": [
+    "MUST implement real-time Fast Fourier Transform (FFT) and beamforming algorithms compliant with US Navy SONAR data formats (e.g., SONAR Data Interchange Format - SDIF) within 15ms latency budgets.",
+    "MUST enforce FIPS 140-2 Level 3 cryptographic standards for all data-at-rest and in-transit communication due to classification of ordnance threat data.",
+    "MUST integrate with proprietary ROV hydraulic control APIs (e.g., Kongsberg HMI or Teledyne Gavia) to trigger immediate abort or hover maneuvers upon high-probability UXO detection.",
+    "MUST handle asynchronous, bursty data streams from heterogeneous sensors (passive hydrophones, active sonar pingers, and low-light turbidity cameras) without packet loss during high-current drift.",
+    "MUST provide deterministic time-stamping synchronized to GPS-locked atomic clocks (PTP/IEEE 1588) to within 1 microsecond for accurate trilateration of submerged objects."
+  ],
+  "anti_patterns": [
+    "DO NOT use standard RESTful APIs for streaming sensor data, as TCP retransmission jitter creates fatal gaps in acoustic phase analysis required for beamforming.",
+    "DO NOT rely on cloud-based batch processing for threat detection, as the system must operate in 'store-and-forward' offline mode during deep-sea operations where connectivity is intermittent or non-existent.",
+    "DO NOT apply generic object detection AI models trained on clear-water datasets, as they fail catastrophically on subsea targets obscured by sediment, bioluminescence, and acoustic shadowing."
+  ],
+  "key_technical_challenges": [
+    "Compensating for real-time Doppler shift and sound speed profile (SSP) variations caused by thermoclines to prevent false negatives in sonar pinging.",
+    "Synchronizing multi-modal sensor data streams (acoustic, visual, magnetic) with sub-millisecond precision despite differing onboard clock drift under high-pressure conditions.",
+    "Optimizing matrix inversion algorithms for acoustic cross-correlation on edge hardware with limited thermal dissipation and power budgets in a ROV payload."
+  ],
+  "recommended_stack": {
+    "language": "Rust + one-line reason: Provides memory safety guarantees without a garbage collector, essential for real-time signal processing loops.",
+    "framework": "Rust + Tokio for async runtimes + one-line reason: Handles high-throughput asynchronous I/O from multiple sensor drivers with deterministic task scheduling.",
+    "database_engine": "TimescaleDB (PostgreSQL extension) + one-line reason: Optimized for high-frequency time-series ingestion of acoustic waveforms and geospatial metadata.",
+    "cache": "Redis Streams + one-line reason: Low-latency buffering for transient sensor data bursts before persistent storage or edge inference.",
+    "message_broker": "ZeroMQ (ZMTP) + one-line reason: Provides lock-free, high-performance message passing suitable for real-time data pipelines without serialization overhead.",
+    "special_services": [
+      "Hardware-Wrapped AES-NI Encryption Module for secure telemetry",
+      "Geospatial Projection Service for WGS84 to UTM conversion under dynamic tidal models"
+    ]
+  },
+  "compliance_flags": [
+    "ITAR (International Traffic in Arms Regulations) Technical Data Controls",
+    "NIST SP 800-171 Controlled Unclassified Information (CUI) Requirements",
+    "IMO (International Maritime Organization) Guidelines for Remotely Operated Vehicles"
+  ]
+}

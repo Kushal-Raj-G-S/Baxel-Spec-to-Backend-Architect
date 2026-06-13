@@ -1,0 +1,38 @@
+{
+  "archetype": "Orbital Debris Conjunction Assessment & Collision Avoidance (CCA) Trajectory Optimization Engine",
+  "domain": "Low Earth Orbit (LEO) Satellite Constellation Operations",
+  "description": "A deterministic, high-frequency computing system that ingests Two-Line Element (TLE) and OMM data to predict collision probabilities between active satellites and orbital debris, automatically generating and validating Delta-V maneuver plans for autonomous satellite constellations. It is technically demanding due to the extreme sensitivity of orbital mechanics propagation, the need for sub-millimeter precision in position forecasting, and the strict requirement to operate within the 12-24 hour decision window mandated by international conjunction assessment protocols.",
+  "rules": [
+    "MUST adhere to CCSDS (Consultative Committee for Space Data Systems) OMM (Orbit Mean-Elements Message) standards for all incoming ephemeris data exchange to ensure interoperability with US Space Command and international partners.",
+    "MUST implement Gaussian Smearing algorithms to calculate Conjunction Data Message (CDM) probability of collision (Pc) with a minimum false-negative tolerance of <10^-7 to prevent catastrophic loss of multi-million dollar assets.",
+    "MUST integrate real-time telemetry constraints from the satellite's propulsion system (specific engine Isp and fuel mass limits) to ensure generated avoidance maneuvers are physically executable.",
+    "MUST support deterministic time propagation using high-precision models (e.g., SGP4/SDP4) with atmospheric drag coefficient updates sourced from real-time solar flux and geomagnetic index (Kp/Ap) data streams.",
+    "MUST enforce strict audit trails of all maneuver decisions and rejected trajectories to satisfy ISO 24113 (Space Systems \u2014 Space Debris Mitigation Requirements) compliance for insurance and liability purposes."
+  ],
+  "anti_patterns": [
+    "DO NOT use general-purpose machine learning models for trajectory prediction without physics-informed neural networks, as they lack the interpretability and fail-safe guarantees required for life-safety critical space operations.",
+    "DO NOT rely on asynchronous, eventually consistent databases for state updates; the system requires strong consistency to ensure the latest orbital state is used for the immediate next collision probability calculation.",
+    "DO NOT decouple the maneuver generation logic from the propulsion hardware model; generating a 5m/s burn plan without verifying fuel mass availability leads to mission failure due to inability to execute the command."
+  ],
+  "key_technical_challenges": [
+    "Managing the computational load of propagating millions of debris objects against a growing constellation of active satellites every 15 minutes while maintaining microsecond latency for critical alerts.",
+    "Resolving the 'debt spiral' where frequent small avoidance maneuvers deplete fuel faster than the satellite's expected lifetime, requiring complex multi-objective optimization to balance collision risk vs. propellant budget.",
+    "Handling the 'uncertainty ellipsoid' expansion over time, where small initial measurement errors in debris position explode exponentially, requiring adaptive covariance matrix regularization techniques."
+  ],
+  "recommended_stack": {
+    "language": "Rust \u2014 Provides memory safety guarantees essential for flight-critical software while delivering the raw performance needed for intensive matrix operations in orbital propagation.",
+    "framework": "Actix Web \u2014 A high-performance, async-oriented web framework capable of handling the massive throughput of telemetry streams and CDM ingestion from multiple ground stations.",
+    "database_engine": "TimescaleDB (PostgreSQL extension) \u2014 Optimized for storing and querying massive time-series telemetry data and historical orbital elements with efficient time-windowed aggregations.",
+    "cache": "Redis Cluster \u2014 For rapid access to current satellite state vectors and active mission parameters to minimize latency in the critical decision loop.",
+    "message_broker": "Apache Pulsar \u2014 Supports geo-redundant multi-tenancy and ensures reliable delivery of high-priority conjunction alerts across distributed ground station networks.",
+    "special_services": [
+      "Orbital Mechanics Solver Service (SGP4/SDP4 implementation)",
+      "Covariance Matrix Regularization Service"
+    ]
+  },
+  "compliance_flags": [
+    "ISO 24113 Space Debris Mitigation",
+    "CCSDS Conjunction Data Message Standard",
+    "FAA Office of Commercial Space Transportation Licensing Requirements"
+  ]
+}

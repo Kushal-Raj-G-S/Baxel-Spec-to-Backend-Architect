@@ -1,0 +1,38 @@
+{
+  "archetype": "Automated Subsea Pipeline Corrosion Monitoring and Predictive Maintenance System for Offshore Oil and Gas Platforms",
+  "domain": "Subsea Oil and Gas Operations",
+  "description": "This system monitors subsea pipelines for corrosion using real-time sensor data and machine learning algorithms, predicting maintenance needs to prevent costly repairs and environmental disasters. It is used by offshore oil and gas operators to ensure the integrity of their pipelines. The system must integrate with various sensor types and comply with industry standards such as API 579 and ISO 19902.",
+  "rules": [
+    "MUST integrate with cathodic protection (CP) systems to measure pipeline polarization levels",
+    "MUST support real-time data streaming from subsea sensors, including pressure, temperature, and pH sensors",
+    "MUST comply with API 579 and ISO 19902 standards for pipeline integrity management",
+    "MUST use machine learning algorithms to predict corrosion rates and maintenance needs",
+    "MUST provide alerts and notifications for critical pipeline conditions to operators"
+  ],
+  "anti_patterns": [
+    "DO NOT use a generic IoT platform without modification for subsea pipeline monitoring",
+    "DO NOT rely solely on scheduled maintenance without real-time monitoring",
+    "DO NOT neglect to account for varying water chemistry and environmental factors in corrosion models"
+  ],
+  "key_technical_challenges": [
+    "Integrating with diverse sensor types and CP systems",
+    "Developing accurate machine learning models for corrosion prediction",
+    "Ensuring reliable real-time data transmission from subsea environments"
+  ],
+  "recommended_stack": {
+    "language": "Python + due to extensive libraries for scientific computing and machine learning",
+    "framework": "Django + for robust web development and API integration",
+    "database_engine": "PostgreSQL + for handling large volumes of sensor data and spatial analysis",
+    "cache": "Redis + for real-time data processing and caching",
+    "message_broker": "Apache Kafka + for handling high-volume sensor data streams",
+    "special_services": [
+      "AWS IoT Core for device management",
+      "ArcGIS for spatial analysis"
+    ]
+  },
+  "compliance_flags": [
+    "API 579",
+    "ISO 19902",
+    "ISO 9001"
+  ]
+}

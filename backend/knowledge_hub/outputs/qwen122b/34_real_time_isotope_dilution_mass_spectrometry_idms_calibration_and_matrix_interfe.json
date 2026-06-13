@@ -1,0 +1,38 @@
+{
+  "archetype": "Real-Time Isotope-Dilution Mass Spectrometry (IDMS) Calibration & Matrix Interference Correction Engine for High-Throughput Clinical Toxicology",
+  "domain": "Forensic Clinical Toxicology & Mass Spectrometry Instrumentation",
+  "description": "A real-time control plane that orchestrates liquid chromatography-tandem mass spectrometry (LC-MS/MS) workflows to dynamically adjust isotope-labeled internal standard ratios and correct for matrix effects (ion suppression/enhancement) during live sample analysis. Used by forensic toxicologists and instrument operators, it processes high-frequency ion current telemetry to prevent false negatives in drug-facilitated crime investigations. The system is technically arduous due to the need for sub-second latency in adjusting micro-valve pumps and electrometer gains based on non-linear ionization physics in complex biological matrices.",
+  "rules": [
+    "MUST ingest and correlate raw ion current telemetry via the Thermo Fisher TSQ or Sciex QTRAP proprietary binary stream protocols with <10ms latency.",
+    "MUST enforce strict Good Laboratory Practice (GLP) 21 CFR Part 11 audit trails for every single automated parameter adjustment made during a run.",
+    "MUST implement real-time signal processing algorithms (e.g., Savitzky-Golay filtering and baseline correction) to distinguish isobaric interference from target analytes.",
+    "MUST dynamically recalibrate the 'matrix effect factor' for each specific patient sample based on the internal standard recovery ratio before releasing quantitation results.",
+    "MUST support the integration of external Laboratory Information Management Systems (LIMS) using ASTM E1394 or HL7 v2.x standards for bidirectional result verification."
+  ],
+  "anti_patterns": [
+    "DO NOT use batch-processing or ETL pipelines for data analysis, as the system must make real-time hardware control decisions (valve switching) while the chromatogram is still running to prevent sample carryover.",
+    "DO NOT rely on generic SQL transactions for time-series ion current data, as the write throughput (20kHz+ per detector) and append-only nature of chromatographic data require specialized time-series or columnar storage.",
+    "DO NOT implement 'human-in-the-loop' confirmation for every matrix correction event, as this would halt the high-throughput pipeline; instead, use pre-validated algorithmic confidence intervals with post-run exception reporting."
+  ],
+  "key_technical_challenges": [
+    "Synchronization of sub-millisecond hardware control signals (mass analyzer voltage ramps) with high-frequency (20kHz) detector data streams to ensure temporal alignment during ion suppression events.",
+    "Real-time execution of non-linear regression models to correct for co-eluting matrix interference without exceeding the processing window between chromatographic peaks.",
+    "Ensuring deterministic failure handling where a single dropped packet in the telemetry stream does not result in data corruption that invalidates a forensic legal chain of custody."
+  ],
+  "recommended_stack": {
+    "language": "Rust + C FFI bindings (for memory safety and direct low-level access to instrument DSPs without GC pauses)",
+    "framework": "Actix-web with raw UDP/TCP stream handling (for high-throughput, low-latency telemetry ingestion)",
+    "database_engine": "TimescaleDB (for efficient compression and time-bucketed querying of continuous ion current streams)",
+    "cache": "Redis Cluster (for ephemeral state of active injection sequences and fast-access calibration curves)",
+    "message_broker": "Apache Kafka (for decoupling the high-volume instrument stream from the LIMS reporting pipeline)",
+    "special_services": [
+      "Isobaric Interference Resolver Microservice",
+      "GLP Audit Trail Cryptographic Signer"
+    ]
+  },
+  "compliance_flags": [
+    "21 CFR Part 11",
+    "ISO/IEC 17025",
+    "SWGTOX Guidelines"
+  ]
+}

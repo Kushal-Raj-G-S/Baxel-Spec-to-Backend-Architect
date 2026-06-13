@@ -1,0 +1,40 @@
+{
+  "archetype": "Bovine Genomic Prediction and Selection Orchestration System (BGP-SOS)",
+  "domain": "Dairy Cattle Genomics and Quantitative Genetics",
+  "description": "A system that ingests raw SNP chip genotype data, pedigree records, and phenotypic performance metrics (milk yield, fat/protein percentages, health events) from thousands of dairy herds to compute genomic estimated breeding values (GEBVs) using single-step GBLUP. It is used by geneticists at breeding companies and progressive farm managers to make real-time mating decisions and rank replacement heifers, with the core difficulty being the integration of sparse, noisy field data with dense genomic markers under strict USDA and industry-defined genetic evaluation protocols.",
+  "rules": [
+    "MUST process and validate raw genotype files in proprietary Axiom BovineSNP50/HD array formats and convert them to PLINK .bed/.bim/.fam for analysis.",
+    "MUST implement and adhere to the USDA's genomic evaluation schedule and trait definition standards (e.g., Net Merit $, Cheese Merit $) as published by the Council on Dairy Cattle Breeding (CDCB).",
+    "MUST maintain an immutable audit trail for all GEBV calculations, linking every result to a specific version of the genetic evaluation model, reference population, and SNP chip calibration file.",
+    "MUST enforce breed-specific constraints and mandatory exclusion rules (e.g., carrier status for recessive defects like CVM, BLAD, MULE) per Holstein Association USA and other breed association bylaws.",
+    "MUST provide deterministic, reproducible evaluation runs for regulatory and royalty audit purposes, preventing any 'black box' ML model drift from the officially published quantitative genetic models."
+  ],
+  "anti_patterns": [
+    "DO NOT treat this as a generic ML pipeline\u2014using a TensorFlow/PyTorch model without a single-step GBLUP foundation will produce predictions that are biologically invalid and non-compliant with industry standards.",
+    "DO NOT ignore the multi-generational pedigree structure; failing to correctly merge sparse historic paper pedigree records with dense genomic data destroys the accuracy of the relationship matrix.",
+    "DO NOT process SNP chip data without a rigorous quality control/calibration step against the breed-specific base population allele frequencies, leading to systematic bias in GEBVs.",
+    "DO NOT design for batch-only processing; mating decisions require low-latency (<5 sec) GEBV lookups for individual animals during on-farm consultation."
+  ],
+  "key_technical_challenges": [
+    "Computing the inverse of the huge, sparse combined pedigree-genomic relationship matrix (H^-1) for tens of thousands of animals in a single-step GBLUP framework, requiring optimized sparse linear algebra and memory management.",
+    "Integrating real-time, asynchronous phenotypic data streams (e.g., daily milk meter yields, automated health alerts from farm management software) with quarterly genomic evaluation cycles without re-running the entire model.",
+    "Designing a data pipeline that handles the 'long tail' of rare breeds and mixed-breed animals with incomplete or non-standard SNP chip data while still producing statistically robust, usable predictions."
+  ],
+  "recommended_stack": {
+    "language": "Python (with NumPy/SciPy/Scikit-allel) \u2013 dominant bioinformatics stack with libraries for genomic data manipulation and linear algebra.",
+    "framework": "FastAPI \u2013 for high-performance, async API endpoints to serve individual animal GEBV lookups and trigger batch jobs.",
+    "database_engine": "PostgreSQL + PostGIS \u2013 for storing complex, hierarchical pedigree relationships and geolocated farm metadata with ACID compliance for audit trails.",
+    "cache": "Redis \u2013 for caching frequently requested GEBV results and intermediate genomic relationship matrix blocks for the active reference population.",
+    "message_broker": "RabbitMQ \u2013 to decouple the ingestion of raw farm data files (genotypes, phenotypes) from the computationally intensive, scheduled genomic evaluation runs.",
+    "special_services": [
+      "A dedicated 'Genetic Evaluation Engine' service wrapping compiled Fortran/C++ code (like BLUPF90 family programs) for core GBLUP computations.",
+      "A 'SNP Chip Calibration & QC' microservice that normalizes raw intensity data against breed-specific base pairs and filters markers by call rate, MAF, and Hardy-Weinberg equilibrium."
+    ]
+  },
+  "compliance_flags": [
+    "USDA Agricultural Marketing Service (AMS) \u2013 Dairy Program genomic evaluation participation rules.",
+    "Council on Dairy Cattle Breeding (CDCB) \u2013 Data submission and trait definition standards.",
+    "Breed Association Bylaws (e.g., Holstein USA) \u2013 Carrier status reporting and genetic defect exclusion regulations.",
+    "Animal Welfare Act / State-specific Dairy Herd Improvement (DHI) program data privacy agreements."
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "archetype": "Automated Cargo Securement Inspection System for Intermodal Shipping Containers",
+  "domain": "Intermodal Maritime Shipping and Logistics",
+  "description": "This system uses computer vision and machine learning to inspect the securement of cargo within intermodal shipping containers, ensuring compliance with regulations and reducing the risk of cargo damage or loss during transit. It is used by shipping companies, terminal operators, and regulatory agencies. The system must handle varying lighting conditions, container types, and cargo configurations, making it a technically challenging problem.",
+  "rules": [
+    "MUST comply with International Maritime Organization (IMO) and International Organization for Standardization (ISO) regulations for cargo securement",
+    "MUST integrate with existing container tracking and management systems",
+    "MUST support multiple camera types and orientations for optimal cargo visibility",
+    "MUST detect and alert on potential cargo shifting or damage during transit",
+    "MUST provide detailed inspection reports and data analytics for compliance and quality control"
+  ],
+  "anti_patterns": [
+    "DO NOT rely solely on manual inspection, as it is time-consuming and prone to human error",
+    "DO NOT use a single camera view, as it may not capture all cargo securement details",
+    "DO NOT neglect to account for varying container types and cargo configurations"
+  ],
+  "key_technical_challenges": [
+    "Developing accurate computer vision algorithms for cargo securement detection",
+    "Integrating with existing container tracking and management systems",
+    "Ensuring system reliability and uptime in harsh maritime environments"
+  ],
+  "recommended_stack": {
+    "language": "Python - for its extensive computer vision and machine learning libraries",
+    "framework": "Flask - for its lightweight and flexible API design",
+    "database_engine": "PostgreSQL - for its robust support for spatial data and geometric queries",
+    "cache": "Redis - for its high-performance caching and data buffering",
+    "message_broker": "RabbitMQ - for its reliable and scalable message queuing",
+    "special_services": [
+      "Computer Vision Service",
+      "Machine Learning Model Training Service"
+    ]
+  },
+  "compliance_flags": [
+    "IMO Cargo Securement Regulations",
+    "ISO 3874:2017"
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "archetype": "Semiconductor Photolithography Stage Alignment and Vibration Suppression Orchestration System",
+  "domain": "Advanced Semiconductor Manufacturing (Photolithography)",
+  "description": "Orchestrates sub-nanometer alignment of silicon wafers during photolithography by integrating interferometer feedback, piezoelectric actuators, and real-time vibration cancellation. Used by fab engineers to maintain overlay accuracy across 300mm wafers; complexity arises from deterministic microsecond-latency control loops and legacy hardware interfaces.",
+  "rules": [
+    "MUST enforce SEMI E90 equipment communication standards and SECS/GEM protocol for fab-wide integration.",
+    "MUST maintain deterministic 10kHz control loop timing with jitter under 1 microsecond for stage stability.",
+    "MUST compensate for environmental vibrations via real-time fusion of accelerometer, air-bearing pressure, and seismic sensor data.",
+    "MUST track full data lineage per SEMI PV2-0204 for wafer history and process traceability.",
+    "MUST support hot-swappable calibration routines to avoid fab downtime during maintenance."
+  ],
+  "anti_patterns": [
+    "DO NOT use cloud-based control logic due to network latency violating deterministic timing requirements.",
+    "DO NOT rely on polling for sensor data; event-driven architectures with hardware interrupts are mandatory.",
+    "DO NOT ignore hardware-specific drift models; piezo actuators and laser interferometers require per-tool calibration curves."
+  ],
+  "key_technical_challenges": [
+    "Achieving sub-nanometer positional accuracy while suppressing floor vibrations across multiple resonant frequencies.",
+    "Fusing heterogeneous sensor data (interferometers, capacitance gauges, accelerometers) with different update rates into a single real-time state estimate.",
+    "Synchronizing motion control across six axes (three translational, three rotational) with zero cumulative error during step-and-scan exposures."
+  ],
+  "recommended_stack": {
+    "language": "C++17 with real-time extensions for low-latency deterministic control loops",
+    "framework": "ROS 2 (Real-Time) for modular hardware abstraction and lifecycle management",
+    "database_engine": "TimescaleDB for high-frequency time-series sensor data and alignment logs",
+    "cache": "Redis with RedisTimeSeries for in-memory state caching of current alignment parameters",
+    "message_broker": "ZeroMQ (PUB/SUB) for nanosecond-latency inter-process communication between control modules",
+    "special_services": [
+      "Hardware Abstraction Layer (HAL) for legacy vendor-specific stage controllers",
+      "SECS/GEM Gateway service for SEMI-compliant host communication",
+      "Vibration Spectrum Analyzer using FFT on real-time accelerometer streams"
+    ]
+  },
+  "compliance_flags": [
+    "SEMI E90 (Equipment Communications)",
+    "SEMI PV2-0204 (Data Standards)",
+    "ISO 14644-1 (Cleanroom Classification)",
+    "SEMI S2 (Safety Guidelines)"
+  ]
+}

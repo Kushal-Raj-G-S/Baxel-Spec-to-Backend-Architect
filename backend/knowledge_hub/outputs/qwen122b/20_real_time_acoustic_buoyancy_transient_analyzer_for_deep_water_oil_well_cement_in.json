@@ -1,0 +1,37 @@
+{
+  "archetype": "Real-Time Acoustic-Buoyancy Transient Analyzer for Deep-Water Oil Well Cement Integrity Verification",
+  "domain": "Offshore Subsea Well Construction & Completion",
+  "description": "This system ingests high-fidelity acoustic telemetry and pressure data from downhole microphones to detect gas migration and cement bonding failures in real-time during the critical set-time phase of deep-water well completion. It is used by subsea engineering teams to make go/no-go decisions on casing pressure isolation, requiring millisecond-latency processing of non-linear acoustic waveforms to distinguish between fluid movement and valid cement hydration signatures.",
+  "rules": [
+    "MUST implement ISO 13628-5 compliant telemetry handling for real-time multiplexed sensor data to ensure interoperability with existing subsea control modules.",
+    "MUST enforce deterministic processing latency under 150ms to trigger automated wellhead valve closures before gas kicks breach the surface.",
+    "MUST utilize IEEE 1451 smart sensor self-description protocols to dynamically parse heterogeneous sensor arrays without manual configuration.",
+    "MUST integrate with API MPMS Chapter 14.8 standards for acoustic logging interpretation to validate cement bond indices against regulatory thresholds.",
+    "MUST maintain an immutable, write-once audit trail of all signal processing states to satisfy DNV-GL certification requirements for forensic well analysis."
+  ],
+  "anti_patterns": [
+    "DO NOT rely on batch processing or near-real-time analytics; delayed detection of gas migration in high-pressure, high-temperature (HPHT) environments leads to catastrophic blowouts.",
+    "DO NOT use generic cloud-native auto-scaling groups for the inference engine; variable network latency from subsea umbilicals requires edge-computing determinism that public cloud zones cannot guarantee.",
+    "DO NOT apply standard signal-to-noise ratio filters designed for consumer audio; subsea acoustic paths require specific attenuation models for seawater density and sediment layers to avoid false negatives."
+  ],
+  "key_technical_challenges": [
+    "Solving the inverse problem of acoustic wave propagation through multi-phase fluid-cement-rock interfaces to isolate specific frequency signatures of micro-annuli formation.",
+    "Maintaining synchronization between disparate sensor sampling rates (up to 2MHz internal vs. 1kHz telemetry) over low-bandwidth, high-jitter fiber-optic or acoustic modem links.",
+    "Implementing fault-tolerant state machine logic that survives total loss of telemetry without data corruption, enabling post-event reconstruction of the cement set curve."
+  ],
+  "recommended_stack": {
+    "language": "Rust \u2014 Provides memory safety guarantees essential for embedded subsea processors while offering the raw performance needed for real-time DSP.",
+    "framework": "Tokio with custom `no_std` HAL adaptations \u2014 Enables asynchronous, low-latency I/O handling for sensor streams without the overhead of a full OS runtime.",
+    "database_engine": "TimescaleDB (PostgreSQL extension) \u2014 Optimized for high-write ingestion of time-series sensor data with native support for complex continuous aggregates and retention policies.",
+    "cache": "RocksDB embedded cache \u2014 Allows for sub-millisecond key-value lookups of sensor calibration coefficients directly on the edge device.",
+    "message_broker": "ZeroMQ (ZMQ) \u2014 Supports the specific push/pull and pub/sub patterns required for distributing high-frequency data streams to multiple analysis nodes without a central broker bottleneck.",
+    "special_services": [
+      "Adaptive Wavelet Transform De-noising Engine",
+      "Hydraulic-Dynamic Gas Migration Simulator"
+    ]
+  },
+  "compliance_flags": [
+    "API 653 Well Integrity Management",
+    "IEC 61508 SIL-3 Functional Safety Standard"
+  ]
+}

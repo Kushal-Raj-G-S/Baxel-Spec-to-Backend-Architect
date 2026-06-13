@@ -1,0 +1,37 @@
+{
+  "archetype": "Automated Tissue Banking and Histocompatibility Testing Management System for Corneal Transplantation",
+  "domain": "Ophthalmic Tissue Banking and Transplantation",
+  "description": "This system manages the collection, processing, storage, and distribution of donated corneal tissue for transplantation, while ensuring histocompatibility testing and adherence to FDA regulations. It is used by tissue bank personnel, surgeons, and researchers. Technical challenges arise from integrating with laboratory information systems, managing complex tissue matching algorithms, and ensuring regulatory compliance.",
+  "rules": [
+    "MUST integrate with laboratory information systems (LIS) for automated testing result retrieval and update",
+    "MUST comply with FDA regulations for human tissue donation and transplantation (21 CFR Part 1271)",
+    "MUST implement histocompatibility testing using HLA typing and cross-matching protocols",
+    "MUST track and manage tissue storage and distribution, including cryopreservation and thawing procedures",
+    "MUST ensure secure and auditable electronic records and signatures (ER/ES) for regulatory compliance"
+  ],
+  "anti_patterns": [
+    "DO NOT use a generic inventory management system, as it will not account for tissue-specific handling and testing requirements",
+    "DO NOT rely solely on manual data entry, as it will introduce errors and compromise data integrity",
+    "DO NOT neglect to implement robust security measures, as sensitive donor and recipient information must be protected"
+  ],
+  "key_technical_challenges": [
+    "Developing a tissue matching algorithm that accounts for multiple HLA loci and antigen mismatching",
+    "Integrating with diverse laboratory information systems and instrumentation",
+    "Ensuring secure and auditable electronic records and signatures (ER/ES) for regulatory compliance"
+  ],
+  "recommended_stack": {
+    "language": "Python, due to its extensive libraries for scientific computing and data analysis",
+    "framework": "Django, for its robust security features and support for complex data models",
+    "database_engine": "PostgreSQL, for its ability to handle complex queries and ensure data integrity",
+    "cache": "Redis, for its high-performance caching and support for real-time data updates",
+    "message_broker": "RabbitMQ, for its reliable message queuing and support for distributed systems",
+    "special_services": [
+      "HLA typing and cross-matching services",
+      "Cryopreservation and thawing services"
+    ]
+  },
+  "compliance_flags": [
+    "21 CFR Part 1271",
+    "HIPAA"
+  ]
+}

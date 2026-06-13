@@ -1,0 +1,37 @@
+{
+  "archetype": "Automated Ocean Fertilization Monitoring and Carbon Sequestration Tracking System for Phytoplankton-Based Climate Mitigation",
+  "domain": "Ocean Fertilization and Climate Change Mitigation",
+  "description": "This system monitors and tracks the effects of ocean fertilization on phytoplankton growth, carbon sequestration, and ocean chemistry, providing insights for climate change mitigation strategies. It is used by oceanographers, climate scientists, and policymakers to inform large-scale ocean fertilization efforts. The system must handle complex data from various sources, including satellite imagery, autonomous underwater vehicles, and sensor arrays.",
+  "rules": [
+    "MUST integrate with NASA's Ocean Color Web service to retrieve satellite-derived phytoplankton biomass data",
+    "MUST comply with the International Maritime Organization's (IMO) regulations on ocean fertilization",
+    "MUST support data ingestion from autonomous underwater vehicles (AUVs) and sensor arrays",
+    "MUST implement data quality control and validation procedures to ensure accuracy of carbon sequestration estimates",
+    "MUST provide real-time alerts and notifications for changes in ocean chemistry and phytoplankton growth"
+  ],
+  "anti_patterns": [
+    "DO NOT assume uniform phytoplankton growth patterns across different ocean regions",
+    "DO NOT neglect to account for ocean currents and mixing in carbon sequestration estimates",
+    "DO NOT use simplistic models that fail to capture complex interactions between phytoplankton, nutrients, and ocean chemistry"
+  ],
+  "key_technical_challenges": [
+    "Integrating diverse data sources with varying spatial and temporal resolutions",
+    "Developing accurate models of phytoplankton growth and carbon sequestration under different ocean conditions",
+    "Ensuring data quality and validation procedures to support reliable climate change mitigation strategies"
+  ],
+  "recommended_stack": {
+    "language": "Python + extensive libraries for data analysis and scientific computing",
+    "framework": "Flask + support for real-time data ingestion and API-based data exchange",
+    "database_engine": "PostgreSQL + support for spatial data types and queries",
+    "cache": "Redis + fast data retrieval and caching for real-time applications",
+    "message_broker": "Apache Kafka + support for high-throughput data ingestion and processing",
+    "special_services": [
+      "NASA Ocean Color Web service",
+      "Autonomous Underwater Vehicle (AUV) data integration"
+    ]
+  },
+  "compliance_flags": [
+    "IMO Ocean Fertilization Regulations",
+    "NASA Data Sharing and Access Policy"
+  ]
+}

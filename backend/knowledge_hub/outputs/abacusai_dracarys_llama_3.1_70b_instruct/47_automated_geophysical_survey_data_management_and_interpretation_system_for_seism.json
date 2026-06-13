@@ -1,0 +1,37 @@
+{
+  "archetype": "Automated Geophysical Survey Data Management and Interpretation System for Seismic Exploration in Arctic Regions",
+  "domain": "Offshore Seismic Exploration",
+  "description": "This system is used by geophysicists and seismic interpreters to manage, process, and interpret large datasets of seismic survey data collected in Arctic regions. The system must account for the unique challenges of Arctic exploration, including extreme weather conditions, remote data collection, and the need for real-time data processing. The system's complexity lies in its ability to handle large datasets, integrate with various seismic acquisition systems, and provide accurate interpretations of the data.",
+  "rules": [
+    "MUST conform to the SEG-Y format for seismic data storage and exchange",
+    "MUST integrate with various seismic acquisition systems, such as nodal and cable-based systems",
+    "MUST account for the effects of ice and weather conditions on seismic data quality",
+    "MUST provide real-time data processing and visualization capabilities",
+    "MUST ensure data security and compliance with regulatory requirements for Arctic exploration"
+  ],
+  "anti_patterns": [
+    "DO NOT assume a traditional, land-based seismic exploration workflow, as Arctic operations require unique considerations",
+    "DO NOT neglect to account for the effects of ice and weather conditions on seismic data quality",
+    "DO NOT use a generic data management system, as seismic data requires specialized processing and interpretation"
+  ],
+  "key_technical_challenges": [
+    "Handling large datasets and high-performance computing requirements",
+    "Integrating with various seismic acquisition systems and data formats",
+    "Providing accurate interpretations of seismic data in real-time"
+  ],
+  "recommended_stack": {
+    "language": "Python + extensive libraries for scientific computing and data analysis",
+    "framework": "Django + scalable and secure architecture for data management",
+    "database_engine": "PostgreSQL + support for large datasets and spatial data",
+    "cache": "Redis + high-performance caching for real-time data processing",
+    "message_broker": "RabbitMQ + scalable messaging for data integration and processing",
+    "special_services": [
+      "Seismic data processing libraries (e.g. SeisPy)",
+      "Geographic information system (GIS) integration"
+    ]
+  },
+  "compliance_flags": [
+    "Arctic Council regulations",
+    "SEG-Y format compliance"
+  ]
+}

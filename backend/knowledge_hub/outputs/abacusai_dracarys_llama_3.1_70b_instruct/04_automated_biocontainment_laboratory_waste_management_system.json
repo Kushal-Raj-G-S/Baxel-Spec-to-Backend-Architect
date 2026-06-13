@@ -1,0 +1,37 @@
+{
+  "archetype": "Automated Biocontainment Laboratory Waste Management System",
+  "domain": "Biosafety and Biosecurity Research Facilities",
+  "description": "This system manages and tracks the disposal of biohazardous waste from high-containment laboratories, ensuring compliance with biosafety regulations and minimizing the risk of exposure to pathogens. Researchers and laboratory staff use the system to label, track, and dispose of waste in accordance with strict protocols. The system must integrate with various laboratory equipment and software, such as autoclaves and inventory management systems.",
+  "rules": [
+    "MUST adhere to the Centers for Disease Control and Prevention (CDC) guidelines for biohazardous waste management",
+    "MUST integrate with laboratory information management systems (LIMS) for tracking and inventory management",
+    "MUST support barcode scanning and RFID tagging for accurate waste identification and tracking",
+    "MUST provide real-time monitoring and alerts for temperature and humidity control in waste storage areas",
+    "MUST ensure compliance with the Occupational Safety and Health Administration (OSHA) regulations for biohazardous waste handling"
+  ],
+  "anti_patterns": [
+    "DO NOT use a generic waste management system, as it may not meet the specific biosafety and biosecurity requirements of high-containment laboratories",
+    "DO NOT neglect to integrate with laboratory equipment and software, which can lead to errors and non-compliance",
+    "DO NOT underestimate the importance of user training and adoption, as the system's effectiveness relies on accurate usage"
+  ],
+  "key_technical_challenges": [
+    "Developing a system that can accurately track and manage biohazardous waste in real-time, while ensuring compliance with complex regulations",
+    "Integrating with various laboratory equipment and software, such as autoclaves and LIMS",
+    "Implementing robust security measures to prevent unauthorized access and ensure data integrity"
+  ],
+  "recommended_stack": {
+    "language": "Python, due to its extensive libraries and frameworks for scientific computing and data analysis",
+    "framework": "Flask, for its lightweight and flexible architecture, suitable for integrating with laboratory equipment and software",
+    "database_engine": "PostgreSQL, for its robust support for data integrity and security features",
+    "cache": "Redis, for its high-performance caching capabilities",
+    "message_broker": "RabbitMQ, for its reliable and scalable message queuing",
+    "special_services": [
+      "Laboratory information management system (LIMS) integration",
+      "Barcode scanning and RFID tagging"
+    ]
+  },
+  "compliance_flags": [
+    "CDC guidelines for biohazardous waste management",
+    "OSHA regulations for biohazardous waste handling"
+  ]
+}

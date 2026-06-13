@@ -1,0 +1,38 @@
+{
+  "archetype": "In-Vivo Neuro-Farmacokinetic Gradient & Seizure Onset Latency Predictor for Closed-Loop DBS",
+  "domain": "Clinical Neuroscience & Implantable Neurotechnology",
+  "description": "This system orchestrates real-time data fusion from subdural grid electrodes and intracranial micro-dialysis sensors to predict seizure onset by modeling the spatial diffusion of anti-epileptic drugs against local field potential (LFP) biomarkers. It is used by neurosurgeons and epileptologists to dynamically adjust Deep Brain Stimulation (DBS) parameters and infusion rates, requiring the integration of fluid dynamics simulations with millisecond-level electrophysiology streams.",
+  "rules": [
+    "MUST adhere to IEC 60601-1-8 for medical alarm system priority classification and delay limits (max 200ms latency from detection to alert).",
+    "MUST implement AES-256 encryption with hardware-bound keys for all telemetry streams to comply with FDA 21 CFR Part 820 (QSR) and HIPAA secure transmission requirements.",
+    "MUST process data in strict FIFO order without jitter, as out-of-order packet arrival corrupts the temporal phase-locking analysis required for seizure detection.",
+    "MUST support offline-first operation with local buffering of at least 72 hours of raw data in case of intermittent wireless telemetry loss in shielded MRI/CT environments.",
+    "MUST utilize deterministic real-time scheduling (e.g., PREEMPT_RT or Xenomai) to guarantee sub-millisecond interrupt handling for the FPGA-accelerated signal digitization chain."
+  ],
+  "anti_patterns": [
+    "DO NOT use event-driven asynchronous architectures that rely on garbage collection for core signal processing loops, as GC pauses can mimic or mask pathological neural spikes.",
+    "DO NOT rely on cloud-based inference for immediate seizure termination logic due to network latency variability; all critical loop closure must occur at the edge on the implantable device.",
+    "DO NOT aggregate data into standard time-series buckets (e.g., 1-second windows) before analysis, as this destroys the high-frequency gamma-band oscillations critical for early seizure prediction."
+  ],
+  "key_technical_challenges": [
+    "Synchronizing heterogeneous sensor clocks (\u00b5s-resolution LFP vs. ms-resolution chemical diffusion sensors) across a noisy, high-interference physiological environment.",
+    "Running computationally intensive partial differential equation (PDE) solvers for drug diffusion modeling on embedded ARM Cortex-M7 hardware with 512KB SRAM.",
+    "Filtering motion artifacts and cardiac pulse interference from intracranial recordings without removing the low-amplitude, high-frequency biomarkers of interest."
+  ],
+  "recommended_stack": {
+    "language": "Rust (with `no_std` support) \u2014 Provides memory safety guarantees and deterministic execution without a garbage collector for embedded neural hardware.",
+    "framework": "Zephyr RTOS \u2014 Offers certified real-time kernel modules and pre-built drivers for medical-grade ADCs and Bluetooth LE medical profiles.",
+    "database_engine": "TimeScaleDB (for on-prem clinician workstation) + Custom Embedded Ring Buffer (for device) \u2014 TimeScale handles complex SQL queries on long-term trends; Ring Buffer ensures zero-copy, low-latency ingestion on the device.",
+    "cache": "LMDB (Lightning Memory-Mapped Database) \u2014 Allows high-speed, zero-copy read access to transient physiological state snapshots without locking overhead.",
+    "message_broker": "MQTT-SN (MQTT for Sensor Networks) \u2014 Optimized for low-power, low-bandwidth wireless telemetry from implantable devices.",
+    "special_services": [
+      "FPGA-accelerated Artifact Rejection Engine (HDL/Verilog)",
+      "Physiological Digital Twin Simulator for Drug Diffusion Verification"
+    ]
+  },
+  "compliance_flags": [
+    "FDA 510(k) Premarket Notification",
+    "IEC 62304 Medical Device Software Life Cycle Processes",
+    "ISO 14971 Risk Management for Medical Devices"
+  ]
+}

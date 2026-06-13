@@ -1,0 +1,37 @@
+{
+  "archetype": "Automated High-Pressure Gas Pipeline Integrity Monitoring and Leak Detection System for Arctic LNG Transport",
+  "domain": "Arctic LNG Pipeline Operations",
+  "description": "This system monitors and detects leaks in high-pressure gas pipelines transporting liquefied natural gas (LNG) in Arctic environments, ensuring the safety of personnel and the environment. Operators use this system to predict and prevent pipeline failures. The system must handle harsh Arctic conditions, complex pipeline geometry, and real-time sensor data.",
+  "rules": [
+    "MUST comply with API 1160 standards for pipeline integrity management",
+    "MUST integrate with existing SCADA systems for real-time pipeline monitoring",
+    "MUST account for cryogenic temperatures and ice formation on pipeline surfaces",
+    "MUST use machine learning algorithms to detect anomalies in pipeline sensor data",
+    "MUST generate reports for regulatory compliance with the Pipeline Safety Act"
+  ],
+  "anti_patterns": [
+    "DO NOT use a generic data analytics platform without domain-specific customization",
+    "DO NOT ignore the impact of ice and snow on pipeline sensor readings",
+    "DO NOT fail to account for the effects of permafrost on pipeline integrity"
+  ],
+  "key_technical_challenges": [
+    "Developing a robust and accurate leak detection algorithm for complex pipeline geometries",
+    "Integrating with existing SCADA systems and sensor infrastructure",
+    "Handling the challenges of cryogenic temperatures and ice formation on pipeline surfaces"
+  ],
+  "recommended_stack": {
+    "language": "Python, due to its extensive libraries for data analysis and machine learning",
+    "framework": "Flask, for building a robust and scalable web application",
+    "database_engine": "PostgreSQL, for handling large amounts of sensor data and spatial pipeline geometry",
+    "cache": "Redis, for caching frequently accessed pipeline data",
+    "message_broker": "Apache Kafka, for handling high-volume sensor data streams",
+    "special_services": [
+      "Weather API for integrating environmental data",
+      "GIS services for spatial pipeline analysis"
+    ]
+  },
+  "compliance_flags": [
+    "API 1160",
+    "Pipeline Safety Act"
+  ]
+}

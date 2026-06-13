@@ -1,0 +1,39 @@
+{
+  "archetype": "Aerospace Composite Wing Spar Alignment and Verification System",
+  "domain": "Aerospace Precision Manufacturing",
+  "description": "Real-time system guiding the alignment of carbon-fiber wing spars during aircraft assembly using laser tracker metrology, calculating micro-tolerance adjustments for CNC drilling machines, and generating immutable NADCAP audit trails for every fastener hole location.",
+  "rules": [
+    "MUST adhere to AS9100 Rev G quality management data integrity requirements and ISO 10360-2 laser tracker accuracy standards.",
+    "MUST consume and produce DMIS (Dimensional Measuring Interface Standard) inspection programs and I++ metrology data exchange format.",
+    "MUST enforce deterministic response latency (<50ms) for closed-loop machine control signals during alignment sequences.",
+    "MUST maintain a cryptographically signed chain-of-custody for all alignment and drilling event logs for 30+ years per FAA/EASA retention rules.",
+    "MUST integrate with factory MES (Manufacturing Execution System) via OPC-UA for work order state and tool status."
+  ],
+  "anti_patterns": [
+    "DO NOT use a generic CAD viewer for alignment guidance\u2014it lacks real-time metrology device protocol integration (e.g., Leica AT960 API) and tolerance stack analysis.",
+    "DO NOT process alignment data in batch\u2014micro-adjustments require sub-second sensor fusion from multiple trackers to compensate for thermal drift.",
+    "DO NOT store metrology data in a schemaless NoSQL DB\u2014regulatory audits require strict relational schema for traceability of every co-ordinate datum."
+  ],
+  "key_technical_challenges": [
+    "Fusing asynchronous data streams from 3+ laser trackers into a single, real-time coordinate system with <0.05mm global uncertainty in a 30m assembly jig.",
+    "Implementing a deterministic interpreter for DMIS inspection programs that can generate machine-specific G-code offsets on-the-fly without violating kinematic constraints of the drilling robot.",
+    "Modeling and compensating for thermally-induced jig distortion (0.1-0.3mm) using embedded fiber Bragg grating sensor arrays and finite element analysis snapshots in the control loop."
+  ],
+  "recommended_stack": {
+    "language": "C++17/20 \u2014 for deterministic real-time control loops and hardware driver integration with zero-GC pauses.",
+    "framework": "ROS 2 Humble (with custom real-timeexecutor) \u2014 provides standardized middleware for sensor fusion and machine communication, but requires hard real-time kernel patches.",
+    "database_engine": "PostgreSQL 15 (with pgcrypto and TimescaleDB extension) \u2014 for ACID-compliant audit logs and time-series metrology data with regulatory-grade WAL archiving.",
+    "cache": "Redis 7 (with RedisTimeSeries) \u2014 for sub-millisecond access to current alignment state and jig distortion models across multiple service instances.",
+    "message_broker": "RabbitMQ with quorum queues \u2014 guaranteed delivery of critical alignment event messages between metrology and control services, with dead-letter queues for audit.",
+    "special_services": [
+      "DMIS-to-G-Code Transpiler Service",
+      "Thermal Distortion Compensation Microservice (integrates ANSYS MAPDL models)",
+      "NADCAP Evidence Package Generator"
+    ]
+  },
+  "compliance_flags": [
+    "AS9100 Rev G (Aerospace QMS)",
+    "ITAR (International Traffic in Arms Regulations) - for technical data",
+    "FAA 14 CFR Part 43 (Maintenance, Preventive Maintenance, Rebuilding, and Alteration)"
+  ]
+}

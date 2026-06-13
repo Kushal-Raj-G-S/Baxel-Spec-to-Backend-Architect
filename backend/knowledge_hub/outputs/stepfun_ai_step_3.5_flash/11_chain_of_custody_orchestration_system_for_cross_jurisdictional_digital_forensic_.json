@@ -1,0 +1,40 @@
+{
+  "archetype": "Chain of Custody Orchestration System for Cross-Jurisdictional Digital Forensic Evidence",
+  "domain": "Forensic Science and Legal Technology",
+  "description": "This system manages the immutable, auditable lifecycle of digital evidence (e.g., disk images, mobile dumps, cloud data) from seizure to courtroom presentation across multiple legal jurisdictions. It integrates directly with hardware write-blockers and forensic tool suites (e.g., EnCase, FTK) to auto-capture hashes (SHA-256, MD5) and metadata, while enforcing jurisdiction-specific legal hold rules and chain of custody protocols in real-time.",
+  "rules": [
+    "MUST enforce ISO/IEC 27037:2012 standards for evidence identification, collection, and acquisition.",
+    "MUST generate a cryptographically signed, append-only audit log for every evidence access or transfer event, adhering to jurisdictional Federal Rules of Evidence (e.g., FRE 901) for authenticity.",
+    "MUST support hardware integration via standardized protocols like AFF (Advanced Forensic Format) libewf for disk imaging and vendor-specific SDKs for mobile device extraction tools.",
+    "MUST implement geofenced data residency and access controls that dynamically vary based on the evidence's current legal jurisdiction and associated case status.",
+    "MUST validate evidence integrity at every handoff step using pre-image resistant hash comparisons and timestamping via a trusted third-party time-stamping authority (TSA)."
+  ],
+  "anti_patterns": [
+    "DO NOT use mutable database records for custody events\u2014a single overwrite invalidates the entire legal chain and renders evidence inadmissible.",
+    "DO NOT implement a centralized global storage model without region-specific replication; cross-border data transfer laws (like GDPR Chapter V) willblock evidence movement and cause case delays.",
+    "DO NOT ignore variance in legal hold procedures between jurisdictions (e.g., US vs. EU vs. UK); a one-size-fits-all workflow will violate local court rules and lead to sanctions."
+  ],
+  "key_technical_challenges": [
+    "Achieving sub-second, globally consistent synchronization of custody events across distributed regions while maintaining linearizable integrity for audit trails under network partitions.",
+    "Preserving and verifying embedded metadata (EXIF, file system timestamps, artifact timestamps) that is often altered by standard file transfer protocols or OS mounting.",
+    "Scaling ingest and hash verification for multi-terabyte evidence packages (e.g., full server raids) without creating forensic tool performance bottlenecks during acquisition."
+  ],
+  "recommended_stack": {
+    "language": "Rust - provides memory safety and zero-cost abstractions critical for low-level hardware interaction and cryptographic operations.",
+    "framework": "Actix Web - high-performance, actor-based model suits the async, event-driven nature of custody event processing and hardware integration.",
+    "database_engine": "PostgreSQL with TimescaleDB extension - ACID compliance for audit trails, plus efficient time-series storage for chain-of-custody event chronology.",
+    "cache": "Redis with RedisGears - for low-latency, in-memory state of active evidence items during multi-step handoffs and jurisdiction validation.",
+    "message_broker": "Apache Kafka - guaranteed ordering and replayability for custody events from distributed forensic workstations and hardware interfaces.",
+    "special_services": [
+      "Hardware Write-Blocker Proxy Service (vendor SDK wrappers)",
+      "Cryptographic Evidence Vault Service (hardware security module (HSM) backed key management)",
+      "Jurisdictional Rules Engine (compiles local court rules into runtime workflow policies)"
+    ]
+  },
+  "compliance_flags": [
+    "Federal Rules of Evidence (FRE) 901 & 702",
+    "ISO/IEC 27037:2012",
+    "GDPR Chapter V (International Transfers)",
+    "LOCAL_JURISDICTION_RULES (dynamic per-case flag)"
+  ]
+}

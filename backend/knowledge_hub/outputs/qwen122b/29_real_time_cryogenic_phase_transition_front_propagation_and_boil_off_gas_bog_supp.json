@@ -1,0 +1,38 @@
+{
+  "archetype": "Real-Time Cryogenic Phase-Transition Front Propagation & Boil-Off Gas (BOG) Suppression Controller for Orbital Liquid Hydrogen Depot in LEO",
+  "domain": "In-Space Propellant Logistics & Cryogenic Fluid Dynamics",
+  "description": "A deterministic control system that orchestrates helium pressurization and active thermal shield actuation to maintain liquid hydrogen (LH2) in a zero-gravity orbital depot, preventing propellant loss via boil-off and ensuring correct phase distribution for subsequent engine refueling. It is used by autonomous satellite tugs and ground-based orbital traffic controllers, requiring sub-millisecond latency to react to micro-vibrations and solar flare thermal spikes while managing multi-phase fluid dynamics in a vacuum.",
+  "rules": [
+    "MUST implement control loops compliant with ECSS-E-ST-31C (Thermal Control) and ECSS-Q-ST-80C (On-Orbit Software) standards for spaceflight software.",
+    "MUST interface with radiation-hardened sensors via MIL-STD-1553B or SpaceWire protocols with built-in ECC error correction for telemetry.",
+    "MUST utilize non-linear Model Predictive Control (MPC) to solve Navier-Stokes equations for sloshing and phase-change boundaries in simulated zero-G environments.",
+    "MUST enforce a 'Fail-Safe' logic where any sensor disagreement triggers an immediate passive thermal venting sequence to prevent tank over-pressurization.",
+    "MUST integrate real-time solar X-ray flux data from NOAA SWPC APIs to dynamically adjust active cooling loads before thermal saturation occurs."
+  ],
+  "anti_patterns": [
+    "DO NOT use standard REST/HTTP APIs for control loops, as network latency variances in deep-space communication (1+ seconds RTT) will cause catastrophic oscillation in cryogenic pressure regulation.",
+    "DO NOT rely on cloud-based machine learning models for immediate actuator adjustments; all critical decision logic must be hardened and onboard to handle space radiation bit-flips without external dependency.",
+    "DO NOT assume constant atmospheric pressure or gravity; standard fluid dynamics libraries that ignore surface tension dominance in micro-gravity will yield physically impossible simulation results."
+  ],
+  "key_technical_challenges": [
+    "Modeling and predicting the complex interaction between ullage gas expansion and liquid hydrogen stratification in the absence of convection currents.",
+    "Implementing fault-tolerant state estimation algorithms that can distinguish between sensor failure due to cosmic ray strikes and genuine cryogenic fluid anomalies.",
+    "Optimizing the energy budget for active cryocoolers against the severe constraints of solar power availability during eclipse orbits."
+  ],
+  "recommended_stack": {
+    "language": "Rust (with no_std support) for memory safety and deterministic execution in a resource-constrained, radiation-hardened environment.",
+    "framework": "OrcV2 (Onboard Real-time Control) or a custom FreesRTOS port with zero-dynamic memory allocation guarantees.",
+    "database_engine": "SQLite with Write-Ahead Logging (WAL) configured for flash-memory endurance and atomic transaction recovery against power cycles.",
+    "cache": null,
+    "message_broker": "DDS (Data Distribution Service) with Real-Time Publish-Subscribe profile for low-latency sensor-to-actuator communication.",
+    "special_services": [
+      "Zero-G Fluid Dynamics Solver (C++/CUDA offload)",
+      "Radiation Event Counter and State Machine"
+    ]
+  },
+  "compliance_flags": [
+    "ECSS-E-ST-01C (Space Engineering) - General System",
+    "NASA NPR 8705.4 (Risk Classification for NASA Missions)",
+    "FCC Part 25 (Satellite Communications)"
+  ]
+}

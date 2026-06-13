@@ -1,0 +1,38 @@
+{
+  "archetype": "Real-Time Subsurface Void Collapse Probability & Seismic Micro-Tremor Correlation Engine for Longwall Mining Face Advancement",
+  "domain": "Deep-Bed Coal Mining Geomechanics",
+  "description": "A low-latency inference system that ingests high-frequency micro-seismic data from downhole geophones and roof bolt stress sensors to predict immediate roof collapse risks during longwall shearer operations. It correlates real-time ground vibration signatures with historical geomechanical models to trigger automated hydraulic shield retraction and personnel evacuation protocols within 500ms. The system operates in extreme dusty, high-vibration environments with strict safety-critical latency requirements where false positives halt production and false negatives cause fatalities.",
+  "rules": [
+    "MUST adhere to MSHA (Mine Safety and Health Administration) Part 77.1501 safety critical latency constraints, ensuring alert generation occurs within 500ms of threshold breach.",
+    "MUST process data streams adhering to SEED (Standard for the Exchange of Earthquake Data) format while synchronizing with proprietary Shearer Positioning System (SPS) CAN bus telemetry.",
+    "MUST implement deterministic real-time scheduling (e.g., Xenomai or RTAI) to guarantee thread execution priority over non-safety critical logging tasks.",
+    "MUST incorporate 'Air Gap' validation logic where all sensor readings are cryptographically signed to prevent tampering in potentially hostile union-management dispute scenarios.",
+    "MUST utilize edge-computing models that function autonomously for 48+ hours with zero connectivity to surface servers, syncing only upon safe emergence."
+  ],
+  "anti_patterns": [
+    "DO NOT use cloud-native serverless architectures for the primary inference loop, as network latency and availability in deep underground shafts (2km+) are non-deterministic and fatal to safety.",
+    "DO NOT rely on asynchronous batch processing for stress accumulation models, as the time-lag between seismic event and collapse can be seconds, not minutes.",
+    "DO NOT implement generic 'average-based' anomaly detection, as geological events are non-stationary and require time-series fractal dimension analysis to distinguish between drilling noise and structural failure."
+  ],
+  "key_technical_challenges": [
+    "Synchronizing clock drift between independent sensor nodes (geophones, stress cells, laser ranging) located kilometers apart in non-GPS environments to sub-millisecond precision.",
+    "Filtering high-amplitude industrial noise from the shearer cutting head (1000+ Hz) from the subtle micro-tremors (1-100 Hz) indicative of roof strata failure without losing signal integrity.",
+    "Running complex spatial-temporal correlation algorithms on ruggedized, low-power industrial hardware with strict thermal dissipation limits in a 45\u00b0C+ environment."
+  ],
+  "recommended_stack": {
+    "language": "Rust \u2014 Provides memory safety guarantees without a garbage collector, ensuring deterministic real-time performance critical for safety shutdowns.",
+    "framework": "Actix-web (embedded mode) or custom RTOS task scheduler \u2014 Allows for fine-grained control over thread priorities and preemption.",
+    "database_engine": "TimescaleDB (running locally on edge node) \u2014 Optimized for heavy write throughput of time-series sensor data with efficient compression for offline storage.",
+    "cache": "Redis (ephemeral mode) \u2014 Used only for in-flight state buffering between sensor ingestion and model inference.",
+    "message_broker": "ZeroMQ (REQ/REP pattern) \u2014 Chosen for its ability to operate over unreliable UDP/TCP connections with built-in reconnection logic in high-loss networks.",
+    "special_services": [
+      "Fractal Dimension Calculator for Strata Stability",
+      "Automated Hydraulic Shield Actuation Interface"
+    ]
+  },
+  "compliance_flags": [
+    "MSHA 30 CFR Part 75",
+    "IEC 61508 SIL 3",
+    "ATEX Zone 1 Certification"
+  ]
+}

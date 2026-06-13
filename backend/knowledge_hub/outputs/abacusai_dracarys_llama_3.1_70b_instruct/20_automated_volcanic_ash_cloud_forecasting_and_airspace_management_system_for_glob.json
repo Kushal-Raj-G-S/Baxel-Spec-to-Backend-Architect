@@ -1,0 +1,37 @@
+{
+  "archetype": "Automated Volcanic Ash Cloud Forecasting and Airspace Management System for Global Air Traffic Control",
+  "domain": "Volcanic Ash Cloud Monitoring and Air Traffic Control",
+  "description": "This system forecasts volcanic ash cloud trajectories and provides real-time airspace management recommendations to air traffic controllers, ensuring safe flight routing and minimizing disruptions. It integrates data from satellite imagery, weather models, and ground-based sensors to predict ash cloud dispersion. The system must meet strict compliance standards for aviation safety and accuracy.",
+  "rules": [
+    "MUST integrate with the Volcanic Ash Advisory Center (VAAC) protocol for ash cloud reporting",
+    "MUST comply with International Civil Aviation Organization (ICAO) standards for airspace management",
+    "MUST incorporate data from multiple satellite systems, including GOES and Meteosat",
+    "MUST account for wind patterns and atmospheric conditions using Weather Research and Forecasting (WRF) models",
+    "MUST provide real-time updates to air traffic control systems, such as the Air Traffic Control System Command Center (ATCSCC)"
+  ],
+  "anti_patterns": [
+    "DO NOT rely solely on historical ash cloud data, as volcanic eruptions can be highly unpredictable",
+    "DO NOT neglect to account for the impact of ash clouds on aircraft engines and safety",
+    "DO NOT overlook the need for high-performance computing to handle large datasets and complex simulations"
+  ],
+  "key_technical_challenges": [
+    "Developing accurate ash cloud forecasting models that account for complex atmospheric conditions",
+    "Integrating data from multiple sources, including satellite imagery, ground-based sensors, and weather models",
+    "Providing real-time updates to air traffic control systems while meeting strict safety and accuracy standards"
+  ],
+  "recommended_stack": {
+    "language": "Python, due to its extensive libraries for scientific computing and data analysis",
+    "framework": "Django, for its robust support for real-time data processing and integration with external systems",
+    "database_engine": "PostgreSQL, for its ability to handle large spatial datasets and support for advanced querying",
+    "cache": "Redis, for its high-performance caching capabilities",
+    "message_broker": "Apache Kafka, for its fault-tolerant and scalable message handling",
+    "special_services": [
+      "NASA's Land, Atmosphere Near real-time Capability for EOS (LANCE) API",
+      "European Centre for Medium-Range Weather Forecasts (ECMWF) API"
+    ]
+  },
+  "compliance_flags": [
+    "ICAO Annex 3",
+    "FAA Order 8900.1"
+  ]
+}

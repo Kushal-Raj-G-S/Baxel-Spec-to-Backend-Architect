@@ -13,8 +13,35 @@ export default function AuthCallbackPage() {
     const run = async () => {
       const currentUrl = new URL(window.location.href);
       const code = currentUrl.searchParams.get("code");
+      const authError = currentUrl.searchParams.get("error");
+      const authErrorDescription = currentUrl.searchParams.get("error_description");
 
-      if (code) {
+      if (authError) {
+        setErrorMessage(authErrorDescription || authError);
+        return;
+      }
+
+      // Some providers return tokens in URL hash instead of auth code.
+      if (window.location.hash) {
+        const hashParams = new URLSearchParams(window.location.hash.slice(1));
+        const accessToken = hashParams.get("access_token");
+        const refreshToken = hashParams.get("refresh_token");
+
+        if (accessToken && refreshToken) {
+          const { error: setSessionError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          if (setSessionError) {
+            setErrorMessage(setSessionError.message);
+            return;
+          }
+        }
+      }
+
+      // If detectSessionInUrl already completed, avoid re-exchanging the code.
+      const { data: existingSessionData } = await supabase.auth.getSession();
+      if (!existingSessionData.session && code) {
         const { error } = await supabase.auth.exchangeCodeForSession(code);
         if (error) {
           setErrorMessage(error.message);
@@ -24,7 +51,9 @@ export default function AuthCallbackPage() {
 
       const { data } = await supabase.auth.getSession();
       if (!data.session) {
-        setErrorMessage("No session found after callback. Check Supabase redirect URLs.");
+        setErrorMessage(
+          `No session found after callback. Add ${window.location.origin}/auth/callback to Supabase Auth redirect URLs.`
+        );
         return;
       }
 

@@ -1,0 +1,37 @@
+{
+  "archetype": "Automated Marine Debris Tracking and Removal Vessel Dispatch System",
+  "domain": "Marine Conservation and Waste Management",
+  "description": "This system tracks marine debris in oceans and dispatches removal vessels to collect and process the waste, using satellite imagery, ocean currents, and weather patterns to optimize routes and minimize costs. Marine conservation organizations and government agencies use this system to reduce the environmental impact of marine pollution. The system must comply with international maritime laws and regulations, such as the International Convention for the Prevention of Pollution from Ships (MARPOL).",
+  "rules": [
+    "MUST integrate with satellite imagery providers, such as Planet Labs or DigitalGlobe, to receive regular updates on marine debris locations",
+    "MUST use ocean current and weather forecasting data from sources like the National Oceanic and Atmospheric Administration (NOAA) to predict debris movement and optimize vessel routes",
+    "MUST comply with MARPOL regulations for waste collection and disposal at sea",
+    "MUST interface with vessel tracking systems, such as the Automatic Identification System (AIS), to monitor vessel locations and status",
+    "MUST implement data encryption and access controls to protect sensitive information on marine debris locations and vessel operations"
+  ],
+  "anti_patterns": [
+    "DO NOT use a generic mapping library, as it may not account for the complexities of ocean currents and marine debris movement",
+    "DO NOT rely solely on manual data entry for vessel tracking and marine debris reporting, as it may lead to inaccuracies and inefficiencies",
+    "DO NOT neglect to consider the environmental impact of vessel operations and waste collection methods"
+  ],
+  "key_technical_challenges": [
+    "Developing an algorithm to accurately predict marine debris movement and optimize vessel routes",
+    "Integrating with diverse data sources, such as satellite imagery, ocean currents, and weather patterns",
+    "Implementing a secure and scalable system to handle large amounts of data and vessel operations"
+  ],
+  "recommended_stack": {
+    "language": "Python + for its extensive libraries for scientific computing and data analysis",
+    "framework": "Flask + for building a scalable and secure web application",
+    "database_engine": "PostgreSQL + for its support for spatial data types and geographic information systems (GIS)",
+    "cache": "Redis + for caching frequently accessed data and improving system performance",
+    "message_broker": "RabbitMQ + for handling message queues and integrating with vessel tracking systems",
+    "special_services": [
+      "Satellite imagery API",
+      "Ocean current and weather forecasting API"
+    ]
+  },
+  "compliance_flags": [
+    "MARPOL",
+    "International Maritime Organization (IMO) regulations"
+  ]
+}

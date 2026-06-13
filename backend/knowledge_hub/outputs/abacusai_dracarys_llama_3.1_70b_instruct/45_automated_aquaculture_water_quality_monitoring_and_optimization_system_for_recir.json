@@ -1,0 +1,37 @@
+{
+  "archetype": "Automated Aquaculture Water Quality Monitoring and Optimization System for Recirculating Aquaculture Systems (RAS)",
+  "domain": "Aquaculture and Water Quality Management",
+  "description": "This system monitors and controls water quality in RAS facilities, ensuring optimal conditions for fish and shellfish growth. It integrates with sensors, pumps, and valves to adjust parameters such as pH, temperature, and oxygen levels. The system must account for complex water chemistry interactions and adhere to industry standards for aquatic animal welfare and environmental sustainability.",
+  "rules": [
+    "MUST comply with Global Aquaculture Alliance (GAA) Best Aquaculture Practices (BAP) standards for water quality management",
+    "MUST integrate with industry-standard sensors and equipment, such as pH probes and oxygen meters",
+    "MUST account for water chemistry interactions, including ammonia, nitrite, and nitrate levels",
+    "MUST adjust water treatment parameters in real-time based on sensor data and algorithmic models",
+    "MUST maintain a data repository for water quality trends and facility performance metrics"
+  ],
+  "anti_patterns": [
+    "DO NOT rely solely on manual sampling and testing, as this can lead to delayed detection of water quality issues",
+    "DO NOT neglect to account for the specific water chemistry requirements of different aquatic species",
+    "DO NOT ignore the impact of water treatment processes on the facility's energy consumption and environmental footprint"
+  ],
+  "key_technical_challenges": [
+    "Developing a robust and accurate water quality monitoring system that can handle variable sensor data and equipment failures",
+    "Creating a sophisticated control algorithm that can adjust water treatment parameters in real-time based on complex water chemistry interactions",
+    "Designing a data repository that can store and analyze large amounts of water quality data for trend analysis and facility performance metrics"
+  ],
+  "recommended_stack": {
+    "language": "Python + extensive libraries for scientific computing and data analysis",
+    "framework": "Flask + lightweight and flexible for real-time data processing",
+    "database_engine": "PostgreSQL + robust support for data modeling and querying",
+    "cache": "Redis + fast and efficient for caching sensor data and water quality metrics",
+    "message_broker": "RabbitMQ + reliable and scalable for integrating with sensors and equipment",
+    "special_services": [
+      "Aquaculture-specific data analytics service",
+      "Water treatment process optimization service"
+    ]
+  },
+  "compliance_flags": [
+    "Global Aquaculture Alliance (GAA) Best Aquaculture Practices (BAP) standards",
+    "National Oceanic and Atmospheric Administration (NOAA) guidelines for aquatic animal welfare"
+  ]
+}

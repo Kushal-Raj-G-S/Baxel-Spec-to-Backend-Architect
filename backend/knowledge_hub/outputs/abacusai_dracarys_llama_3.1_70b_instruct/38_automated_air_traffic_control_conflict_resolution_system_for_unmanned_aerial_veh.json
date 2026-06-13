@@ -1,0 +1,37 @@
+{
+  "archetype": "Automated Air Traffic Control Conflict Resolution System for Unmanned Aerial Vehicle (UAV) Operations",
+  "domain": "Air Traffic Control and Management",
+  "description": "This system detects and resolves potential conflicts between UAVs and manned aircraft in shared airspace, utilizing real-time data feeds from multiple sources, including radar, ADS-B, and UAV telemetry. Air traffic controllers and UAV operators use the system to ensure safe separation and efficient flight planning. The system must integrate with existing air traffic control infrastructure and adhere to strict safety and regulatory standards.",
+  "rules": [
+    "MUST integrate with the US Federal Aviation Administration's (FAA) System Wide Information Management (SWIM) data feed",
+    "MUST support the ICAO (International Civil Aviation Organization) standard for Automatic Dependent Surveillance-Broadcast (ADS-B)",
+    "MUST comply with the FAA's 14 CFR Part 107 regulations for small unmanned aircraft systems",
+    "MUST interface with the UAV's autopilot system using the MAVLink protocol",
+    "MUST provide real-time alerts and notifications to air traffic controllers and UAV operators via standardized protocols (e.g., ACARS, ATN-B1)"
+  ],
+  "anti_patterns": [
+    "DO NOT assume that all UAVs are equipped with ADS-B transponders \u2014 some may only have GPS and telemetry data",
+    "DO NOT rely solely on radar data for conflict detection \u2014 UAVs may not be visible on radar",
+    "DO NOT ignore the complexities of air traffic control procedures and protocols \u2014 the system must be designed in collaboration with air traffic control experts"
+  ],
+  "key_technical_challenges": [
+    "Real-time data integration and fusion from multiple sources with varying update rates and formats",
+    "Predictive modeling and conflict detection algorithms for safe separation of UAVs and manned aircraft",
+    "Scalability and performance to handle high volumes of air traffic and UAV operations"
+  ],
+  "recommended_stack": {
+    "language": "Rust \u2014 for its performance, reliability, and concurrency features, which are critical for real-time systems",
+    "framework": "Actix-web \u2014 for its support of WebSockets and real-time data streaming",
+    "database_engine": "TimescaleDB \u2014 for its optimized support of time-series data and high-performance querying",
+    "cache": "Redis \u2014 for its high-performance caching and pub/sub messaging capabilities",
+    "message_broker": "Apache Kafka \u2014 for its scalability and fault-tolerance in handling high-volume data streams",
+    "special_services": [
+      "FAA SWIM data feed",
+      "MAVLink protocol library"
+    ]
+  },
+  "compliance_flags": [
+    "14 CFR Part 107",
+    "ICAO Annex 11"
+  ]
+}

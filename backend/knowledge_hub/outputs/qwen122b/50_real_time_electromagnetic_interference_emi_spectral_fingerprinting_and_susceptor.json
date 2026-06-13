@@ -1,0 +1,38 @@
+{
+  "archetype": "Real-Time Electromagnetic Interference (EMI) Spectral Fingerprinting & Susceptor Localization Engine for Shielded Medical Device Maintenance",
+  "domain": "Clinical Biomedical Engineering & Electromagnetic Compatibility (EMC) Compliance",
+  "description": "A specialized system that ingests high-fidelity spectrum analyzer data from shielded rooms and MRI suites to automatically identify, classify, and geolocate microscopic electromagnetic interference sources that compromise sensitive life-support equipment. It is used by biomedical engineers and RF safety officers to diagnose intermittent device failures that standard multimeters miss, requiring real-time FFT processing of GHz-range signals against a database of known medical device emission signatures.",
+  "rules": [
+    "MUST process raw IQ (In-phase/Quadrature) data streams from Vector Signal Analyzers via SCPI or TCP/IP interfaces with sub-millisecond latency to capture transient RF bursts.",
+    "MUST strictly adhere to IEC 60601-1-2 (Medical electrical equipment - Electromagnetic compatibility) and FCC Part 15 Class A/B limits for emission thresholds.",
+    "MUST correlate spectral anomalies with facility power grid harmonics and HVAC vibration data to distinguish between external RF intrusion and internal ground-loop noise.",
+    "MUST implement cryptographic signing of all diagnostic logs to maintain chain-of-custody for regulatory audits and liability investigations.",
+    "MUST support dynamic frequency hopping algorithms to avoid false positives from legitimate diagnostic equipment (e.g., pulse oximeters) operating within the same frequency band."
+  ],
+  "anti_patterns": [
+    "DO NOT use simple threshold-based alerting; EMI is non-linear and requires probabilistic spectral pattern recognition to distinguish noise from critical interference.",
+    "DO NOT rely on asynchronous batch processing; transient RF events causing device malfunction last microseconds and require real-time stream processing.",
+    "DO NOT ignore the physical layer context; analyzing spectral data without mapping it to the specific room topology and shielding integrity leads to false localization."
+  ],
+  "key_technical_challenges": [
+    "Executing real-time Fast Fourier Transforms (FFT) on 100+ MHz bandwidths with <10ms latency on edge hardware to catch intermittent bursts.",
+    "Developing a machine learning model capable of distinguishing between benign environmental RF noise and specific interference signatures that cause pacemaker or ventilator failure.",
+    "Handling massive time-series datasets from multiple simultaneous sensor nodes across large hospital campuses while maintaining strict temporal synchronization."
+  ],
+  "recommended_stack": {
+    "language": "Rust \u2014 Essential for memory safety and deterministic real-time performance when handling high-speed DSP streams without garbage collection pauses.",
+    "framework": "Axum + Tonic \u2014 Provides high-performance async HTTP/gRPC services for streaming IQ data from hardware instruments to the analysis engine.",
+    "database_engine": "TimescaleDB \u2014 Optimized for high-write ingestion of time-series spectral data with built-in hypertable partitioning for long-term compliance archiving.",
+    "cache": "null \u2014 Pure stream processing is required; caching introduces unacceptable latency for transient burst detection.",
+    "message_broker": "NATS JetStream \u2014 Offers wire-level performance and at-least-once delivery for decoupling sensor ingestion from heavy spectral analysis workloads.",
+    "special_services": [
+      "Spectral Fingerprinting Microservice (Rust-based DSP pipeline)",
+      "Regulatory Compliance Report Generator (PDF/A compliant with digital signatures)"
+    ]
+  },
+  "compliance_flags": [
+    "IEC 60601-1-2",
+    "FDA 21 CFR Part 11 (Electronic Records)",
+    "ISO 14971 (Risk Management for Medical Devices)"
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "archetype": "Real-Time Haptic-Feedback Haptic-Force Cancellation Mesh for Robotic Tele-Operated Arterial Suturing",
+  "domain": "Remote Robotic Microsurgery (Tele-Surgery)",
+  "description": "A distributed control system that synchronizes master-slave robotic arms across satellite links to provide haptic force-feedback while actively canceling transmission latency-induced jitter during arterial anastomosis. It is used by vascular surgeons operating remotely from high-stakes environments, requiring nanosecond-level determinism to prevent tissue damage. The technical difficulty lies in bridging the gap between human proprioception and network physics, ensuring the surgeon feels the suture tension in real-time despite 200ms+ round-trip delays.",
+  "rules": [
+    "MUST implement IEEE 11073 SDC (Service Oriented Device Connectivity) for real-time medical device data exchange with sub-millisecond latency guarantees.",
+    "MUST utilize deterministic networking protocols (e.g., IEEE 802.1Qbv Time-Sensitive Networking) to enforce strict time slots for haptic data packets, preventing jitter from disrupting force feedback loops.",
+    "MUST integrate a predictive Kalman filter model trained on specific arterial tissue viscoelasticity data to extrapolate tissue position during network blackouts without overshooting.",
+    "MUST comply with IEC 62304 for medical device software lifecycle management, ensuring every state transition is logged for forensic auditability in case of surgical error.",
+    "MUST enforce a 'Kill-Switch' logic that immediately disengages the slave robot if the force-feedback discrepancy exceeds 0.5 Newtons, overriding any software prediction algorithm."
+  ],
+  "anti_patterns": [
+    "DO NOT use standard TCP/IP for haptic data transmission; packet reordering or retransmission delays will cause 'phantom force' oscillations that can tear delicate artery walls.",
+    "DO NOT rely on cloud-based AI for real-time trajectory prediction; the inference latency variance is unacceptable for loop-closure control in surgical settings.",
+    "DO NOT implement 'best-effort' quality of service; the system must guarantee bounded latency, as even a 10ms spike can result in the suture cutting through the vessel."
+  ],
+  "key_technical_challenges": [
+    "Designing a latency-compensation algorithm that distinguishes between network lag and actual tissue resistance to prevent 'ghost vibrations' in the haptic controller.",
+    "Synchronizing multi-modal sensor fusion (tactile, visual, acoustic) across geographically distributed nodes where clock drift exceeds 1000x the control loop frequency.",
+    "Achieving deterministic hardware interrupt handling within 20 microseconds to ensure the master-slave kinematic mapping remains within safe force limits under high load."
+  ],
+  "recommended_stack": {
+    "language": "Rust (Memory safety without garbage collection pauses is critical for real-time control loops)",
+    "framework": "ROS 2 with RTPS (Real-Time Publish-Subscribe) for deterministic, middleware-agnostic hardware communication",
+    "database_engine": "TimescaleDB (High-write throughput for continuous sensor streams with precise time-series querying for forensic analysis)",
+    "cache": "null (In-memory shared memory rings are required to avoid serialization overhead; traditional caching layers introduce non-deterministic latency)",
+    "message_broker": "ZeroMQ (Configured for pre-allocated sockets and Dgram sockets for ultra-low latency, non-blocking I/O)",
+    "special_services": [
+      "Viscoelastic Tissue Physics Simulator",
+      "Network Delay Jitter Predictor and Pre-Emptive Compensator"
+    ]
+  },
+  "compliance_flags": [
+    "FDA 510(k) Premarket Notification",
+    "IEC 80601-2-77 (Safety requirements for surgical robots)",
+    "HIPAA (Patient Data Privacy during transmission)"
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "archetype": "Real-Time Neutron Flux Transient Reconstruction & Control Rod Worth Calibration Engine for CANDU-Specific Channel Power Margins",
+  "domain": "Nuclear Reactor Physics (Heavy Water Moderated/Coolant Systems)",
+  "description": "A deterministic simulation system that ingests raw neutron flux data from Self-Powered Neutron Detectors (SPNDs) across hundreds of reactor channels to reconstruct 3D power distribution in real-time, calculating the precise 'channel power margin' before control rod insertion. It is used by senior reactor operators and nuclear physicists to prevent Departure from Nuclear Boiling Ratio (DNBR) excursions in heavy water reactors, requiring millisecond-latency inversion of massive sparse matrices under strict radiation-hardened constraints.",
+  "rules": [
+    "MUST adhere to IEEE 603 Standard for Safety Systems in Nuclear Power Generating Stations regarding deterministic fail-safe logic.",
+    "MUST utilize the IEC 61508 SIL-3 (Safety Integrity Level) architecture for all control loop calculations.",
+    "MUST process data streams from SPND sensors using the Annular Detector Model with gamma-ray compensation algorithms.",
+    "MUST enforce strict temporal determinism (hard real-time) where jitter must not exceed 100 microseconds during transient events.",
+    "MUST incorporate the CANDU-specific 'On-Power Refuelling' mechanism logic to dynamically adjust flux maps during fuelling movements."
+  ],
+  "anti_patterns": [
+    "DO NOT use probabilistic approximations (e.g., Monte Carlo) for real-time control decisions as they introduce unacceptable variance in safety margins.",
+    "DO NOT rely on cloud-based latency for critical feedback loops; all physics calculations must occur on local, air-gapped, radiation-hardened edge hardware.",
+    "DO NOT implement 'eventual consistency' for reactor state; the system must maintain strict strong consistency for channel power data across all nodes."
+  ],
+  "key_technical_challenges": [
+    "Solving large-scale, time-dependent neutron diffusion equations (Boltzmann Transport Equation) on a channel-by-channel basis within 50ms windows.",
+    "Compensating for in-core sensor drift and shielding attenuation in a high-neutron flux environment where sensor lifespans are short.",
+    "Managing the 'flux tilt' phenomenon during rapid control rod withdrawal or emergency shutdown (SCRAM) sequences without numerical instability."
+  ],
+  "recommended_stack": {
+    "language": "Modern Fortran (2018+) coupled with Ada 2012 for safety-critical modules, chosen for legacy numerical library compatibility and formal verification support.",
+    "framework": "KIEC (Kernel In-Embedded Control) or similar deterministic real-time kernel with static memory allocation.",
+    "database_engine": "In-memory Time-Sequence Store with write-through to non-volatile radiation-tolerant NVRAM for audit trails.",
+    "cache": "Null (Zero-copy memory swapping and deterministic memory pools preferred over standard caching).",
+    "message_broker": "Lock-free ring buffers for inter-process communication to guarantee zero latency.",
+    "special_services": [
+      "3D Neutron Flux Inversion Engine",
+      "Channel Power Margin Predictor"
+    ]
+  },
+  "compliance_flags": [
+    "10 CFR 50 Appendix E (Emergency Core Cooling System)",
+    "IAEA Safety Standards Series No. SSR-2/1",
+    "NRC Regulatory Guide 1.97"
+  ]
+}

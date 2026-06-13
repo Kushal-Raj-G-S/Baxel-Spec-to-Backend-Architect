@@ -1,0 +1,40 @@
+{
+  "archetype": "Cryo-Electron Microscopy Instrument Calibration and Data Integrity Orchestration System",
+  "domain": "Structural Biology Instrumentation",
+  "description": "Orchestrates nanometer-scale calibration, automated data acquisition, and cryptographic audit trails for cryo-EM instruments used in pharmaceutical R&D; ensures data integrity for atomic-resolution protein structure determination across distributed lab networks.",
+  "rules": [
+    "MUST enforce MRC/CCP4 image format standards and EMDB deposition validation protocols",
+    "MUST maintain ISO 17025-compliant calibration logs with immutable timestamps",
+    "MUST integrate with microscope vendor-specific APIs (Thermo Fisher SerialEM, Gatan SerialEM) for hardware control",
+    "MUST implement 21 CFR Part 11 electronic signature compliance for FDA submissions",
+    "MUST synchronize atomic clock time sources across all instruments for cross-site experiment correlation"
+  ],
+  "anti_patterns": [
+    "DO NOT use generic image databases\u2014cryo-EM micrographs require specialized MRC2000 format support and metadata embedding",
+    "DO NOT rely on manual calibration logs\u2014nanometer-scale drift requires sub-second automated sensor fusion from vacuum/temperature/position sensors",
+    "DO NOT ignore beam-induced motion correction\u2014failing to implement MotionCor2-style algorithms invalidates structural resolution claims"
+  ],
+  "key_technical_challenges": [
+    "Real-time sensor fusion from 50+ hardware channels (liquid nitrogen levels, beam alignment, stage position) with sub-millisecond latency",
+    "Terabyte-scale image pipeline integrity verification using cryptographic hashing of every frame before computational processing",
+    "Multi-instrument calibration drift prediction using Bayesian modeling of environmental variables across geographically distributed labs"
+  ],
+  "recommended_stack": {
+    "language": "Python + Cython\u2014dominates scientific computing ecosystem with libraries like NumPy, SciPy, and cryo-EM specific tools (cryoSPARC, RELION bindings)",
+    "framework": "FastAPI\u2014async-first for real-time instrument telemetry ingestion and low-latency control loops",
+    "database_engine": "PostgreSQL + TimescaleDB\u2014time-series calibration data with ACID compliance for audit trails",
+    "cache": "Redis\u2014sub-millisecond caching of calibration parameters and instrument state",
+    "message_broker": "Apache Pulsar\u2014guaranteed delivery for critical calibration events with tiered storage for raw image metadata",
+    "special_services": [
+      "FFT-based image alignment microservice",
+      "MRC format validator with EMDB schema compliance",
+      "Hardware abstraction layer for vendor API unification"
+    ]
+  },
+  "compliance_flags": [
+    "FDA 21 CFR Part 11",
+    "ISO/IEC 17025:2017",
+    "EMDB deposition guidelines",
+    "GDPR for patient-derived sample metadata"
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "archetype": "Transnational Vaccine Cold Chain Integrity Verification System (TVCIVS)",
+  "domain": "Global Public Health Logistics & Biopharmaceutical Cold Chain",
+  "description": "A mission-critical system that continuously verifies and audits the end-to-end integrity of temperature-sensitive vaccine shipments across international borders, from manufacturer to point-of-administration. It ingests multi-sensor telemetry (temperature, humidity, shock, light exposure) from IoT data loggers within insulated containers, correlates it with GPS/cellular/Wi-Fi handoff events, and applies WHO/CDC-defined stability decay models to generate an immutable, regulator-auditable 'Vaccine Viability Certificate' for each batch. Users are cold chain logistics providers, national immunization programs, and WHO auditors.",
+  "rules": [
+    "MUST integrate with and validate against WHO Temperature Sensitivity Monitoring (TSM) protocols and CDC's Vaccine Storage and Handling Toolkit parameter thresholds for each vaccine type (e.g., Varicella vs. Oral Polio).",
+    "MUST support offline-first operation and cryptographic data sealing for segments of transport through regions with no connectivity (e.g., rural Africa, maritime shipping lanes), using delayed data synchronization with conflict resolution.",
+    "MUST implement a multi-sensor fusion algorithm to detect and compensate for known sensor drift and placement errors within shipping containers, calibrated against NIST-traceable standards during pre-shipment checks.",
+    "MUST generate legally defensible audit trails that satisfy FDA 21 CFR Part 11 and EU GDP Annex 11 requirements for electronic records, including all data corrections with user, reason, and timestamp.",
+    "MUST interface with national customs and port health APIs (e.g., through WCO Data Model) to log official handover events and chain-of-custody breaks, refusing to issue a final viability certificate without complete, unbroken event sequencing."
+  ],
+  "anti_patterns": [
+    "DO NOT build a generic IoT dashboard with temperature graphs\u2014it must compute and display the specific remaining shelf-life in months/days based on the integrated thermal history using the manufacturer's pharmacokinetic decay model for that specific vaccine lot.",
+    "DO NOT rely on a single temperature sensor per container; the system must manage a fleet of heterogeneous logger models (e.g., TempTale, Sensitech) and reconcile their different accuracy specs and failure modes.",
+    "DO NOT assume continuous connectivity; the design must gracefully handle weeks of total communication blackout and still produce a verifiable integrity report upon reconnection without data loss or ambiguity.",
+    "DO NOT treat all 'temperature excursions' equally; the system must apply different logic for a 2-hour spike to 8\u00b0C in a meningitis vaccine vs. a 30-minute spike to 12\u00b0C in an Ebola vaccine, based on their distinct stability curves."
+  ],
+  "key_technical_challenges": [
+    "Real-time application of non-linear, manufacturer-provided stability decay models (often as proprietary lookup tables or equations) to streaming, intermittent sensor data to predict remaining viable potency with statistical confidence intervals.",
+    "Designing a globally distributed, eventually consistent data store that maintains cryptographic hash chains across national data sovereignty boundaries (e.g., data stored in Switzerland must be verifiable by an auditor in Kenya without exposing raw data).",
+    "Managing the state machine of a multi-modal, multi-carrier shipment where responsibility and physical control legally transfer between dozens of entities (forwarder, airline, customs, local trucker) with imperfect digital handoff protocols."
+  ],
+  "recommended_stack": {
+    "language": "Rust: For safety-critical sensor data ingestion and cryptographic sealing services where memory safety and deterministic performance are non-negotiable.",
+    "framework": "Actix Web or Axum: For building high-throughput, asynchronous API gateways that can handle thousands of concurrent shipment event streams with low latency.",
+    "database_engine": "TimescaleDB (PostgreSQL extension): Optimized for storing and querying massive volumes of time-series sensor data with complex, downsampled retention policies and continuous aggregates for regulatory reporting.",
+    "cache": "Redis with RedisTimeSeries: For real-time alerting on active shipments (current temperature, estimated remaining shelf-life) and caching of complex decay model lookups.",
+    "message_broker": "Apache Kafka: As the durable log for all immutable shipment events, enabling replay for forensic analysis and feeding stream processing jobs for real-time viability calculations.",
+    "special_services": [
+      "A dedicated 'Stability Model Service' that hosts and securely executes proprietary vaccine decay algorithms from multiple manufacturers (GSK, Pfizer, Serum Institute) in isolated WASM sandboxes.",
+      "A 'Chain of Custody Smart Contract' service, not on a public blockchain, but using a permissioned Hyperledger Fabric network among trusted national health authorities and major logistics firms to notarize handover events."
+    ]
+  },
+  "compliance_flags": [
+    "FDA 21 CFR Part 11 (Electronic Records/Signatures)",
+    "EU Good Distribution Practice (GDP) Annex 11",
+    "WHO Good Cold Chain Practices (GCCP)",
+    "IATA Perishable Cargo Regulations (PCR)",
+    "National regulatory requirements of destination countries (e.g., India's CDSCO, Nigeria's NAFDAC)"
+  ]
+}

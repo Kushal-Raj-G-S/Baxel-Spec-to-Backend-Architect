@@ -1,0 +1,38 @@
+{
+  "archetype": "Subsea Infrastructure Multi-Sensor Inspection Data Fusion and Defect Classification System",
+  "domain": "Offshore Oil & Gas Subsea Asset Integrity",
+  "description": "A system that fuses real-time data from ROV-mounted sensors (multibeam sonar, HD video, ultrasonic thickness gauges, and cathodic protection probes) during pipeline/wellhead inspections to automatically generate a prioritized defect list with 3D spatial context for asset integrity engineers. It's technically hard due to the need to synchronize asynchronous sensor streams, correct for vehicle motion and acoustic refraction, and classify corrosion/mechanical damage against complex NDT standards in high-pressure, low-bandwidth acoustic telemetry conditions.",
+  "rules": [
+    "MUST conform to API RP 2SK and ISO 13628-6 for ROV interfaces and sensor data formats.",
+    "MUST process and correct for pressure-induced lens distortion in HD video and sound velocity profile corrections in sonar data in real-time.",
+    "MUST output structured defect reports in the PDS (Pipeline Defect Specification) XML schema for integration with client GIS and maintenance systems.",
+    "MUST operate with deterministic latency under 2 seconds for critical anomaly alerts when acoustic bandwidth drops below 5 kbps.",
+    "MUST maintain an immutable audit trail for all automated classifications to satisfy ABS/ISO submarine system verification requirements."
+  ],
+  "anti_patterns": [
+    "DO NOT use standard cloud-based video analytics pipelines\u2014they cannot handle compressed, motion-distorted ROV video streams or the required frame-accurate synchronization with non-video sensor timestamps.",
+    "DO NOT treat all sensor data equally\u2014ultrasonic thickness data has higher priority for wall loss classification than visual texture, which is often obscured by marine growth.",
+    "DO NOT rely on GPS/RTK for positioning\u2014subsea assets use USBL (Ultra-Short Baseline) acoustic positioning with inherent latency and error that must be modeled and compensated."
+  ],
+  "key_technical_challenges": [
+    "Real-time calibration fusion: aligning coordinate systems for 5+ independent sensor mounts on a dynamically moving ROV arm with millimeter accuracy in a 3D space.",
+    "Acoustic telemetry adaptation: dynamically re-encoding and prioritizing defect metadata over low-bandwidth, high-latency acoustic links when raw data cannot be transmitted.",
+    "Domain-specific ML: training defect classifiers on extremely limited, expertly labeled NDT datasets where 'severe corrosion' has a specific, codified meaning different from general image segmentation."
+  ],
+  "recommended_stack": {
+    "language": "C++17 for low-latency sensor drivers and real-time fusion core; Python 3.10 for ML inference pipeline and post-processing.",
+    "framework": "ROS 2 (Humble) for standardized sensor message passing and hardware abstraction across heterogeneous ROV vendor APIs.",
+    "database_engine": "TimescaleDB for storing high-frequency time-series sensor data (ultrasonic, pressure) and geospatial metadata with efficient range queries over inspection tracks.",
+    "cache": "Redis for buffering the last 30 seconds of synchronized multi-sensor frames during real-time defect classification to handle transient acoustic link dropouts.",
+    "message_broker": "MQTT 5.0 over a persistent acoustic modem link for reliable, queued transmission of prioritized defect alerts and commands to the topside control station.",
+    "special_services": [
+      "Custom NDT service: Wraps proprietary ultrasonic flaw detector SDKs (e.g., from Olympus) applying API RP 2SK acceptance criteria.",
+      "Hydroacoustic noise filtering service: Applies adaptive beamforming and Doppler compensation to sonar returns before fusion, using known seafloor topography as a reference."
+    ]
+  },
+  "compliance_flags": [
+    "API RP 2SK (Recommended Practice for Planning, Designing, and Constructing Fixed Offshore Structures)",
+    "ABS Rules for Building and Classing Underwater Vehicles, Systems, and Hyperbaric Facilities",
+    "ISO 13628-6:2006 (Petroleum and natural gas industries \u2014 Design and operation of subsea production systems \u2014 Part 6: Subsea wellhead and tree equipment)"
+  ]
+}

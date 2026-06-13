@@ -1,0 +1,40 @@
+{
+  "archetype": "Offshore Carbon Sequestration Site Seismic Integrity Verification System (OCSS-SIVS)",
+  "domain": "Marine Geophysics for Carbon Capture and Storage (CCS)",
+  "description": "A real-time system that processes continuous 4D time-lapse seismic data from ocean-bottom node (OBN) arrays to detect micro-seismic events and fluid migration anomalies within subsea carbon storage reservoirs, used by geophysicists and regulatory auditors to verify containment integrity. It's technically hard due to massive petabyte-scale time-series seas, low-bandwidth acoustic telemetry from seabed sensors, and the need to distinguish injection-induced micro-seismicity from natural tectonic noise and tidal strain noise.",
+  "rules": [
+    "MUST ingest and process raw seismic data in SEG-Y rev2 format with precise navigation (lat/lon/depth) and timing (GPS-synched) metadata from multi-vendor OBN equipment.",
+    "MUST implement OGC SensorThings API for harmonizing disparate node manufacturer data streams and provide a standardized observation feed for external audit tools.",
+    "MUST comply with ISO 14001:2015 environmental management and OSPAR Convention guidelines for subsea storage monitoring, generating immutable audit logs for all model runs and parameter changes.",
+    "MUST support automated detection of 'bright spots' (fluid accumulations) and 'velocity pull-down' (pressure changes) in repeated 3D seismic volumes against a high-fidelity baseline survey, using co-registration algorithms tolerant to tidal and ocean-current-induced baseline shift.",
+    "MUST provide a secure, standards-based (WFS/WMS) geospatial portal for regulators to visualize time-lapse difference cubes, event catalogs, and uncertainty metrics without requiring licensed commercial interpretation software."
+  ],
+  "anti_patterns": [
+    "DO NOT use generic cloud object storage (e.g., S3) as primary data lake without a dedicated seismic-optimized parallel file system (like Ceph with BeeGFS) due to catastrophic performance degradation for small, random seismic trace reads.",
+    "DO NOT apply standard statistical anomaly detection without domain-specific seismic attributes (e.g., semblance, curvature) and rock physics templates, as it will generate overwhelming false positives from ocean noise and gas chimneys unrelated to injection.",
+    "DO NOT design a batch-only processing pipeline; regulatory 'alarm' conditions for pressure-boundary breach require sub-hour latency from seabed acquisition to interpreted risk flag on the dashboard."
+  ],
+  "key_technical_challenges": [
+    "Real-time co-registration of time-lapse 3D seismic volumes acquired with different OBN node geometries and coupling conditions across multiple survey vessels, requiring precise velocity model updates and non-linear warping algorithms.",
+    "Building a scalable, low-latency compute pipeline for full-waveform inversion (FWI) velocity model updates that can run on a hybrid HPC/cloud cluster while managing the extreme I/O of 10s of TB per survey.",
+    "Maintaining sensor calibration drift compensation across thousands of autonomous OBNs over a 5-year project lifecycle, using cross-node consistency checks and periodic 'kicker' air-gun calibration shots."
+  ],
+  "recommended_stack": {
+    "language": "C++/Python hybrid: C++ for high-performance seismic I/O and processing kernels (SEG-Y libraries), Python for orchestration, machine learning (PyTorch/TensorFlow), and API layer.",
+    "framework": "FastAPI with async support for high-throughput seismic metadata and alert APIs; Dask for parallel geophysical computation orchestration.",
+    "database_engine": "PostgreSQL + TimescaleDB for structured time-series metadata (node health, acquisition parameters) and PostGIS for spatial queries on seismic geometry.",
+    "cache": "Redis Cluster for caching frequently accessed baseline volumes, velocity models, and real-time alert state to reduce HPC cluster load.",
+    "message_broker": "Apache Kafka for buffering high-volume raw seismic trace chunks and event detections from the field acquisition system to the processing farm.",
+    "special_services": [
+      "OpenDTect or SeisSpace (via licensed API) for core seismic processing and attribute calculation as a microservice.",
+      "Custom Geotiff/COG (Cloud-Optimized GeoTIFF) generation service for OGC-compliant difference cube visualization.",
+      "HDF5 with chunked, compressed layout for efficient storage and partial reads of massive 4D seismic volumes."
+    ]
+  },
+  "compliance_flags": [
+    "OSPAR Convention 1998 (Offshore Storage Protocol)",
+    "EU Directive 2009/31/EC on Geological Storage of CO2 (or national equivalent like US EPA Class VI)",
+    "ISO 27914:2017 (Carbon dioxide capture, transportation, and geological storage)",
+    "IEC 61508 SIL 2 for safety-critical alarm systems if linked to injection well ESD (Emergency Shutdown) logic"
+  ]
+}

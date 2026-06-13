@@ -12,3 +12,7 @@ venv/
 .DS_Store
 *.log
 3d-frames
+baxel.db
+baxel_temp.db
+backend/models/
+test idea*

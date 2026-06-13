@@ -1,0 +1,38 @@
+{
+  "archetype": "Automated Poultry Slaughterhouse HACCP Compliance and Bird Welfare Monitoring System",
+  "domain": "Poultry Processing and Food Safety",
+  "description": "This system monitors and controls poultry slaughterhouse processes to ensure compliance with Hazard Analysis and Critical Control Points (HACCP) regulations, while also tracking bird welfare metrics. It is used by poultry processing plant managers, quality control teams, and regulatory inspectors. The system's technical complexity lies in integrating with various hardware sensors and equipment, such as bird weighing scales, temperature probes, and vision systems, to collect and analyze data in real-time.",
+  "rules": [
+    "MUST integrate with existing poultry processing equipment and sensors, adhering to industry standards such as NEMA and CE marking",
+    "MUST comply with HACCP regulations and guidelines set by the USDA's Food Safety and Inspection Service (FSIS)",
+    "MUST collect and store data in accordance with the USDA's Food Safety Modernization Act (FSMA) requirements",
+    "MUST provide real-time alerts and notifications for critical control points, such as temperature deviations or bird welfare issues",
+    "MUST support data export and reporting for regulatory audits and inspections"
+  ],
+  "anti_patterns": [
+    "DO NOT rely solely on manual data entry, as this can lead to errors and inconsistencies",
+    "DO NOT neglect to account for variations in bird species, age, and size when tracking welfare metrics",
+    "DO NOT fail to implement adequate data security and access controls, as sensitive information is involved"
+  ],
+  "key_technical_challenges": [
+    "Integrating with diverse hardware sensors and equipment, such as weight scales and temperature probes, to collect accurate data",
+    "Developing machine learning algorithms to analyze bird welfare metrics and detect anomalies",
+    "Ensuring real-time data processing and alerting to meet HACCP and FSMA requirements"
+  ],
+  "recommended_stack": {
+    "language": "Python, due to its extensive libraries for data analysis and machine learning",
+    "framework": "Flask, for building a robust and scalable web application",
+    "database_engine": "PostgreSQL, for storing and querying large amounts of time-series data",
+    "cache": "Redis, for caching frequently accessed data and reducing database queries",
+    "message_broker": "RabbitMQ, for handling real-time data streams and alerts",
+    "special_services": [
+      "Vision system integration for bird welfare monitoring",
+      "Temperature probe calibration service"
+    ]
+  },
+  "compliance_flags": [
+    "HACCP",
+    "FSMA",
+    "USDA FSIS regulations"
+  ]
+}

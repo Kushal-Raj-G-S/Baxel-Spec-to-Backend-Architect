@@ -1,0 +1,40 @@
+{
+  "archetype": "Container Lashing Force Monitoring and Verification System (CLFMVS)",
+  "domain": "Maritime Cargo Securing Engineering",
+  "description": "A real-time system that monitors and verifies the structural forces on intermodal container lashing rods and corner castings during sea voyages, using embedded strain gauges and inertial measurement units to prevent container loss and stack collapse. It is used by ship officers and port state control inspectors, and is technically hard due to the need for sensor fusion in a violently dynamic environment, wave impact modeling, and integration with vessel motion systems.",
+  "rules": [
+    "MUST comply with SOLAS Chapter VII and the CSS Code for cargo securing calculations and force limits.",
+    "MUST interface with vessel's existing navigation and motion sensors (gyro, heave, pitch, roll) via NMEA 0183/2000.",
+    "MUST store all force readings in an immutable, audit-ready log format aligned with IMO's FAL and XML data schemas for inspection.",
+    "MUST provide certified calibration traceability for all physical sensors per ISO/IEC 17025 and classification society rules (DNV, ABS).",
+    "MUST operate in disconnected/limited-bandwidth mode for extended sea passages, syncing only critical alerts or upon port arrival."
+  ],
+  "anti_patterns": [
+    "DO NOT build a cloud-native SaaS-only architecture\u2014shipboard connectivity is intermittent; all critical logic and storage must be local.",
+    "DO NOT use consumer-grade MEMS sensors\u2014marine vibration, salt spray, and shock require industrial, marine-certified instrumentation with redundancy.",
+    "DO NOT provide generic dashboards\u2014visualizations must be vessel-specific 3D stack diagrams with real-time stress overlays per container location."
+  ],
+  "key_technical_challenges": [
+    "Accurately correlating discrete point sensor data (on lashing rods) with global vessel motion and wave load models to predict peak forces.",
+    "Designing a tamper-evident, power-efficient embedded data logger for 40+ day voyages with harsh environmental constraints.",
+    "Achieving deterministic, low-latency processing of 100+ Hz sensor streams to generate immediate 'imminent failure' alerts."
+  ],
+  "recommended_stack": {
+    "language": "Rust for memory safety and performance in real-time embedded data processing and sensor drivers.",
+    "framework": "Actix Web for a lightweight, async local web server serving vessel-specific visualizations and API endpoints.",
+    "database_engine": "TimescaleDB for efficient storage and querying of high-frequency time-series force and motion data.",
+    "cache": "Redis for caching recent vessel motion states and threshold calculations for real-time alerting.",
+    "message_broker": "MQTT (Mosquitto) for lightweight, local sensor data bus between embedded nodes and the processing server.",
+    "special_services": [
+      "Wave Impact Simulator Service (computational fluid dynamics proxy)",
+      "3D Vessel Stack Modeler Service (WebGL/OpenGL-based)"
+    ]
+  },
+  "compliance_flags": [
+    "SOLAS Chapter VII",
+    "CSS Code (IACS/IMO)",
+    "IMO MSC.1/Circ. 1352",
+    "DNV-RU-SHIP Pt.5 Ch.11",
+    "ABS Rules for Cargo Handling"
+  ]
+}

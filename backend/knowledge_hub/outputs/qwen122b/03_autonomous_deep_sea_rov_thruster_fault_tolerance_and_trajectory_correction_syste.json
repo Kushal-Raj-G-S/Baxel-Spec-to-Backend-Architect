@@ -1,0 +1,38 @@
+{
+  "archetype": "Autonomous Deep-Sea ROV Thruster Fault-Tolerance & Trajectory Correction System",
+  "domain": "Subsea Oil & Gas Maintenance and Decommissioning",
+  "description": "This system processes high-frequency IMU and Doppler Velocity Log data to detect imminent thruster failures on Remotely Operated Vehicles (ROVs) and autonomously re-optimizes thruster allocation matrices in real-time to maintain station-keeping during critical pipe-laying operations. It is used by autonomous subsea control modules where a split-second loss of positioning can result in hundreds of millions of dollars in equipment loss or environmental disaster. The technical difficulty lies in executing complex kinematic inversion algorithms within 10ms on radiation-hardened, power-constrained hardware while compensating for non-linear current dynamics and acoustic communication latency.",
+  "rules": [
+    "MUST implement IEC 61508 SIL 3/4 safety integrity levels for all control loop logic to ensure fail-safe behavior during thruster seizure.",
+    "MUST adhere to IEEE 1451 standard for smart transducer interface modules to handle heterogeneous sensor inputs (IMU, DVL, Depth/Temp) from legacy subsea sockets.",
+    "MUST enforce deterministic execution via a Real-Time Operating System (RTOS) with zero garbage collection pauses for the primary control thread.",
+    "MUST incorporate hydrodynamic drag modeling and asymmetric thrust vectoring to compensate for lost thrusters without external telemetry.",
+    "MUST utilize acoustic modem protocols (e.g., WHOI Micro-Modem or Sea-Bird) with adaptive error correction for intermittent command links."
+  ],
+  "anti_patterns": [
+    "DO NOT use cloud-based inference for immediate stabilization; round-trip latency to the surface is too high (seconds) for sub-10ms control loops.",
+    "DO NOT rely on standard TCP/IP for thruster commands; packet loss or reordering during acoustic transmission can cause catastrophic oscillation.",
+    "DO NOT use floating-point arithmetic for critical kinematic calculations without fixed-point validation or hardware FPU redundancy checks."
+  ],
+  "key_technical_challenges": [
+    "Solving non-linear constrained optimization problems for thrust vector redistribution in under 5ms on embedded ARM FPGAs.",
+    "Fusing noisy, asynchronous data streams from optical gyroscopes, pressure sensors, and acoustic dopplers with varying sample rates.",
+    "Implementing hardware-level watchdog timers and dual-core lockstep execution to prevent silent data corruption during high-pressure operations."
+  ],
+  "recommended_stack": {
+    "language": "Rust + C++ (for DSP kernels) \u2014 Rust ensures memory safety for the orchestration layer while C++ allows for bare-metal, zero-overhead DSP loops.",
+    "framework": "QNX Neutrino RTOS \u2014 Provides hard real-time guarantees and microkernel architecture required for safety-critical embedded systems.",
+    "database_engine": "In-memory Time-Series Buffer (Custom Circular Buffer) \u2014 Persistent storage is too slow; data must be processed in-flight before logging to non-volatile memory.",
+    "cache": null,
+    "message_broker": "DDS (Data Distribution Service) \u2014 Industry standard for real-time, publish-subscribe communication in defense and aerospace with Quality of Service (QoS) policies.",
+    "special_services": [
+      "Real-time Kinematic Inversion Solver",
+      "Acoustic Channel Emulation & Latency Predictor"
+    ]
+  },
+  "compliance_flags": [
+    "IEC 61508 (Functional Safety)",
+    "ISO 13628-18 (Subsea Production Systems)",
+    "IMCA Guidelines for ROV Operations"
+  ]
+}

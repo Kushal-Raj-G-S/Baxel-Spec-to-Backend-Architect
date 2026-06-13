@@ -254,36 +254,39 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div ref={rootRef} className="min-h-screen bg-bone cursor-reactive">
-      <header className="relative z-40 border-b border-dune/15 bg-white/70">
+    <div ref={rootRef} className="min-h-screen bg-[#1F261D] cursor-reactive">
+      <header className="relative z-40 border-b border-white/10 bg-[#1F261D]/70">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-6">
           <Link href="/" className="flex items-center gap-3">
             <Image src={logoImage} alt="Baxel logo" className="h-9 w-9 rounded-2xl object-cover" priority />
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-dune">Baxel</p>
-                <span className="rounded-full border border-dune/30 bg-white px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-ink">
+                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-white/90">Baxel</p>
+                <span 
+                  suppressHydrationWarning
+                  className="rounded-full border border-dune/30 bg-white px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-ink"
+                >
                   {planLabel || (isPlanLoading ? "Loading" : "Plan")}
                 </span>
               </div>
-              <p className="text-sm text-ink">{displayName}</p>
+              <p className="text-sm text-white">{displayName}</p>
             </div>
           </Link>
-          <nav className="hidden items-center gap-5 text-sm text-dune md:flex">
+          <nav className="hidden items-center gap-5 text-sm text-white/60 md:flex">
             {appLinks.map((link) => (
-              <Link key={link.href} href={link.href} className="transition hover:text-ink">
+              <Link key={link.href} href={link.href} className="transition hover:text-white">
                 {link.label}
               </Link>
             ))}
           </nav>
           <div className="relative flex items-center gap-3 text-sm" ref={profileMenuRef}>
-            <span className="rounded-full bg-mint/20 px-3 py-1 text-xs uppercase tracking-[0.2em] text-dune">
+            <span className="rounded-full bg-[#C2D68C]/20 px-3 py-1 text-xs uppercase tracking-[0.2em] text-[#C2D68C]">
               Live
             </span>
             <button
               type="button"
               onClick={() => setIsMobileNavOpen((prev) => !prev)}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-dune/20 bg-white/80 text-ink md:hidden"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-white/5 text-white md:hidden"
               aria-label="Toggle navigation menu"
             >
               <span className="text-base">☰</span>
@@ -292,18 +295,18 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               ref={profileButtonRef}
               type="button"
               onClick={() => setIsProfileMenuOpen((prev) => !prev)}
-              className="flex items-center gap-2 rounded-full border border-dune/20 bg-white/80 px-2 py-1 transition hover:border-dune/40"
+              className="flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-2 py-1 transition hover:border-white/40"
             >
               {avatarUrl ? (
                 <img src={avatarUrl} alt="Profile" className="h-9 w-9 rounded-full object-cover" />
               ) : (
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-ink text-xs font-semibold text-bone">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-xs font-semibold text-white">
                   {initials || "U"}
                 </div>
               )}
-              <span className="hidden max-w-36 truncate text-xs font-semibold text-ink sm:block">Profile</span>
+              <span className="hidden max-w-36 truncate text-xs font-semibold text-white sm:block">Profile</span>
               <span
-                className={`hidden text-[10px] text-dune transition-transform sm:block ${
+                className={`hidden text-[10px] text-white/60 transition-transform sm:block ${
                   isProfileMenuOpen ? "rotate-180" : "rotate-0"
                 }`}
               >
@@ -316,26 +319,26 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
         {isMobileNavOpen && (
           <div className="mx-auto w-full max-w-6xl px-6 pb-5 md:hidden">
-            <div className="rounded-2xl border border-dune/20 bg-white/90 p-3 shadow-lg">
-              <p className="px-2 pb-2 text-xs font-semibold uppercase tracking-[0.2em] text-dune">Navigation</p>
+            <div className="rounded-2xl border border-white/20 bg-[#1F261D]/90 p-3 shadow-lg">
+              <p className="px-2 pb-2 text-xs font-semibold uppercase tracking-[0.2em] text-white/60">Navigation</p>
               <div className="space-y-1">
                 {appLinks.map((link) => (
                   <Link
                     key={`mobile-${link.href}`}
                     href={link.href}
-                    className="block rounded-xl px-3 py-2 text-sm text-ink transition hover:bg-bone"
+                    className="block rounded-xl px-3 py-2 text-sm text-white transition hover:bg-white/10"
                     onClick={() => setIsMobileNavOpen(false)}
                   >
                     {link.label}
                   </Link>
                 ))}
               </div>
-              <div className="mt-3 border-t border-dune/15 pt-3">
-                <p className="px-2 text-xs text-dune">{displayName}</p>
+              <div className="mt-3 border-t border-white/15 pt-3">
+                <p className="px-2 text-xs text-white/60">{displayName}</p>
                 <button
                   type="button"
                   onClick={requestLogout}
-                  className="mt-2 w-full rounded-xl px-3 py-2 text-left text-sm text-red-600 transition hover:bg-red-50"
+                  className="mt-2 w-full rounded-xl px-3 py-2 text-left text-sm text-red-400 transition hover:bg-red-900/20"
                 >
                   Logout
                 </button>
@@ -351,7 +354,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         createPortal(
           <div
             ref={profileDropdownRef}
-            className="fixed w-56 rounded-2xl border border-dune/20 bg-white p-2 shadow-2xl"
+            className="fixed w-56 rounded-2xl border border-white/20 bg-[#1F261D] p-2 shadow-2xl"
             style={{
               top: `${profileMenuPosition.top}px`,
               right: `${profileMenuPosition.right}px`,
@@ -359,12 +362,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             }}
           >
             <div className="rounded-xl px-3 py-2">
-              <p className="truncate text-sm font-semibold text-ink">{displayName}</p>
-              <p className="mt-1 text-xs text-dune">Signed in</p>
+              <p className="truncate text-sm font-semibold text-white">{displayName}</p>
+              <p className="mt-1 text-xs text-white/60">Signed in</p>
             </div>
             <Link
               href="/app/settings"
-              className="mt-1 block rounded-xl px-3 py-2 text-sm text-ink transition hover:bg-bone"
+              className="mt-1 block rounded-xl px-3 py-2 text-sm text-white transition hover:bg-white/10"
               onClick={() => setIsProfileMenuOpen(false)}
             >
               Profile settings
@@ -373,7 +376,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               type="button"
               onClick={requestLogout}
               disabled={isLoggingOut}
-              className="mt-1 w-full rounded-xl px-3 py-2 text-left text-sm text-red-600 transition hover:bg-red-50 disabled:opacity-60"
+              className="mt-1 w-full rounded-xl px-3 py-2 text-left text-sm text-red-400 transition hover:bg-red-900/20 disabled:opacity-60"
             >
               {isLoggingOut ? "Logging out..." : "Logout"}
             </button>
@@ -382,15 +385,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         )}
 
       {isLogoutConfirmOpen && (
-        <div className="ui-overlay fixed inset-0 z-[120] flex items-center justify-center bg-ink/35 px-4">
-          <div className="w-full max-w-sm rounded-2xl border border-dune/20 bg-white p-5 shadow-2xl">
-            <p className="text-lg font-semibold text-ink">Confirm logout</p>
-            <p className="mt-2 text-sm text-dune">You will need to sign in again to continue.</p>
+        <div className="ui-overlay fixed inset-0 z-[120] flex items-center justify-center bg-black/35 px-4">
+          <div className="w-full max-w-sm rounded-2xl border border-white/20 bg-[#1F261D] p-5 shadow-2xl">
+            <p className="text-lg font-semibold text-white">Confirm logout</p>
+            <p className="mt-2 text-sm text-white/60">You will need to sign in again to continue.</p>
             <div className="mt-5 flex justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setIsLogoutConfirmOpen(false)}
-                className="rounded-full border border-dune/30 px-4 py-2 text-sm text-ink"
+                className="rounded-full border border-white/30 px-4 py-2 text-sm text-white"
               >
                 Cancel
               </button>

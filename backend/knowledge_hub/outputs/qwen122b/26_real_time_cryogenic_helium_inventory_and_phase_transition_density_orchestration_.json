@@ -1,0 +1,38 @@
+{
+  "archetype": "Real-Time Cryogenic Helium Inventory & Phase-Transition Density Orchestration System for Superconducting Magnet Quench Recovery in Particle Accelerators",
+  "domain": "High-Energy Physics Infrastructure Management (Large Hadron Collider Scale)",
+  "description": "This system manages the complex thermodynamic state of supercritical helium across multi-kilometer cryogenic distribution lines in particle accelerators, dynamically calculating mass flow rates based on real-time P-T (Pressure-Temperature) sensor fusion to prevent magnet quenches during ramp-up. It is used by cryogenic control engineers and automated safety interlocks to orchestrate the recovery of superconducting magnets after a thermal excursion, requiring sub-second latency in synthesizing control signals for helium compressors and phase separators.",
+  "rules": [
+    "MUST adhere to IEC 61508 SIL 3 safety integrity levels for all logic handling quench protection interlocks and helium venting sequences.",
+    "MUST implement a custom implementation of the NIST RefProp equation of state library to calculate helium density within 0.05% accuracy at 1.9K to 4.5K operating ranges.",
+    "MUST ingest time-synchronized telemetry via IEEE 1588 PTP over deterministic Ethernet (TSN) to align data from distributed dilution refrigerators and cryopumps.",
+    "MUST enforce a 'fail-safe' architecture where any loss of sensor visibility defaults to a controlled warm-up or isolation state rather than continued operation.",
+    "MUST handle the transition between liquid and supercritical phases in real-time without phase-boundary hysteresis errors that could cause pressure surges."
+  ],
+  "anti_patterns": [
+    "DO NOT use standard SQL relational databases for real-time time-series storage of high-frequency pressure transients, as write latency will miss critical thermodynamic spikes.",
+    "DO NOT rely on asynchronous event loops for the primary quench protection logic, as non-deterministic garbage collection pauses can delay critical shutdown commands by milliseconds.",
+    "DO NOT approximate helium thermodynamic properties using ideal gas laws, which fail catastrophically near the lambda point (2.17K) and lead to incorrect inventory calculations."
+  ],
+  "key_technical_challenges": [
+    "Modeling the non-linear two-phase flow dynamics of superfluid helium in complex piping geometries with moving boundaries during rapid cooldown.",
+    "Synchronizing millisecond-level sensor data from hundreds of distributed nodes to reconstruct a coherent 3D density map of the cryostat without clock drift.",
+    "Predicting future pressure excursions 10-20 seconds ahead based on current compressor rotational speed and valve positions to pre-emptively adjust flow rates."
+  ],
+  "recommended_stack": {
+    "language": "Rust \u2014 Guarantees memory safety without a garbage collector for hard real-time constraints in safety-critical loops.",
+    "framework": "Tokio with custom real-time scheduler \u2014 Provides deterministic task scheduling for handling concurrent high-frequency sensor streams.",
+    "database_engine": "QuestDB \u2014 High-throughput time-series database optimized for ingesting millions of sensor points per second with SQL-compatible retention policies.",
+    "cache": "Yacl (Yet Another C++ Library) or custom Ring Buffer \u2014 For zero-copy, lock-free data sharing between the ingestion and analysis threads.",
+    "message_broker": "ZeroMQ \u2014 Provides low-latency, asynchronous patterns for distributing control commands to hardware PLCs without broker overhead.",
+    "special_services": [
+      "NIST RefProp Thermodynamic Solver Microservice",
+      "Cryogenic Phase-Boundary Detection Engine"
+    ]
+  },
+  "compliance_flags": [
+    "IEC 61508 (Functional Safety)",
+    "ISO 14644 (Cleanroom Monitoring for Cryogenic Facilities)",
+    "EPRI Guidelines for Superconducting Magnet Safety"
+  ]
+}

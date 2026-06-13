@@ -1,0 +1,37 @@
+{
+  "archetype": "Automated Hydroponic Crop Yield Optimization and Nutrient Dosing System for Large-Scale Vertical Farms",
+  "domain": "Vertical Farming",
+  "description": "This system optimizes crop yields and nutrient dosing for large-scale vertical farms, utilizing machine learning algorithms and real-time data from sensors and weather forecasts. It is used by vertical farm operators to maximize crop growth and minimize resource waste. The system must integrate with a variety of hardware and software systems, including climate control systems, LED grow lights, and nutrient delivery systems.",
+  "rules": [
+    "MUST integrate with ASHRAE 90.1-2019 climate control standards",
+    "MUST adhere to ISO 16119:2013 for hydroponic crop nutrient management",
+    "MUST support integration with industry-standard LED grow light protocols such as DALI",
+    "MUST handle variable sensor data formats from different manufacturers",
+    "MUST incorporate real-time weather forecasting data from sources such as the National Weather Service"
+  ],
+  "anti_patterns": [
+    "DO NOT rely solely on historical data for predictions, as it may not account for changing environmental conditions",
+    "DO NOT neglect to consider the unique growth characteristics of different crop species",
+    "DO NOT fail to account for the impact of variable lighting conditions on crop growth"
+  ],
+  "key_technical_challenges": [
+    "Developing machine learning models that can accurately predict crop yields based on complex environmental factors",
+    "Integrating with a variety of hardware and software systems from different manufacturers",
+    "Handling variable sensor data formats and frequencies"
+  ],
+  "recommended_stack": {
+    "language": "Python + due to its extensive libraries for machine learning and data analysis",
+    "framework": "Flask + for building a scalable and modular API",
+    "database_engine": "PostgreSQL + for handling complex queries and sensor data",
+    "cache": "Redis + for storing frequently accessed data and reducing database queries",
+    "message_broker": "RabbitMQ + for handling real-time data from sensors and weather forecasts",
+    "special_services": [
+      "Weather API",
+      "Crop modeling service"
+    ]
+  },
+  "compliance_flags": [
+    "ASHRAE 90.1-2019",
+    "ISO 16119:2013"
+  ]
+}

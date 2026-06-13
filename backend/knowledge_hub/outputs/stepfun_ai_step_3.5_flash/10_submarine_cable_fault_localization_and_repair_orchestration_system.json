@@ -1,0 +1,39 @@
+{
+  "archetype": "Submarine Cable Fault Localization and Repair Orchestration System",
+  "domain": "Submarine Telecommunications Infrastructure",
+  "description": "This system coordinates the end-to-end repair workflow for fiber-optic submarine cables after a fault is detected, integrating real-time acoustic positioning of Remotely Operated Vehicles (ROVs), dynamic permitting across Exclusive Economic Zones (EEZs), and cable ship logistics to minimize Mean Time To Repair (MTTR) in a high-stakes, legally constrained maritime environment.",
+  "rules": [
+    "MUST integrate acoustic positioning data (e.g., from USBL transponders) and apply sound velocity profiles to correct ROV location in real-time, per industry standards like ISO 19683.",
+    "MUST enforce permit and notification workflows governed by UNCLOS and coastal state regulations, with geofenced compliance checks against maritime claim polygons.",
+    "MUST process and correlate raw telemetry from submarine line terminal equipment (SLTE) using ITU-T Rec. G.997.2 to pinpoint fault location within cable sections.",
+    "MUST interface with legacy ROV control systems via proprietary serial protocols (e.g., Sperry Marine) for tooling commands and sensor feeds.",
+    "MUST model and schedule cable ship mobilization considering fuel bunkering, weather windows (via GRIB data), and ROV operational depth limits."
+  ],
+  "anti_patterns": [
+    "DO NOT treat it as a generic ticketing system\u2014failing to model the legal adjacency of EEZs and continental shelf claims will cause illegal deployments and international incidents.",
+    "DO NOT ignore acoustic positioning uncertainty\u2014uncorrected sound channel variations can misposition ROVs by tens of meters, causing missed graves and failed retrievals.",
+    "DO NOT assume static repair schedules\u2014ignoring tidal currents and shipping lane traffic in the fault area will lead to vessel collisions or grounding."
+  ],
+  "key_technical_challenges": [
+    "Fusing noisy, high-frequency acoustic positioning data with low-latency ship GNSS and dynamic oceanographic models (currents, thermoclines) in a unified coordinate system.",
+    "Building a deterministic permit engine that can translate complex, non-digital coastal state agreements into executable geospatial rules for vessel and ROV operations.",
+    "Achieving interoperability with decades-old, vendor-specific ROV control systems that lack modern APIs, requiring protocol reverse-engineering and hardware-in-the-loop simulation."
+  ],
+  "recommended_stack": {
+    "language": "C++ (for real-time acoustic data processing and ROV control integration) with Rust for safety-critical permit validation logic.",
+    "framework": "Node.js with TypeScript for workflow orchestration and multi-tenant UI, leveraging its async I/O for concurrent maritime stakeholder comms.",
+    "database_engine": "TimescaleDB for high-frequency time-series acoustic and vessel telemetry, with PostGIS for complex maritime boundary queries.",
+    "cache": "Redis for low-latency caching of vessel positions, permit status, and real-time weather/current grid data.",
+    "message_broker": "RabbitMQ with MQTT plugin for reliable, ordered telemetry ingestion from at-sea assets over satellite links.",
+    "special_services": [
+      "Acoustic Positioning Correction Microservice (using BELLHOP ray-tracing models)",
+      "Maritime Regulatory Graph Database (UNCLOS/IMO rules as property graphs)"
+    ]
+  },
+  "compliance_flags": [
+    "UNCLOS (United Nations Convention on the Law of the Sea)",
+    "IMO Cable Protection Guidelines",
+    "ITU-T Submarine Cable Performance Standards",
+    "Coastal State National Regulations (e.g., US NOAA permits)"
+  ]
+}

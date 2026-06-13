@@ -1,0 +1,37 @@
+{
+  "archetype": "Automated Grain Silo Fumigation and Pest Control Management System",
+  "domain": "Grain Storage and Handling",
+  "description": "This system monitors and controls grain silo fumigation and pest control processes to prevent spoilage and ensure food safety. It is used by grain storage facility operators to optimize fumigation schedules and reduce chemical usage. The system integrates with sensors and machinery to automate fumigation and monitoring processes, while ensuring compliance with regulations such as the US Environmental Protection Agency's (EPA) Fumigation Rule.",
+  "rules": [
+    "MUST integrate with industry-standard grain silo sensors (e.g. temperature, humidity, CO2) to monitor grain conditions",
+    "MUST support multiple fumigation protocols (e.g. phosphine, methyl bromide) and adapt to changing regulatory requirements",
+    "MUST implement predictive analytics to optimize fumigation schedules based on historical data and real-time sensor readings",
+    "MUST provide real-time alerts and notifications to facility operators and regulatory agencies in case of anomalies or non-compliance",
+    "MUST ensure secure data storage and transmission to comply with FDA's Food Safety Modernization Act (FSMA)"
+  ],
+  "anti_patterns": [
+    "DO NOT use a generic, off-the-shelf SCADA system without modifications for grain silo fumigation",
+    "DO NOT neglect to account for regional and seasonal variations in pest populations and grain conditions",
+    "DO NOT fail to implement data-driven decision support for fumigation scheduling and chemical usage optimization"
+  ],
+  "key_technical_challenges": [
+    "Integrating with diverse sensor hardware and firmware from multiple manufacturers",
+    "Developing predictive models that account for complex interactions between grain conditions, pest populations, and fumigation protocols",
+    "Ensuring real-time data processing and alerting in a resource-constrained, remote environment"
+  ],
+  "recommended_stack": {
+    "language": "Python + extensive libraries for data science and IoT integration",
+    "framework": "Flask + flexible API design for sensor and machinery integration",
+    "database_engine": "PostgreSQL + robust support for time-series data and spatial queries",
+    "cache": "Redis + fast data access for real-time processing",
+    "message_broker": "Apache Kafka + scalable and fault-tolerant message handling",
+    "special_services": [
+      "Grain silo sensor integration",
+      "Fumigation protocol management"
+    ]
+  },
+  "compliance_flags": [
+    "EPA Fumigation Rule",
+    "FDA Food Safety Modernization Act (FSMA)"
+  ]
+}

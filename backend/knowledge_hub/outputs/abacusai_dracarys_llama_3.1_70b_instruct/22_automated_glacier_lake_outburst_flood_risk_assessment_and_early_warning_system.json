@@ -1,0 +1,37 @@
+{
+  "archetype": "Automated Glacier Lake Outburst Flood Risk Assessment and Early Warning System",
+  "domain": "Glaciology and Hydrology",
+  "description": "This system assesses the risk of glacial lake outburst floods (GLOFs) in mountainous regions and provides early warnings to downstream communities. It uses satellite imagery, sensor data, and machine learning algorithms to monitor lake water levels, glacier calving, and other factors. The system must accurately predict the likelihood of a GLOF and issue timely warnings to prevent loss of life and property.",
+  "rules": [
+    "MUST integrate with satellite imagery providers (e.g., Sentinel-2, Landsat 8) to obtain high-resolution images of glaciers and lakes",
+    "MUST comply with the International Organization for Standardization (ISO) 31000 risk management standard for GLOF risk assessment",
+    "MUST incorporate data from in-situ sensors (e.g., water level, temperature, and precipitation sensors) to validate model outputs",
+    "MUST use machine learning algorithms (e.g., random forest, support vector machines) to analyze historical data and predict GLOF likelihood",
+    "MUST provide early warnings to downstream communities via SMS, email, and social media platforms"
+  ],
+  "anti_patterns": [
+    "DO NOT rely solely on historical data for GLOF prediction, as glacier dynamics and climate change can alter risk profiles",
+    "DO NOT neglect to consider the social and economic impacts of GLOF warnings on downstream communities",
+    "DO NOT underestimate the complexity of integrating satellite and sensor data from diverse sources"
+  ],
+  "key_technical_challenges": [
+    "Handling large volumes of satellite imagery and sensor data for real-time processing and analysis",
+    "Developing accurate machine learning models for GLOF prediction, considering the complexity of glaciological and hydrological processes",
+    "Ensuring reliable and timely communication of early warnings to downstream communities"
+  ],
+  "recommended_stack": {
+    "language": "Python + extensive libraries for satellite image processing, machine learning, and data analysis",
+    "framework": "Flask + lightweight and flexible for real-time data processing and API development",
+    "database_engine": "PostGIS + spatial database capabilities for efficient storage and analysis of geospatial data",
+    "cache": "Redis + in-memory caching for fast data access and processing",
+    "message_broker": "RabbitMQ + message queuing for reliable communication between system components",
+    "special_services": [
+      "Satellite imagery processing service (e.g., GDAL)",
+      "Machine learning model training service (e.g., TensorFlow)"
+    ]
+  },
+  "compliance_flags": [
+    "ISO 31000",
+    "UNDRR Sendai Framework for Disaster Risk Reduction"
+  ]
+}

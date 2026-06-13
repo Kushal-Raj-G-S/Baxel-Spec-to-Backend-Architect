@@ -1,0 +1,37 @@
+{
+  "archetype": "Automated In-Transit Fruit Ripening Monitoring and Optimization System for Refrigerated Container Shipping",
+  "domain": "Cold Chain Logistics for Perishable Produce",
+  "description": "This system monitors and controls the ripening process of fruits during refrigerated container shipping, ensuring optimal freshness and quality upon arrival. It is used by shipping companies, produce distributors, and retailers to reduce waste and improve customer satisfaction. The system must integrate with various temperature and humidity sensors, as well as real-time container tracking and cargo management systems.",
+  "rules": [
+    "MUST comply with FDA regulations for food safety and handling",
+    "MUST integrate with container tracking systems using ISO 6346 container codes",
+    "MUST support multiple temperature and humidity sensor protocols (e.g. Modbus, BACnet)",
+    "MUST use predictive analytics to optimize ripening control based on fruit type, temperature, and humidity",
+    "MUST provide real-time alerts and notifications for temperature excursions or other quality control issues"
+  ],
+  "anti_patterns": [
+    "DO NOT rely solely on manual temperature checks or paper-based records",
+    "DO NOT use a one-size-fits-all approach to ripening control, as different fruits have unique requirements",
+    "DO NOT neglect to account for cargo stowage and container layout in ripening control decisions"
+  ],
+  "key_technical_challenges": [
+    "Integrating with diverse sensor and tracking systems",
+    "Developing accurate predictive models for fruit ripening",
+    "Ensuring reliable and secure real-time communication with containers and stakeholders"
+  ],
+  "recommended_stack": {
+    "language": "Python - for its extensive libraries for data analysis and machine learning",
+    "framework": "Flask - for building RESTful APIs for sensor and tracking system integration",
+    "database_engine": "PostgreSQL - for its robust support for geospatial and time-series data",
+    "cache": "Redis - for caching sensor data and ripening control decisions",
+    "message_broker": "RabbitMQ - for handling real-time notifications and alerts",
+    "special_services": [
+      "Container tracking API",
+      "Weather forecasting service"
+    ]
+  },
+  "compliance_flags": [
+    "FDA 21 CFR 11",
+    "ISO 22000"
+  ]
+}

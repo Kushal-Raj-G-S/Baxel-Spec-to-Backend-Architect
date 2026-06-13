@@ -1,0 +1,39 @@
+{
+  "archetype": "Ballast Water Treatment Compliance and Performance Monitoring System",
+  "domain": "Maritime Ballast Water Management",
+  "description": "A shipboard and shoreside system that continuously monitors, validates, and logs the performance of a vessel's Ballast Water Treatment System (BWTS) against IMO D-2 and USCG standards. It is used by ship engineers, port state control officers, and classification society surveyors to provide irrefutable evidence of\u5408\u89c4 discharge, integrating directly with treatment system controllers and environmental sensors.",
+  "rules": [
+    "MUST generate a legally admissible, tamper-evident electronic logbook aligned with IMO Resolution MEPC.300(72) and USCG 46 CFR Part 162 data format requirements.",
+    "MUST perform real-time validation of key performance indicators (e.g., viable organism count, residual concentration) against the specific type approval certificate of the installed BWTS, rejecting invalid or out-of-range sensor data.",
+    "MUST interface via proprietary, vendor-specific protocols (e.g., NMEA 2000, CAN bus, or RS-485) to the BWTS controller to acquire treatment cycle data, not rely on manual entry.",
+    "MUST support offline-first operation with cryptographic hash chaining for data integrity during periods of no satellite connectivity, syncing to a shoreside portal upon reconnection.",
+    "MUST produce standardized reporting packages (e.g., BWM.2 format) for Port State Control inspections, automatically highlighting any periods of non-compliance or system fault."
+  ],
+  "anti_patterns": [
+    "DO NOT build a generic dashboard that only visualizes data; the system must actively validate performance against the vessel's specific type approval and raise deterministic alerts for discharge violations.",
+    "DO NOT assume reliable, high-bandwidth connectivity; all critical logic and data storage must function autonomously for months at sea with eventual consistency.",
+    "DO NOT use a simple relational schema for time-series sensor data; the volume of high-frequency (1-10Hz) particle count and salinity data requires optimized storage for efficient querying over multi-year voyages."
+  ],
+  "key_technical_challenges": [
+    "Sensor Fusion & Validation: Integrating and cross-validating disparate, often noisy, sensor data (e.g., flow meters, particle counters, salinity probes) from different BWTS manufacturers to detect sensor drift or failure, ensuring reported compliance metrics are trustworthy.",
+    "Deterministic State Machine for Treatment Cycles: Modeling the exact state transitions (e.g., 'Pre-treatment,' 'Filtration,' 'UV/Electrolysis,' 'Post-treatment') of a specific BWTS model to accurately attribute biological samples and discharge events to a verified treatment cycle.",
+    "Offline Cryptographic Audit Trail: Implementing a lightweight, continuous hash-chain (like a blockchain ledger) on resource-constrained shipboard hardware to create a provably unaltered sequence of compliance records, resilient to physical tampering."
+  ],
+  "recommended_stack": {
+    "language": "Rust (for BWTS interface daemon & cryptographic modules) - provides memory safety and performance for low-level hardware comms and security-critical operations.",
+    "framework": "Node.js with TypeScript (for API gateway & shoreside portal) - balances rapid development of complex UIs with strong typing for domain models and integration logic.",
+    "database_engine": "TimescaleDB (PostgreSQL extension) - optimized for high-frequency time-series data from sensors and efficient long-term storage/querying of voyage data.",
+    "cache": "Redis (for caching active vessel status, recent alerts, and type approval certificates to minimize latency for real-time validation).",
+    "message_broker": "MQTT (for lightweight, asynchronous communication between shipboard services and potential edge processing modules).",
+    "special_services": [
+      "D-2 Discharge Validator Service: A deterministic engine that applies the vessel's specific type approval limits to real-time sensor data.",
+      "Classification Society API Gateway: A secure adapter for automated data submission to portals like DNV GL's ShipManager or ABS's Nautical Systems."
+    ]
+  },
+  "compliance_flags": [
+    "IMO Ballast Water Management Convention (D-2 Standard)",
+    "US Coast Guard 46 CFR Part 162 (Ballast Water Management for Ships)",
+    "EU Regulation (EU) 2020/741 (recast of BWM Convention)",
+    "Classification Society Rules (e.g., DNVGL-RU-SHIP Pt.6 Ch.2, ABS Rules for Building and Classing)"
+  ]
+}

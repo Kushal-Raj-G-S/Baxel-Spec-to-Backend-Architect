@@ -1,0 +1,37 @@
+{
+  "archetype": "Automated Livestock Feed Optimization and Disease Detection System for Large-Scale Dairy Farms",
+  "domain": "Agricultural Livestock Farming",
+  "description": "This system optimizes feed composition and detects early signs of disease in dairy cattle through machine learning analysis of sensor data from cow wearables and automated feeding systems. Dairy farmers and veterinarians use this system to improve herd health and reduce feed costs. Technically, it's challenging due to the complexity of integrating sensor data, machine learning models, and farm management systems while ensuring compliance with agricultural regulations.",
+  "rules": [
+    "MUST integrate with RFID ear tags and sensor-enabled feeding troughs to collect data on individual cow feeding habits and health metrics.",
+    "MUST comply with USDA regulations for animal health and welfare, including the National Animal Health Monitoring System (NAHMS).",
+    "MUST use standardized data formats for agricultural data exchange, such as the Agricultural Data Interchange (AGI) protocol.",
+    "MUST incorporate machine learning models that can handle high-dimensional data from various sensor sources, including temperature, humidity, and GPS.",
+    "MUST provide real-time alerts and recommendations to farmers and veterinarians through a user-friendly web interface and mobile app."
+  ],
+  "anti_patterns": [
+    "DO NOT rely solely on manual data entry, as this can lead to inaccuracies and decreased system adoption.",
+    "DO NOT use a one-size-fits-all approach to feed optimization, as different breeds and ages of cattle have unique nutritional requirements.",
+    "DO NOT neglect to consider the cybersecurity risks associated with integrating IoT devices and sensor data into the system."
+  ],
+  "key_technical_challenges": [
+    "Developing a robust and scalable data ingestion pipeline to handle high-volume sensor data from various sources.",
+    "Implementing machine learning models that can accurately detect early signs of disease and optimize feed composition based on individual cow characteristics.",
+    "Ensuring seamless integration with existing farm management systems and hardware infrastructure."
+  ],
+  "recommended_stack": {
+    "language": "Python - due to its extensive libraries for data science and machine learning, including scikit-learn and TensorFlow.",
+    "framework": "Flask - for building a lightweight and flexible web API to handle sensor data and provide real-time alerts.",
+    "database_engine": "PostgreSQL - for its ability to handle large volumes of structured and unstructured data, including sensor readings and farm management data.",
+    "cache": "Redis - for caching frequently accessed data and reducing the load on the database.",
+    "message_broker": "RabbitMQ - for handling message queuing and ensuring reliable communication between system components.",
+    "special_services": [
+      "Agricultural data analytics service",
+      "Machine learning model training service"
+    ]
+  },
+  "compliance_flags": [
+    "USDA regulations",
+    "NAHMS guidelines"
+  ]
+}

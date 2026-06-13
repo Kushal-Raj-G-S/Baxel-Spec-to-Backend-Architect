@@ -1,0 +1,37 @@
+{
+  "archetype": "Automated Digital Forensic Analysis and Chain of Custody Management System for Cybercrime Investigations",
+  "domain": "Cybercrime Forensics",
+  "description": "This system automates the analysis of digital evidence and manages the chain of custody for cybercrime investigations, ensuring the integrity and admissibility of evidence in court. It is used by law enforcement agencies and forensic experts to streamline the investigation process. The system must adhere to strict protocols and standards to ensure the accuracy and reliability of the analysis.",
+  "rules": [
+    "MUST comply with the International Organization for Standardization (ISO) 27042:2015 guidelines for digital forensics",
+    "MUST support the analysis of various digital evidence formats, including but not limited to, hard drives, mobile devices, and network logs",
+    "MUST maintain a detailed and auditable chain of custody for all digital evidence, including timestamped logs and access controls",
+    "MUST integrate with existing law enforcement databases and case management systems",
+    "MUST ensure the confidentiality, integrity, and availability of sensitive case data and digital evidence"
+  ],
+  "anti_patterns": [
+    "DO NOT store digital evidence in an unencrypted format or without proper access controls",
+    "DO NOT allow unauthorized personnel to access or modify digital evidence",
+    "DO NOT neglect to maintain a detailed and auditable chain of custody for all digital evidence"
+  ],
+  "key_technical_challenges": [
+    "Developing a scalable and efficient digital evidence processing pipeline that can handle large volumes of data",
+    "Implementing a robust and secure chain of custody management system that ensures the integrity and admissibility of evidence",
+    "Integrating with various law enforcement databases and case management systems while ensuring data consistency and interoperability"
+  ],
+  "recommended_stack": {
+    "language": "Python - for its extensive libraries and frameworks for digital forensics and data analysis",
+    "framework": "Flask - for its lightweight and flexible architecture, ideal for building scalable web applications",
+    "database_engine": "PostgreSQL - for its robust support for large datasets and advanced data analysis capabilities",
+    "cache": "Redis - for its high-performance caching capabilities and ease of integration with the Flask framework",
+    "message_broker": "RabbitMQ - for its reliable and scalable message queuing capabilities, ideal for integrating with law enforcement databases and case management systems",
+    "special_services": [
+      "Digital Forensics Framework (DFF)",
+      "EnCase Forensic"
+    ]
+  },
+  "compliance_flags": [
+    "ISO 27042:2015",
+    "Federal Rules of Evidence (FRE)"
+  ]
+}

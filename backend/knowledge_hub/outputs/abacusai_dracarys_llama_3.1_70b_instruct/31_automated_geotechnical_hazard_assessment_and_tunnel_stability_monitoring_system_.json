@@ -1,0 +1,37 @@
+{
+  "archetype": "Automated Geotechnical Hazard Assessment and Tunnel Stability Monitoring System for Subway Construction",
+  "domain": "Civil Engineering and Tunnel Construction",
+  "description": "This system assesses geotechnical hazards and monitors tunnel stability in real-time during subway construction, providing critical insights to construction teams and ensuring public safety. It uses sensor data, geological models, and machine learning algorithms to predict potential hazards and optimize tunnel design. The system must comply with international tunneling standards and integrate with construction management software.",
+  "rules": [
+    "MUST integrate with geological information systems (GIS) to incorporate site-specific geological data",
+    "MUST adhere to the International Tunneling Association (ITA) guidelines for tunnel design and construction",
+    "MUST incorporate sensor data from various sources, including inclinometers, extensometers, and pressure cells",
+    "MUST use machine learning algorithms to analyze sensor data and predict potential hazards",
+    "MUST provide real-time alerts and notifications to construction teams in case of potential hazards"
+  ],
+  "anti_patterns": [
+    "DO NOT rely solely on manual data entry and visual inspections, as this may lead to errors and delays",
+    "DO NOT use generic data analytics tools without domain-specific customization, as this may not account for unique tunneling challenges",
+    "DO NOT neglect to incorporate uncertainty and risk analysis in the hazard assessment model, as this may lead to underestimation of potential hazards"
+  ],
+  "key_technical_challenges": [
+    "Integrating and processing large amounts of sensor data from various sources",
+    "Developing and training machine learning models to accurately predict potential hazards",
+    "Ensuring real-time data processing and alerting capabilities to support timely decision-making"
+  ],
+  "recommended_stack": {
+    "language": "Python - due to its extensive libraries for data science and machine learning",
+    "framework": "Django - for its robust support for web development and real-time data processing",
+    "database_engine": "PostgreSQL - for its ability to handle large amounts of spatial data and perform complex queries",
+    "cache": "Redis - for its high-performance caching capabilities",
+    "message_broker": "RabbitMQ - for its reliable message queuing and notification capabilities",
+    "special_services": [
+      "Geospatial analysis library (e.g. GDAL)",
+      "Machine learning library (e.g. scikit-learn)"
+    ]
+  },
+  "compliance_flags": [
+    "International Tunneling Association (ITA) guidelines",
+    "OSHA regulations for tunnel construction"
+  ]
+}

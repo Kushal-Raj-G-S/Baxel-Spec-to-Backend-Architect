@@ -1,0 +1,38 @@
+{
+  "archetype": "Real-Time Magnetic Anomaly Gradiometry & Ferromagnetic Object Discrimination Engine for Unexploded Ordnance (UXO) Clearance in Alluvial Sediments",
+  "domain": "Maritime & Terrestrial Humanitarian Demining (UXO Clearance)",
+  "description": "A safety-critical edge computing system deployed on autonomous underwater vehicle (AUV) swarms and ground-penetrating radar rovers to distinguish between harmless ferromagnetic debris and live high-explosive ordnance by analyzing minute magnetic field gradients in real-time. It integrates tri-axial magnetometer data with inertial navigation systems (INS) to filter out geological noise and logistics byproducts, providing sub-second confidence scores to deminers. The technical difficulty lies in synchronizing heterogeneous sensor fusion streams at millisecond intervals while compensating for the vehicle's own magnetic signature and dynamic motion artifacts in turbid, high-mineral-concentration environments.",
+  "rules": [
+    "MUST implement IEC 61508 SIL-3 safety integrity levels for all decision-making logic to prevent false-negative detonations.",
+    "MUST perform sensor fusion using Extended Kalman Filters (EKF) that ingest data from fluxgate magnetometers, fiber-optic gyroscopes (FOG), and Doppler velocity logs (DVL) at >200Hz update rates.",
+    "MUST adhere to the NATO STANAG 4415 standard for demining operational procedures and data reporting formats.",
+    "MUST utilize local edge processing to ensure zero-latency hazard alerts without reliance on external connectivity (store-and-forward only for post-mission analysis).",
+    "MUST implement dynamic baseline subtraction algorithms to account for the vehicle's changing orientation and the Earth's local geomagnetic variations."
+  ],
+  "anti_patterns": [
+    "DO NOT use cloud-based inference for hazard detection, as satellite latency and signal loss in deep water or dense canyons would cause catastrophic delays.",
+    "DO NOT rely on static thresholding for anomaly detection, as geological iron deposits produce magnetic signatures similar to UXO, requiring dynamic context-aware classification.",
+    "DO NOT decouple the navigation system from the sensor processing pipeline, as positional drift of even 5cm can render the magnetic gradient map useless for pinpointing ordinance depth."
+  ],
+  "key_technical_challenges": [
+    "Compensating for the 'magnetic self-noise' of the AUV's own propulsion motors and battery banks which fluctuate with power draw.",
+    "Processing high-bandwidth tensor data from multi-sensor arrays on radiation-hardened or low-power embedded hardware with strict thermal constraints.",
+    "Differentiating between a 1940s artillery shell and a natural iron nodule using only magnetic signature decay rates and gradient topology in a single pass."
+  ],
+  "recommended_stack": {
+    "language": "Rust (Memory safety guarantees for concurrent sensor streams and zero-runtime-panic requirements in safety-critical loops)",
+    "framework": "Apache Arrow + Rust (for zero-copy, high-throughput columnar data processing of sensor telemetry)",
+    "database_engine": "TimescaleDB (Optimized for high-frequency time-series ingestion with continuous aggregates for real-time anomaly detection)",
+    "cache": "Null (All processing must be deterministic; ephemeral ring buffers are used for sliding window analysis instead)",
+    "message_broker": "ZeroMQ (Ultra-low latency, in-process messaging for rigid real-time sensor fusion pipelines)",
+    "special_services": [
+      "Real-time Gradient Tensor Decomposition Service",
+      "Autonomous Path-Replanning for Hazard Avoidance Service"
+    ]
+  },
+  "compliance_flags": [
+    "IEC 61508 SIL-3",
+    "NATO STANAG 4415",
+    "ISO 16328 (Demining Equipment Safety)"
+  ]
+}

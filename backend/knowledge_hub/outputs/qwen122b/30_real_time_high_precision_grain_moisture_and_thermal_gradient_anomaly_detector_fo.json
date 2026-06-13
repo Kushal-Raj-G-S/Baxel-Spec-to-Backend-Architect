@@ -1,0 +1,39 @@
+{
+  "archetype": "Real-Time High-Precision Grain Moisture & Thermal Gradient Anomaly Detector for Bulk Silo Ventilation Control",
+  "domain": "Industrial Grain Storage & Post-Harvest Logistics",
+  "description": "This system ingests high-frequency data from distributed capacitance and infrared sensors within massive grain silos to predict localized hotspots and spontaneous combustion risks before they occur. It automatically orchestrates complex aeration fan arrays and bi-directional airflow ducts based on real-time thermodynamic modeling rather than simple threshold alarms. The technical difficulty lies in correlating non-homogeneous grain density profiles with ambient weather patterns to prevent catastrophic spoilage or fire in environments where sensor drift and dust interference are constant.",
+  "rules": [
+    "MUST adhere to ANSI/ASABE S376.4 standards for moisture measurement accuracy in bulk agricultural products.",
+    "MUST implement deterministic control loops for variable frequency drives (VFDs) to manage fan inertia and prevent mechanical stress on ventilation systems.",
+    "MUST process sensor data with <500ms latency to react to rapid exothermic reactions typical of mold growth in high-humidity zones.",
+    "MUST utilize time-series interpolation to compensate for sensor occlusion caused by grain settling and dust accumulation.",
+    "MUST enforce strict IEC 61508 SIL-2 safety integrity levels for any automated actuation of ventilation infrastructure."
+  ],
+  "anti_patterns": [
+    "DO NOT use polling mechanisms for sensor data; the signal-to-noise ratio in dusty silo environments requires event-driven interrupt sampling to detect micro-climate shifts.",
+    "DO NOT rely on static threshold triggers (e.g., 'if temp > 40C'), as thermal inertia in grain masses requires predictive trend analysis to distinguish between ambient heating and active spoilage.",
+    "DO NOT implement cloud-only processing; the system must function in a 'dark site' mode with local edge compute due to the lack of reliable connectivity in remote agricultural facilities."
+  ],
+  "key_technical_challenges": [
+    "Algorithmic differentiation between ambient solar heating on metal silo walls and internal biological heat generation from grain respiration.",
+    "Calibration of capacitance sensors against varying grain temperatures and types (corn vs. wheat) which have distinct dielectric constants.",
+    "Optimizing airflow distribution across multi-zone silos to ensure uniform cooling without creating preferential paths that leave hotspots untreated."
+  ],
+  "recommended_stack": {
+    "language": "Rust (for memory safety and real-time performance in embedded edge controllers)",
+    "framework": "Tock OS or Zephyr RTOS (for deterministic scheduling on resource-constrained industrial microcontrollers)",
+    "database_engine": "InfluxDB (optimized for high_write-throughput time-series data from thousands of sensor nodes)",
+    "cache": "Redis (for rapid state access during real-time control decision loops)",
+    "message_broker": "Eclipse MQTT (lightweight protocol for lossy industrial networks in silo environments)",
+    "special_services": [
+      "Thermodynamic Grain Mass Simulation Engine",
+      "Adaptive Sensor Drift Compensation Service"
+    ]
+  },
+  "compliance_flags": [
+    "ASABE S376.4",
+    "IAEA Grain Storage Safety Guidelines",
+    "OSHA 1910.272 (Grain Handling Facilities)",
+    "IEC 61508"
+  ]
+}

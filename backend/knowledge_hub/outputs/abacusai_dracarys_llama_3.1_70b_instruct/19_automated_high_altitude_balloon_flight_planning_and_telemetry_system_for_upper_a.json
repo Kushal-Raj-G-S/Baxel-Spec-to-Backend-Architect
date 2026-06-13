@@ -1,0 +1,37 @@
+{
+  "archetype": "Automated High-Altitude Balloon Flight Planning and Telemetry System for Upper Atmospheric Research",
+  "domain": "Upper Atmospheric Research and High-Altitude Ballooning",
+  "description": "This system plans and tracks high-altitude balloon flights for atmospheric research, ensuring safe and optimal flight paths while collecting and transmitting critical scientific data. Researchers and flight operators use it to monitor and control balloon flights. Technically, it's challenging due to the need to integrate with satellite communication systems, model complex atmospheric conditions, and ensure compliance with aviation regulations.",
+  "rules": [
+    "MUST integrate with Iridium satellite communication systems for real-time telemetry data transmission",
+    "MUST comply with FAA regulations for high-altitude balloon flights, including NOTAM (Notice to Airmen) submission",
+    "MUST incorporate atmospheric models (e.g., Global Forecast System) for accurate flight path prediction",
+    "MUST support multiple payload types (e.g., instruments for measuring atmospheric pressure, temperature, and humidity)",
+    "MUST ensure secure data transmission and storage according to NASA's security standards"
+  ],
+  "anti_patterns": [
+    "DO NOT use a generic GPS tracking system, as it won't account for high-altitude balloon flight dynamics and atmospheric conditions",
+    "DO NOT rely solely on pre-flight planning, as real-time adjustments are crucial for safe and successful flights",
+    "DO NOT neglect to consider the effects of solar radiation and temperature on balloon materials and instruments"
+  ],
+  "key_technical_challenges": [
+    "Developing a robust and accurate atmospheric model for flight path prediction",
+    "Implementing real-time data processing and transmission from the balloon to ground stations via satellite communication",
+    "Ensuring secure and reliable data storage and retrieval for research purposes"
+  ],
+  "recommended_stack": {
+    "language": "Python + NumPy and SciPy libraries for scientific computing and data analysis",
+    "framework": "Flask + RESTful API for integrating with satellite communication systems and ground stations",
+    "database_engine": "PostgreSQL + PostGIS for geospatial data storage and querying",
+    "cache": "Redis for caching atmospheric model data and flight plans",
+    "message_broker": "Apache Kafka for real-time telemetry data processing and transmission",
+    "special_services": [
+      "NASA's Earth Observing System (EOS) data services",
+      "Iridium satellite communication services"
+    ]
+  },
+  "compliance_flags": [
+    "FAA Part 101 (Moored Balloons, Kites, Amateur Rockets, and Unmanned Free Balloons)",
+    "NASA's Security Requirements for Space Science Data"
+  ]
+}

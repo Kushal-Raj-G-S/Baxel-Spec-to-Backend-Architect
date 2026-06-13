@@ -1,0 +1,37 @@
+{
+  "archetype": "Automated Seismic Event Detection and Alert System for Underground Mining Operations",
+  "domain": "Underground Mining Geophysics",
+  "description": "This system uses machine learning algorithms to analyze seismic data from underground mining operations to detect and alert on potential seismic events, such as rockbursts or gas outbursts. The system is used by mining operators and safety personnel to ensure the safety of miners and prevent accidents. The system must handle large amounts of real-time data from various seismic sensors and integrate with existing mining infrastructure.",
+  "rules": [
+    "MUST adhere to the International Society of Rock Mechanics (ISRM) standards for seismic monitoring in mines",
+    "MUST integrate with existing mining infrastructure, including ventilation and communication systems",
+    "MUST comply with the Mine Safety and Health Administration (MSHA) regulations for seismic monitoring and alert systems",
+    "MUST handle data from various seismic sensor types, including accelerometers and seismometers",
+    "MUST provide real-time alerts and notifications to mining personnel in the event of a detected seismic event"
+  ],
+  "anti_patterns": [
+    "DO NOT rely solely on manual analysis of seismic data, as this can lead to delayed detection and response times",
+    "DO NOT use a single sensor type or location, as this can result in incomplete or inaccurate data",
+    "DO NOT neglect to consider the effects of mining activities on seismic data, such as blasting and drilling"
+  ],
+  "key_technical_challenges": [
+    "Developing machine learning algorithms that can accurately detect seismic events in real-time",
+    "Integrating with existing mining infrastructure and handling diverse sensor data",
+    "Ensuring system reliability and uptime in a harsh underground mining environment"
+  ],
+  "recommended_stack": {
+    "language": "Python + extensive libraries for machine learning and data analysis",
+    "framework": "Apache Spark + scalability and real-time processing capabilities",
+    "database_engine": "TimescaleDB + optimized for time-series data and high-performance",
+    "cache": "Redis + fast data access and caching for real-time alerts",
+    "message_broker": "Apache Kafka + scalable and fault-tolerant message handling",
+    "special_services": [
+      "Seismic data processing and analysis services",
+      "Mining infrastructure integration services"
+    ]
+  },
+  "compliance_flags": [
+    "ISRM standards",
+    "MSHA regulations"
+  ]
+}

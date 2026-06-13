@@ -1,0 +1,37 @@
+{
+  "archetype": "Automated Avian Influenza Outbreak Detection and Response System for Poultry Farms",
+  "domain": "Poultry Farming and Animal Health",
+  "description": "This system detects early signs of Avian Influenza outbreaks in poultry farms, alerting farmers and animal health authorities to take prompt action, leveraging machine learning on farm sensor data and integrating with veterinary laboratory information systems. The system must adhere to strict biosecurity protocols and comply with international animal health regulations.",
+  "rules": [
+    "MUST integrate with OIE (World Organisation for Animal Health) standards for Avian Influenza reporting",
+    "MUST comply with NPIP (National Poultry Improvement Plan) guidelines for biosecurity and disease control",
+    "MUST use machine learning models trained on historical farm sensor data and veterinary laboratory results",
+    "MUST provide real-time alerts to farmers and animal health authorities via SMS and email",
+    "MUST maintain audit trails for all system activities and user interactions"
+  ],
+  "anti_patterns": [
+    "DO NOT rely solely on manual reporting by farmers, as this can lead to delayed detection and response",
+    "DO NOT use generic machine learning models not tailored to poultry farm data and Avian Influenza patterns",
+    "DO NOT neglect to integrate with existing farm management systems and veterinary laboratory information systems"
+  ],
+  "key_technical_challenges": [
+    "Developing machine learning models that can accurately detect early signs of Avian Influenza from noisy and variable farm sensor data",
+    "Integrating with diverse veterinary laboratory information systems and handling varying data formats and protocols",
+    "Ensuring system scalability and performance to handle large volumes of farm sensor data and user interactions"
+  ],
+  "recommended_stack": {
+    "language": "Python + for its extensive machine learning libraries and data science ecosystem",
+    "framework": "Flask + for building a scalable and modular web application",
+    "database_engine": "PostgreSQL + for handling complex queries and integrating with veterinary laboratory information systems",
+    "cache": "Redis + for caching frequently accessed farm sensor data and system configurations",
+    "message_broker": "RabbitMQ + for handling real-time alerts and system notifications",
+    "special_services": [
+      "Veterinary laboratory information system API",
+      "Farm management system API"
+    ]
+  },
+  "compliance_flags": [
+    "OIE (World Organisation for Animal Health) standards",
+    "NPIP (National Poultry Improvement Plan) guidelines"
+  ]
+}

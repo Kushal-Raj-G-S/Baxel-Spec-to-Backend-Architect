@@ -1,0 +1,38 @@
+{
+  "archetype": "Automated Taxidermy Workflow Management and Compliance Tracking System",
+  "domain": "Taxidermy and Natural History Museum Curation",
+  "description": "This system streamlines the taxidermy process for natural history museums, ensuring compliance with regulations such as the Convention on International Trade in Endangered Species of Wild Fauna and Flora (CITES) and the Endangered Species Act (ESA). It tracks specimen preparation, mounts, and storage, while also managing permits, licenses, and conservation status. The system must handle complex workflows, integrate with external databases, and ensure data integrity.",
+  "rules": [
+    "MUST comply with CITES and ESA regulations for specimen handling and trade",
+    "MUST integrate with museum collection management systems (CMS) for seamless data exchange",
+    "MUST support multiple taxidermy techniques and workflows for various specimen types",
+    "MUST track and manage hazardous materials and chemicals used in the taxidermy process",
+    "MUST provide real-time inventory management and reporting for specimens, mounts, and storage"
+  ],
+  "anti_patterns": [
+    "DO NOT use generic workflow management tools that lack domain-specific knowledge and integration",
+    "DO NOT neglect to incorporate CITES and ESA compliance checks in the workflow",
+    "DO NOT overlook the importance of data integrity and backups for sensitive specimen information"
+  ],
+  "key_technical_challenges": [
+    "Developing a flexible and adaptable workflow engine to accommodate various taxidermy techniques and specimen types",
+    "Integrating with museum CMS systems and external databases while ensuring data consistency and integrity",
+    "Implementing robust security measures to protect sensitive specimen information and comply with regulations"
+  ],
+  "recommended_stack": {
+    "language": "Python - due to its extensive libraries and frameworks for data manipulation and workflow management",
+    "framework": "Django - for its robust ORM and support for complex workflows",
+    "database_engine": "PostgreSQL - for its advanced data integrity features and support for GIS data",
+    "cache": "Redis - for its high-performance caching capabilities",
+    "message_broker": "RabbitMQ - for its flexibility and support for complex workflows",
+    "special_services": [
+      "CITES API",
+      "ESA API",
+      "Museum CMS API"
+    ]
+  },
+  "compliance_flags": [
+    "CITES",
+    "ESA"
+  ]
+}

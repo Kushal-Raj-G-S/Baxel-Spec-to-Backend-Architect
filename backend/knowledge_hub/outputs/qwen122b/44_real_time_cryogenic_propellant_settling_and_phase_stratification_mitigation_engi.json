@@ -1,0 +1,38 @@
+{
+  "archetype": "Real-Time Cryogenic Propellant Settling & Phase-Stratification Mitigation Engine for Lunar Gateway Storable Propulsion",
+  "domain": "Deep-Space Mission Operations (Cryogenic Fluid Management)",
+  "description": "This system orchestrates complex thermal and fluid dynamics simulations to predict and prevent propellant boiling or vapor locking in zero-gravity storage tanks during long-duration lunar transit. It processes telemetry from embedded fiber-optic temperature arrays and accelerometers to execute micro-thruster 'settling burns' and heat exchanger adjustments in real-time, a task requiring millisecond precision to avoid mission-critical fuel loss.",
+  "rules": [
+    "MUST interface with NASA CCSDS (Consultative Committee for Space Data Systems) File Delivery and Telemetry protocols for uplink/downlink of physics simulation state.",
+    "MUST adhere to ECSS-Q-ST-70-03C standards for software reliability in safety-critical space applications, ensuring fail-safe logic for abort sequences.",
+    "MUST integrate with legacy IEEE 1394b (FireWire) and SpaceWire hardware interfaces used in legacy avionics busses for sensor aggregation.",
+    "MUST implement deterministic real-time scheduling (hard real-time) to execute control loops within <5ms to counter rapid thermal micro-fluctuations.",
+    "MUST validate all control commands against a physics-based 'Digital Twin' model before execution to prevent tank structural stress or pump cavitation."
+  ],
+  "anti_patterns": [
+    "DO NOT use eventual consistency databases for control loop state\u2014propellant phase changes are instantaneous and require strict ACID transactions with zero latency.",
+    "DO NOT rely on standard cloud-based auto-scaling for the flight control logic\u2014this must run on radiation-hardened, fixed-compute onboard units with no external dependency.",
+    "DO NOT apply generic PID tuning without non-linear compensation for the specific fluid properties (e.g., Helium-3 vs. Liquid Hydrogen) and 0G surface tension dynamics."
+  ],
+  "key_technical_challenges": [
+    "Modeling two-phase flow dynamics (liquid/vapor interface) in zero-g with high-fidelity CFD solvers running on embedded hardware with limited FLOPS.",
+    "Compensating for sensor drift and radiation-induced bit flips in cryogenic temperature arrays while maintaining control stability.",
+    "Synchronizing high-frequency accelerometer data with slow-thermal response times to predict 'slosh' events before they destabilize the spacecraft attitude."
+  ],
+  "recommended_stack": {
+    "language": "Ada 2012 \u2014 Selected for its built-in strong typing, static analysis capabilities, and formal verification support required for DO-178C/ECSS flight software.",
+    "framework": "Ogger Open System Architecture for Embedded Control (OSAE) \u2014 Provides a standardized middleware for real-time distributed control systems in aerospace.",
+    "database_engine": "SQLite (with Write-Ahead Logging disabled for critical paths) \u2014 Used for local state persistence on ground and onboard due to its zero-dependency and atomic operation guarantees.",
+    "cache": "Ring Buffer (Lock-free) \u2014 Essential for high-frequency sensor data streaming without context-switch overhead.",
+    "message_broker": "DDS (Data Distribution Service) with RTPS over UDP \u2014 The industry standard for real-time, publish-subscribe communication in distributed space systems.",
+    "special_services": [
+      "Real-time CFD Solver Engine",
+      "Radiation Hardened CRC-32 Error Correction Service"
+    ]
+  },
+  "compliance_flags": [
+    "ECSS-E-ST-40C (Software Engineering)",
+    "NASA NPR 7150.2 (Software Engineering Requirements)",
+    "FAA Part 107 (Remote ID & Command Links for ground support)"
+  ]
+}

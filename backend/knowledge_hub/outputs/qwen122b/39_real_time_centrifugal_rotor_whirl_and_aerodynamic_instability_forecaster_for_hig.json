@@ -1,0 +1,38 @@
+{
+  "archetype": "Real-Time Centrifugal Rotor Whirl & Aerodynamic Instability Forecaster for High-Speed Gas Turbine Test Cells",
+  "domain": "Industrial Power Generation & Turbomachinery Test Engineering",
+  "description": "This system ingests high-frequency vibration, strain gauge, and acoustic emission data from spinning gas turbine rotors to predict catastrophic subsynchronous whirl and blade flutter milliseconds before they occur. Used by test cell engineers and automated shutdown controllers, it requires sub-microsecond latency to distinguish between benign rotor dynamics and incipient resonant modes that could vaporize a $20M prototype engine.",
+  "rules": [
+    "MUST adhere to IEEE 1118 standards for rotating machinery vibration data acquisition and sampling synchronization.",
+    "MUST implement real-time Fast Fourier Transform (FFT) and Order Tracking analysis on raw ADC streams before data persistence.",
+    "MUST integrate with IEC 61508 SIL-3 certified safety PLCs for automatic emergency trip sequencing upon predicted instability.",
+    "MUST handle burst data rates exceeding 500k samples per second per sensor channel without dropping packets.",
+    "MUST provide traceable audit logs compliant with ASME PTC 18 for performance testing validation."
+  ],
+  "anti_patterns": [
+    "DO NOT use pull-based polling for sensor data; the latency variance will miss transient instability events causing engine destruction.",
+    "DO NOT rely on standard SQL databases for raw waveform storage; the write throughput will bottleneck the control loop.",
+    "DO NOT implement generic anomaly detection ML models; they lack the physics-based causality required to distinguish between oil whirl and synchronous unbalance."
+  ],
+  "key_technical_challenges": [
+    "Synchronizing heterogeneous sensor streams (strain gauges, proximity probes, acoustic microphones) to within 1 microsecond using hardware timestamps.",
+    "Performing real-time spectral analysis on non-stationary signals during rapid acceleration/deceleration ramps (run-up/run-down).",
+    "Designing a fail-safe state machine that can execute a controlled emergency shutdown within 15ms of a critical frequency threshold breach."
+  ],
+  "recommended_stack": {
+    "language": "Rust \u2014 Guarantees memory safety and deterministic latency with zero-runtime garbage collection for critical control loops.",
+    "framework": "Tokio with custom real-time scheduling extensions \u2014 Enables precise task prioritization and interrupt handling for time-critical sensor ingestion.",
+    "database_engine": "TimescaleDB with continuous aggregates \u2014 Optimized for high-frequency time-series write latency and efficient downsampling for long-term trend analysis.",
+    "cache": "RocksDB (embedded) \u2014 Provides a low-latency, append-only buffer for burst data during network interruptions or PLC handshakes.",
+    "message_broker": "NATS \u2014 Delivers sub-millisecond message delivery for streaming diagnostic alerts to safety controllers and human operators.",
+    "special_services": [
+      "Physics-Informed Neural Network (PINN) Inference Engine for predicting resonance crossing zones",
+      "Hardware Timestamp Synchronization Service (PTP) for multi-channel alignment"
+    ]
+  },
+  "compliance_flags": [
+    "IEC 61508 (Functional Safety)",
+    "ASME PTC 18 (Performance Test Code)",
+    "ISO 10816 (Mechanical Vibration)"
+  ]
+}

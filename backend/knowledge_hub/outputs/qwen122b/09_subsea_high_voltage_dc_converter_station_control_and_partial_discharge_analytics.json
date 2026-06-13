@@ -1,0 +1,38 @@
+{
+  "archetype": "Subsea High-Voltage DC Converter Station Control & Partial Discharge Analytics System",
+  "domain": "Offshore Wind Farm HVDC Transmission",
+  "description": "A real-time embedded control system designed to monitor and mitigate partial discharge events in subsea HVDC converter valves, ensuring grid stability for remote offshore wind farms. It fuses data from optical fiber sensors, acoustic hydrophones, and high-speed voltage taps to predict insulation failure in environments where physical repair is impossible for months. The system must operate with millisecond latency over long-distance fiber optics while adhering to extreme reliability standards for safety-critical maritime infrastructure.",
+  "rules": [
+    "MUST implement IEC 61850 GOOSE and SV messaging protocols for sub-millisecond protection coordination between converter stations.",
+    "MUST adhere to IEC 60092 for marine electrical equipment regarding electromagnetic compatibility and vibration resistance in the software logic.",
+    "MUST process raw partial discharge (PD) waveforms (IEC 60270 standard) locally on the edge device to filter noise before transmission.",
+    "MUST support 'Black Start' recovery sequences where the system autonomously re-initializes grid synchronization after a total power loss.",
+    "MUST enforce strict deterministic timing (hard real-time) for trip signals, as latency > 15ms can cause catastrophic cascade failures in the DC grid."
+  ],
+  "anti_patterns": [
+    "DO NOT rely on cloud-based anomaly detection for critical trip logic\u2014network latency and potential subsea cable cuts make remote dependency fatal.",
+    "DO NOT use standard TCP/IP stacks for protection messaging\u2014packet loss or reordering during congestion can cause false trips or failure to trip.",
+    "DO NOT implement dynamic memory allocation during the interrupt service routines\u2014memory fragmentation over years of continuous uptime leads to system crashes."
+  ],
+  "key_technical_challenges": [
+    "Synchronizing data from heterogeneous sensors (acoustic, optical, electrical) with sub-microsecond precision across a noisy subsea environment.",
+    "Designing a self-healing firmware architecture that can recover from bit-flips caused by cosmic radiation or deep-sea pressure anomalies without rebooting.",
+    "Implementing cryptographic authentication for remote commands while maintaining the deterministic latency required for grid protection."
+  ],
+  "recommended_stack": {
+    "language": "Rust \u2014 provides memory safety guarantees without garbage collection pauses, essential for hard real-time control loops.",
+    "framework": "Zephyr RTOS \u2014 a real-time operating system specifically designed for constrained, safety-critical embedded IoT devices.",
+    "database_engine": "TimescaleDB (embedded mode) \u2014 optimized for high-cardinality time-series data from sensor streams with efficient compression.",
+    "cache": "null",
+    "message_broker": "DDS (Data Distribution Service) \u2014 supports publish/subscribe with quality-of-service (QoS) levels for critical data delivery.",
+    "special_services": [
+      "IEC 61850 Protocol Stack Implementation",
+      "Partial Discharge Pattern Recognition Neural Engine (Quantized)"
+    ]
+  },
+  "compliance_flags": [
+    "IEC 61508 SIL 3 (Safety Integrity Level)",
+    "DNV-ST-0126 (Offshore Substations)",
+    "IEC 60255 (Relay Protection Standards)"
+  ]
+}

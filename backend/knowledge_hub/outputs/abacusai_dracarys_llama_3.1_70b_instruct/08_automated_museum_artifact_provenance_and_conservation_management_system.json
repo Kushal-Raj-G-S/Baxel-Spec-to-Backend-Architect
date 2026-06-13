@@ -1,0 +1,37 @@
+{
+  "archetype": "Automated Museum Artifact Provenance and Conservation Management System",
+  "domain": "Museum Collections Management",
+  "description": "This system helps museum curators track and manage the provenance, conservation, and restoration of artifacts, ensuring compliance with international standards and regulations. It integrates with various sensors and devices to monitor environmental conditions and detect potential threats to the artifacts. The system's complexity lies in handling diverse data formats, integrating with various hardware devices, and ensuring the security and integrity of sensitive cultural heritage information.",
+  "rules": [
+    "MUST comply with the International Council of Museums (ICOM) Code of Ethics for Museums",
+    "MUST integrate with environmental monitoring sensors (e.g., temperature, humidity, light) to track conditions in storage and exhibit areas",
+    "MUST support the import and export of data in various formats, including CIDOC-CRM and Dublin Core",
+    "MUST ensure the secure storage and transmission of sensitive cultural heritage information, in accordance with GDPR and other relevant regulations",
+    "MUST provide a user-friendly interface for curators to document and track conservation and restoration activities"
+  ],
+  "anti_patterns": [
+    "DO NOT use a generic CRM system, as it would not meet the specific needs of museum collections management",
+    "DO NOT neglect to integrate with environmental monitoring sensors, which could compromise the safety and preservation of the artifacts",
+    "DO NOT use a proprietary data format, which could limit the system's interoperability and data exchange capabilities"
+  ],
+  "key_technical_challenges": [
+    "Developing a data model that can accommodate diverse artifact types and provenance information",
+    "Integrating with various hardware devices and sensors to monitor environmental conditions",
+    "Ensuring the security and integrity of sensitive cultural heritage information"
+  ],
+  "recommended_stack": {
+    "language": "Python, due to its extensive libraries and frameworks for data science and cultural heritage applications",
+    "framework": "Django, for its robust support for complex data models and user authentication",
+    "database_engine": "PostgreSQL, for its ability to handle large volumes of structured and unstructured data",
+    "cache": "Redis, for its high-performance caching capabilities",
+    "message_broker": "null",
+    "special_services": [
+      "IIIF (International Image Interoperability Framework) for image annotation and sharing"
+    ]
+  },
+  "compliance_flags": [
+    "ICOM Code of Ethics for Museums",
+    "GDPR",
+    "CIDOC-CRM"
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "archetype": "Real-Time Multi-Modal Seabed Geotechnical Characterization & Pipeline Scour Prediction Engine for Deep-Water Trench Operations",
+  "domain": "Offshore Subsea Civil Engineering & Geotechnical Risk Management",
+  "description": "A deterministic, hard-real-time system that fuses high-frequency Distributed Acoustic Sensing (DAS) strain data, multibeam bathymetry backscatter, and sub-bottom profiler sediment signatures to predict pipeline scour and soil liquefaction in real-time during subsea trenching operations. It is used by ROV pilots and geotechnical engineers to dynamically adjust excavation parameters, requiring the synchronization of heterogeneous sensor streams with millisecond precision while accounting for underwater acoustic propagation delays and complex fluid-structure interaction models.",
+  "rules": [
+    "MUST adhere to IEC 61850-7-420 for subsea device interoperability and strict 10ms latency budgets for active feedback to hydraulic thrusters.",
+    "MUST implement ISO 19901-6 compliance for geotechnical uncertainty quantification and risk zoning in dynamic positioning (DP) operations.",
+    "MUST process raw acoustic data streams using FFT and wavelet transforms on edge nodes before uplinking to avoid bandwidth saturation of 40Gbps subsea cables.",
+    "MUST integrate legacy proprietary protocols (e.g., Teledyne Odom, Kongsberg Hugin) with modern OPC UA time-series schemas without data loss.",
+    "MUST maintain a digital twin state consistent with the physical seabed topology within a 5cm vertical error margin despite vessel heave and surge."
+  ],
+  "anti_patterns": [
+    "DO NOT use asynchronous 'fire-and-forget' message queuing for control loops, as hydraulic actuation requires synchronous, deterministic state confirmation to prevent pipeline buckling.",
+    "DO NOT rely on cloud-based batch processing for scour detection, as the latency of round-trip satellite or long-haul fiber uplinks renders the data obsolete before action can be taken.",
+    "DO NOT apply generic time-series smoothing algorithms without accounting for phase-shift introduced by underwater acoustic sound speed profile variations."
+  ],
+  "key_technical_challenges": [
+    "Synchronizing heterogeneous sensor timestamps (acoustic, sonar, inertial) across a distributed underwater network with variable propagation delays caused by changing salinity and temperature gradients.",
+    "Computing complex finite element analysis (FEA) models of soil-pipe interaction on edge hardware with limited power budgets while maintaining a 20Hz control loop rate.",
+    "Filtering out signal-to-noise ratio degradation caused by biologics (e.g., fish schools, bubble plumes) and vessel machinery vibrations in real-time to prevent false positive scour alerts."
+  ],
+  "recommended_stack": {
+    "language": "Rust \u2014 Provides memory safety guarantees without garbage collection pauses, essential for real-time signal processing and safety-critical control logic.",
+    "framework": "Apache Arrow DataFusion \u2014 Enables efficient in-memory columnar processing for high-throughput geospatial telemetry and vectorized mathematical operations.",
+    "database_engine": "TimescaleDB with custom C extensions \u2014 Supports high-velocity time-series ingestion with continuous aggregates and native spatial indexing for 3D seabed mapping.",
+    "cache": "Redis (with Wasm modules) \u2014 For sub-millisecond access to current vessel state and recent sensor windows to feed the FEA solver.",
+    "message_broker": "Eclipsezen (ZeroMQ) \u2014 Offers deterministic, publish-subscribe patterns with guaranteed delivery and priority queuing for critical alarm signals.",
+    "special_services": [
+      "Adaptive Acoustic Tomography Calibration Service",
+      "Real-Time Sediment Grain Size Distribution Estimator"
+    ]
+  },
+  "compliance_flags": [
+    "DNV-RP-F105 (Free Spans of Pipelines)",
+    "ISO 19901-2 (MetOcean and Geotechnical Design)",
+    "OPC UA Part 14 (Profiles for Process Automation)"
+  ]
+}

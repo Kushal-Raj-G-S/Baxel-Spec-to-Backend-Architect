@@ -1,0 +1,37 @@
+{
+  "archetype": "Real-Time GPR Phase-Shift Anomaly Classifier for Sub-Glacial Basal Meltwater Mapping",
+  "domain": "Glaciological Remote Sensing & Cryospheric Hydrology",
+  "description": "A field-deployable edge computing system that processes raw Ground Penetrating Radar (GPR) data in real-time to detect and classify basal meltwater pockets under moving ice sheets, distinguishing them from bedrock or sediment using phase-shift analysis. Used by polar research expeditions and ice-sheet stability modeling teams, it must operate in extreme cold (-60\u00b0C) with high radiation tolerance while processing gigabytes of radar returns per second to prevent data loss during short survey windows.",
+  "rules": [
+    "MUST adhere to the 16-bit GPR trace data format (SEG-Y or proprietary binary) and process sampling rates up to 200 MHz without buffer underruns.",
+    "MUST implement hardware-accelerated (FPGA/GPU) Fast Fourier Transform (FFT) pipelines to perform hyperbolic diffraction stacking within 50ms of data acquisition.",
+    "MUST support the IEEE 1451 smart transducer interface for asynchronous sensor fusion with GPS/IMU positioning data and surface roughness sensors.",
+    "MUST enforce strict deterministic real-time scheduling (RTOS) to prevent jitter that would corrupt phase-coherent radar stacking algorithms.",
+    "MUST comply with ISO 19960 (Glaciological Data Standards) for metadata tagging regarding ice velocity, surface elevation, and antenna frequency."
+  ],
+  "anti_patterns": [
+    "DO NOT use standard cloud-latency pipelines for initial anomaly detection; the system must function entirely offline due to lack of connectivity in polar regions.",
+    "DO NOT apply generic image segmentation AI models (like standard U-Nets) without training on specific dielectric permittivity signatures of cryo-strata, as they fail to distinguish water from wet snow.",
+    "DO NOT rely on software-based signal averaging; the thermal noise floor in extreme cold requires analog front-end filtering before digital conversion."
+  ],
+  "key_technical_challenges": [
+    "Compensating for variable antenna coupling efficiency caused by rapidly changing snow density and surface roughness in the signal processing chain.",
+    "Managing thermal throttling and power budget constraints of high-performance compute modules inside a vacuum-insulated, cryogenic-rated enclosure.",
+    "Synchronizing millisecond-level radar pulse timestamps with GPS drift in high-latitude regions where standard GPS accuracy degrades."
+  ],
+  "recommended_stack": {
+    "language": "Rust (for memory safety in embedded RTOS environments with zero garbage collection pauses)",
+    "framework": "Rust-RTIC (Real-Time Interrupt-driven Concurrency) for deterministic multicore scheduling on ARM Cortex-M/RPI Compute Modules",
+    "database_engine": "TimeScaleDB (for time-series metadata) paired with HDF5 (for raw binary radar trace storage and archiving)",
+    "cache": "Redis (embedded instance) for rapid multi-task data exchange",
+    "message_broker": "ZeroMQ (for high-throughput, low-latency inter-process communication between acquisition and inference threads)",
+    "special_services": [
+      "Custom CUDA/OpenCL kernel service for real-time diffraction hyperbola migration",
+      "Cryo-Temperature Calibrated Dielectric Constant Lookup Service"
+    ]
+  },
+  "compliance_flags": [
+    "SCAR (Scientific Committee on Antarctic Research) Data Policy",
+    "FAIR Data Principles for Cryospheric Sciences"
+  ]
+}

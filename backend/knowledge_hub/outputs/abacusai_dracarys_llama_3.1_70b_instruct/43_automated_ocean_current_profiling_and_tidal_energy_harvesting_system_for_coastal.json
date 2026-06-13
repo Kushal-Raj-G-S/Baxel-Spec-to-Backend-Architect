@@ -1,0 +1,38 @@
+{
+  "archetype": "Automated Ocean Current Profiling and Tidal Energy Harvesting System for Coastal Renewable Energy Farms",
+  "domain": "Tidal Energy Harvesting and Coastal Oceanography",
+  "description": "This system monitors and analyzes ocean currents, tidal patterns, and water levels to optimize the energy harvesting of tidal energy turbines. It is used by coastal renewable energy farms to maximize energy production and reduce maintenance costs. The system must accurately model complex ocean dynamics and integrate with various sensor systems.",
+  "rules": [
+    "MUST comply with the International Electrotechnical Commission (IEC) 61400-22 standard for tidal energy converters",
+    "MUST integrate with Acoustic Doppler Current Profiler (ADCP) sensors to measure ocean currents",
+    "MUST use the Finite Element Method (FEM) to model tidal flow and energy extraction",
+    "MUST adhere to the International Organization for Standardization (ISO) 9001:2015 quality management standard",
+    "MUST ensure data security and integrity in accordance with the NERC CIP standards for critical infrastructure"
+  ],
+  "anti_patterns": [
+    "DO NOT use oversimplified tidal models that neglect nonlinear effects and turbulence",
+    "DO NOT rely solely on historical data without incorporating real-time sensor inputs",
+    "DO NOT neglect the impact of marine life and seabed topography on energy harvesting"
+  ],
+  "key_technical_challenges": [
+    "Accurately modeling complex ocean dynamics and turbulence",
+    "Integrating multiple sensor systems and data sources",
+    "Optimizing energy harvesting while minimizing environmental impact"
+  ],
+  "recommended_stack": {
+    "language": "Python - suitable for scientific computing and data analysis",
+    "framework": "Flask - lightweight and flexible for real-time data processing",
+    "database_engine": "PostgreSQL - robust and scalable for large datasets",
+    "cache": "Redis - efficient for caching sensor data and intermediate results",
+    "message_broker": "Apache Kafka - suitable for handling high-volume sensor data",
+    "special_services": [
+      " Oceanographic data services",
+      "GIS mapping services"
+    ]
+  },
+  "compliance_flags": [
+    "IEC 61400-22",
+    "ISO 9001:2015",
+    "NERC CIP"
+  ]
+}
