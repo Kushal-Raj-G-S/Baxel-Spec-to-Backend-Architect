@@ -256,7 +256,7 @@ export default function AppShell({ children, wide = false }: { children: React.R
 
   return (
     <div ref={rootRef} className="min-h-screen bg-[#1F261D] cursor-reactive">
-      <header className="fixed top-0 left-0 right-0 z-40 border-b border-white/10 bg-[#1F261D]/80 backdrop-blur-md">
+      <header className="sticky top-0 z-40 border-b border-white/10 bg-[#1F261D]/80 backdrop-blur-md">
         <div className={`mx-auto flex w-full items-center justify-between px-6 py-6 ${widthClass}`}>
           <Link href="/" className="flex items-center gap-3">
             <Image src={logoImage} alt="Baxel logo" className="h-9 w-9 rounded-2xl object-cover" priority />
@@ -348,7 +348,7 @@ export default function AppShell({ children, wide = false }: { children: React.R
           </div>
         )}
       </header>
-      <main className={`mx-auto w-full px-6 pt-[100px] pb-10 ${widthClass}`}>{children}</main>
+      <main className={`mx-auto w-full px-6 pt-3 pb-10 ${widthClass}`}>{children}</main>
 
       {isDomReady &&
         isProfileMenuOpen &&
