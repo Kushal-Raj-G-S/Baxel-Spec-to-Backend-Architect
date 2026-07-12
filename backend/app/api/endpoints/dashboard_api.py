@@ -635,6 +635,7 @@ async def run_pipeline_job(
     result = {
         "summary": f"Baxel generated a {spec.tech_stack.language} / {spec.tech_stack.framework} system architecture for {spec.project_name} ({ir.archetype}), featuring {len(db_tables)} database tables, {len(api_endpoints)} REST endpoints, and {len(business_rules)} business rules.",
         "tech_stack": spec.tech_stack.model_dump(mode="json"),
+        "auth_strategy": spec.auth_strategy.model_dump(mode="json"),
         "entities": db_tables,
         "relationships": relationships,
         "join_tables": [],
