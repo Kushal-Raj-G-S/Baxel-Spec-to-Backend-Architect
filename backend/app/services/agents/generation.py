@@ -114,6 +114,8 @@ LLM_BASE_URL = os.getenv("LLM_BASE_URL", "https://integrate.api.nvidia.com/v1")
 LLM_MODEL = "openai/gpt-oss-20b"
 # Lightweight model for fast review agents (DBA, Security, PM) — much lower latency
 LLM_REVIEW_MODEL = "meta/llama-3.1-8b-instruct"
+# SAGE Chatbot model configuration
+LLM_SAGE_MODEL = "openai/gpt-oss-20b"
 
 def _read_env_file_value(key: str) -> str:
     """

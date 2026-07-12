@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 from app.core.db import get_db
 from app.models.spec_db import SpecModel, PipelineRunModel, ChatMessageModel
 from app.core.auth import get_current_user
-from app.services.agents.generation import LLM_REVIEW_MODEL, LLM_MODEL
+from app.services.agents.generation import LLM_REVIEW_MODEL, LLM_MODEL, LLM_SAGE_MODEL
 
 from pathlib import Path
 
@@ -247,7 +247,7 @@ async def chat_with_spec(
         
     try:
         response = client.chat.completions.create(
-            model=os.getenv("LLM_MODEL", LLM_MODEL),
+            model=LLM_SAGE_MODEL,
             messages=chat_messages
         )
         reply = response.choices[0].message.content
