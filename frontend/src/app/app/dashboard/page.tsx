@@ -439,13 +439,13 @@ function DashboardContent() {
 
       const planCode = (plan?.plan_code || "starter").toLowerCase();
       const charLimitMap: Record<string, number> = {
-        starter: 1000,
-        creator: 1500,
-        studio: 3000,
+        starter: 3000,
+        creator: 4500,
+        studio: 6500,
         growth: 9000,
         enterprise: 15000,
       };
-      const activeCharLimit = plan?.idea_char_limit || charLimitMap[planCode] || 1000;
+      const activeCharLimit = plan?.idea_char_limit || charLimitMap[planCode] || 3000;
       if (trimmedSpec.length > activeCharLimit) {
         setStatus(`Idea is too long for ${plan?.plan_name || "Starter"}. Max ${activeCharLimit} characters.`);
         return;
@@ -839,7 +839,7 @@ function DashboardContent() {
     ? Math.floor(plan.monthly_run_limit / plan.monthly_project_limit)
     : 0;
   const perProjectRunsAllowed = Math.max(1, plan?.runs_per_project_limit || approxRunsPerProject || 1);
-  const activeIdeaCharLimit = plan?.idea_char_limit || 1000;
+  const activeIdeaCharLimit = plan?.idea_char_limit || 3000;
   const ideaCharsUsed = specContent.length;
   const ideaCharsRemaining = Math.max(0, activeIdeaCharLimit - ideaCharsUsed);
 

@@ -308,17 +308,17 @@ async def profile_plan(user=Depends(get_current_user), db: Session = Depends(get
     else:
         # Fallback to starter plan limits
         plan_name = "Starter Plan"
-        monthly_run_limit = 9
+        monthly_run_limit = 9999
         monthly_project_limit = 3
         
     char_limit_map = {
-        "starter": 1000,
-        "creator": 1500,
-        "studio": 3000,
+        "starter": 3000,
+        "creator": 4500,
+        "studio": 6500,
         "growth": 9000,
         "enterprise": 15000
     }
-    idea_char_limit = char_limit_map.get(plan_code.lower(), 1000)
+    idea_char_limit = char_limit_map.get(plan_code.lower(), 3000)
     
     return {
         "plan_code": plan_code,
