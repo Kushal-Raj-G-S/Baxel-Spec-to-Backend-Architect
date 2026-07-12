@@ -13,6 +13,15 @@ export default function PricingPage() {
           <p className="mt-3 text-sm text-white/60">
             A project is your product workspace. A pipeline run is one generation attempt inside a project, so a single project can have many runs.
           </p>
+          <div className="mt-5 rounded-2xl bg-white/5 border border-white/10 p-5 text-sm text-white/70 max-w-3xl flex items-start gap-3">
+            <span className="text-[#C2D68C] text-lg mt-0.5">ℹ️</span>
+            <div>
+              <p className="font-semibold text-white">Full Swarm Engine Access for All Plans</p>
+              <p className="mt-1 text-xs text-white/60 leading-relaxed">
+                We never throttle output quality or generation details based on your tier. Every plan runs on the exact same full-capacity backend swarm engine. The complexity and depth of the generated database schema and codebase depend solely on how detailed and granular you make your input prompt spec.
+              </p>
+            </div>
+          </div>
           <div className="mt-8 grid gap-6 md:grid-cols-2 xl:grid-cols-5">
             {pricingPlans.map((tier) => (
               <div key={tier.code} className={`rounded-3xl border bg-white/5 p-6 reveal reveal-delay-1 magnetic ${tier.featured ? "border-[#C2D68C]/50 shadow-[0_0_30px_rgba(194,214,140,0.15)]" : "border-white/5"}`}>
