@@ -19,7 +19,8 @@ export const pricingPlans: PricingPlan[] = [
     perks: [
       "3 active projects",
       "Up to 3,000 character prompt specs",
-      "Full API, DB, and code stubs generation"
+      "Full API, DB, and code stubs generation",
+      "SAGE AI Systems Architect Chatbot"
     ],
     checkoutUrl: process.env.NEXT_PUBLIC_BILLING_STARTER_URL || "/auth"
   },
@@ -32,7 +33,8 @@ export const pricingPlans: PricingPlan[] = [
     perks: [
       "7 active projects",
       "Up to 4,500 character prompt specs",
-      "Full API, DB, and code stubs generation"
+      "Full API, DB, and code stubs generation",
+      "SAGE AI Systems Architect Chatbot"
     ],
     checkoutUrl: process.env.NEXT_PUBLIC_BILLING_CREATOR_URL || "mailto:billing@baxel.app?subject=Creator%20Plan"
   },
@@ -45,7 +47,8 @@ export const pricingPlans: PricingPlan[] = [
     perks: [
       "15 active projects",
       "Up to 6,500 character prompt specs",
-      "Full API, DB, and code stubs generation"
+      "Full API, DB, and code stubs generation",
+      "SAGE AI Systems Architect Chatbot"
     ],
     checkoutUrl: process.env.NEXT_PUBLIC_BILLING_STUDIO_URL || "mailto:billing@baxel.app?subject=Studio%20Plan",
     featured: true
@@ -59,7 +62,8 @@ export const pricingPlans: PricingPlan[] = [
     perks: [
       "30 active projects",
       "Up to 9,000 character prompt specs",
-      "Full API, DB, and code stubs generation"
+      "Full API, DB, and code stubs generation",
+      "SAGE AI Systems Architect Chatbot"
     ],
     checkoutUrl: process.env.NEXT_PUBLIC_BILLING_GROWTH_URL || "mailto:billing@baxel.app?subject=Growth%20Plan"
   },
@@ -73,6 +77,7 @@ export const pricingPlans: PricingPlan[] = [
       "60 active projects",
       "Up to 15,000 character prompt specs",
       "Full API, DB, and code stubs generation",
+      "SAGE AI Systems Architect Chatbot"
     ],
     checkoutUrl: process.env.NEXT_PUBLIC_BILLING_ENTERPRISE_URL || "mailto:billing@baxel.app?subject=Enterprise%20Plan"
   }
