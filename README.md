@@ -212,8 +212,8 @@ It is a spec-aware AI assistant that:
 - Maintains 5-turn conversation memory (stored in `chat_messages` table).
 - Classifies user intent before answering (technical, cost, general).
 
-**Model**: `meta/llama-3.1-8b-instruct` via NVIDIA NIM  
-**Performance**: Swapped from the slow 70B to the fast 8B, dropping chat latencies from **90 seconds to under 2 seconds**.
+**Model**: `openai/gpt-oss-20b` (SAGE Chatbot configuration hardcoded in Python)  
+**Performance**: SAGE's context payload size is pruned by **70%** (omitting DevOps and Anti-fragility/Chaos scenarios unless explicitly relevant) to maximize generation speeds and avoid context-bloat delays.
 
 All conversations are persisted to PostgreSQL and visible in the Conversations page.
 
@@ -229,7 +229,7 @@ All conversations are persisted to PostgreSQL and visible in the Conversations p
 | **Pydantic + instructor** | Structured LLM output enforcement with JSON Mode parsing |
 | **SQLAlchemy** | ORM for all database models |
 | **Supabase (PgBouncer)** | Direct database URLs automatically upgraded from port `5432` to transaction pooler port `6543` to ensure safe concurrent cloud scaling |
-| **NVIDIA NIM API** | LLM inference — 20B/70B Architect + 8B review & chat agents |
+| **NVIDIA NIM API** | LLM inference — 20B/70B Architect & SAGE Chat + 8B review agents |
 | **Faiss** | Vector similarity search for RAG blueprint retrieval |
 | **CloudEmbedder** | Cloud-native RAG embedding via `nvidia/llama-nemotron-embed-1b-v2` (0.75s latency) |
 | **GLiNER** | Zero-shot NLP entity extraction |
@@ -245,8 +245,8 @@ Forcing LLM output into a strongly-typed Pydantic schema (`GeneratedArchitecture
 NVIDIA NIM provides access to large open-weight models (70B, 20B, 8B) via an OpenAI-compatible API with high throughput. The 20B/70B models produce dramatically richer architecture specs than smaller models.
 
 ## Why separate 8B and 20B/70B models?
-- **20B/70B** (Architect only): Rich structured output requiring deep reasoning across schema, API, DevOps, and resilience.
-- **8B** (review agents + entity extraction + SAGE chat): Short, structured JSON or retrieval tasks that complete in under 2 seconds, maintaining sub-second user responsiveness.
+- **20B/70B** (Architect & SAGE Chatbot): High-capacity models with deep reasoning across spec schemas, API surfaces, database normalization, and domain constraints.
+- **8B** (review agents + entity extraction): Short, structured JSON checks that complete in under 2 seconds, maintaining sub-second user responsiveness.
 
 ## Why PgBouncer in Production?
 Connecting directly to PostgreSQL (port 5432) under serverless or high-concurrency cloud scaling risks exhausting connection limits instantly. Direct connections are dynamically intercepted and routed through PgBouncer's Transaction Pooler (port 6543) with explicit connection pools (`pool_size=5`, `max_overflow=10`).
