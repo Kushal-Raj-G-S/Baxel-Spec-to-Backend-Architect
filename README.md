@@ -105,6 +105,7 @@ This project was built with a **product-first engineering mindset**:
 | Resilience | Chaos scenarios, hardening checklist, and resilience rating |
 
 ## 💎 Plan-Gated Access
+- Supported tiers: `starter`, `creator`, `studio`, `growth`, `enterprise`
 - Limits enforced server-side — quota checks on project creation and pipeline runs
 - HTTP 402 returned gracefully when plan limits are reached
 

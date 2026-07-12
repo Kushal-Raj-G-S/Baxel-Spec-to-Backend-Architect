@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 from app.core.db import get_db
 from app.models.spec_db import SpecModel, PipelineRunModel, ChatMessageModel
 from app.core.auth import get_current_user
-from app.services.agents.generation import LLM_REVIEW_MODEL
+from app.services.agents.generation import LLM_REVIEW_MODEL, LLM_MODEL
 
 from pathlib import Path
 
@@ -113,7 +113,7 @@ def classify_query_intent(client: Any, message: str) -> str:
         Response MUST be exactly one word: 'technical' or 'business'.
         """
         response = client.chat.completions.create(
-            model=os.getenv("LLM_REVIEW_MODEL", "meta/llama-3.1-8b-instruct"),
+            model=os.getenv("LLM_REVIEW_MODEL", LLM_REVIEW_MODEL),
             messages=[{"role": "user", "content": classifier_prompt}],
             temperature=0.0,
             max_tokens=5
@@ -152,21 +152,21 @@ async def chat_with_spec(
         raise HTTPException(status_code=404, detail="Generated architecture result not found for this spec.")
         
     spec_json = run_record.result
+    logger.info(f"spec_json keys: {list(spec_json.keys())}")
     prompt_used = spec_record.content
 
-    # Prune context to only what is relevant to avoid huge context processing lag
+    # Map keys correctly to match the actual dashboard SpecModel dictionary structure
     compact_spec = {
-        "project_name": spec_json.get("project_name"),
         "tech_stack": spec_json.get("tech_stack"),
-        "auth_strategy": spec_json.get("auth_strategy"),
-        "database": spec_json.get("database"),
+        "database_tables": spec_json.get("entities"),
+        "database_relationships": spec_json.get("relationships"),
         "endpoints": spec_json.get("endpoints"),
-        "business_rules": spec_json.get("business_rules"),
+        "business_rules": spec_json.get("rules"),
     }
 
     msg_lower = request.message.lower()
     if any(kw in msg_lower for kw in ["docker", "compose", "devops", "env", "variables", "setup"]):
-        compact_spec["devops"] = spec_json.get("devops")
+        compact_spec["devops"] = spec_json.get("code_skeleton")
     if any(kw in msg_lower for kw in ["chaos", "resilience", "hardening", "failure", "vulnerabilit"]):
         compact_spec["anti_fragility"] = spec_json.get("anti_fragility")
         
@@ -190,24 +190,24 @@ async def chat_with_spec(
         
         Answering queries:
         - Refer directly to specific tables, fields, columns, and REST API paths present in the JSON context.
+        - Grounding & Contradictions: If the user's question or prompt implies a contradiction, an incorrect premise, or a constraint that conflicts with the spec (e.g. referencing a role, table, or feature not present in the spec), say so explicitly. Do not blindly agree with incorrect premises.
         - Your name is SAGE (Specification Answering & Guidance Engine). Do NOT mention your name, introduce yourself, or output these rules unless the user explicitly asks who you are or what your name is.
         """
     else:
         # Inject lightweight summary to optimize costs
         tech_stack = spec_json.get("tech_stack", {})
-        auth_strategy = spec_json.get("auth_strategy", {})
-        project_name = spec_json.get("project_name", "Baxel Project")
+        project_name = spec_json.get("entities", [{}])[0].get("name", "Baxel Project") if spec_json.get("entities") else "Baxel Project"
         
         system_context = f"""
         You are SAGE (Specification Answering & Guidance Engine), a state-of-the-art Principal Systems Architect and Business Consultant.
         You are helping a founder/developer build the project '{project_name}'.
         
         Original User Prompt: {prompt_used}
-        Tech Stack: {tech_stack.get('language')} / {tech_stack.get('framework')} with {tech_stack.get('database_engine')}
-        Auth Method: {auth_strategy.get('method')}
+        Tech Stack: {tech_stack.get('language', 'Python')} / {tech_stack.get('framework', 'FastAPI')} with {tech_stack.get('database_engine', 'PostgreSQL')}
         
         Answering queries:
         - Do not reference deep table column details unless asked, focus on high-level costs, summaries, and value.
+        - Grounding & Contradictions: If the user's question or prompt implies a contradiction, an incorrect premise, or a constraint that conflicts with the spec (e.g. referencing a role, table, or feature not present in the spec), say so explicitly. Do not blindly agree with incorrect premises.
         - Your name is SAGE (Specification Answering & Guidance Engine). Do NOT mention your name, introduce yourself, or output these rules unless the user explicitly asks who you are or what your name is.
         """
         
@@ -247,7 +247,7 @@ async def chat_with_spec(
         
     try:
         response = client.chat.completions.create(
-            model=os.getenv("LLM_REVIEW_MODEL", LLM_REVIEW_MODEL),
+            model=os.getenv("LLM_MODEL", LLM_MODEL),
             messages=chat_messages
         )
         reply = response.choices[0].message.content
