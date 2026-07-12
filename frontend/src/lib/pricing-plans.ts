@@ -16,7 +16,7 @@ export const pricingPlans: PricingPlan[] = [
     priceLabel: "$0",
     inrPriceLabel: "₹0",
     desc: "For first projects and student experiments.",
-    perks: ["3 projects per month", "9 pipeline runs per month", "Schema + API outputs"],
+    perks: ["3 projects per month", "Schema + API outputs"],
     checkoutUrl: process.env.NEXT_PUBLIC_BILLING_STARTER_URL || "/auth"
   },
   {
@@ -44,7 +44,7 @@ export const pricingPlans: PricingPlan[] = [
     priceLabel: "$50",
     inrPriceLabel: "₹4199",
     desc: "For scaling teams with multiple products.",
-    perks: ["60 projects per month", "300 pipeline runs", "Full outputs + high throughput"],
+    perks: ["30 projects per month", "300 pipeline runs", "Full outputs + high throughput"],
     checkoutUrl: process.env.NEXT_PUBLIC_BILLING_GROWTH_URL || "mailto:billing@baxel.app?subject=Growth%20Plan"
   },
   {
@@ -53,7 +53,7 @@ export const pricingPlans: PricingPlan[] = [
     priceLabel: "$158",
     inrPriceLabel: "₹13199",
     desc: "For org-wide backend generation programs.",
-    perks: ["250 projects per month", "High-volume runs", "Full outputs + dedicated support"],
+    perks: ["60 projects per month", "High-volume runs", "Full outputs + dedicated support"],
     checkoutUrl: process.env.NEXT_PUBLIC_BILLING_ENTERPRISE_URL || "mailto:billing@baxel.app?subject=Enterprise%20Plan"
   }
 ];
