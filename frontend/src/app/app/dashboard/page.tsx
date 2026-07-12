@@ -1095,7 +1095,7 @@ function DashboardContent() {
               </section>
 
               <section className="glass rounded-3xl p-6 reveal">
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="sticky top-[88px] z-30 flex flex-wrap items-center gap-2 bg-[#1F261D]/90 backdrop-blur-md py-4 -mx-6 px-6 border-b border-white/10 rounded-t-3xl">
                   {([
                     { key: "schema", label: "Schema" },
                     { key: "api", label: "API" },
@@ -1108,10 +1108,10 @@ function DashboardContent() {
                       key={tab.key}
                       type="button"
                       onClick={() => setActiveTab(tab.key)}
-                      className={`rounded-full px-4 py-2 text-sm ${
+                      className={`rounded-full px-4 py-2 text-sm transition-all ${
                         activeTab === tab.key
                           ? "bg-[#C2D68C] text-[#1F261D]"
-                          : "border border-white/30 bg-white/5 text-white"
+                          : "border border-white/30 bg-white/5 text-white hover:bg-white/10"
                       }`}
                     >
                       {tab.label}
