@@ -1278,7 +1278,13 @@ function DashboardContent() {
                     className="rounded-full bg-[#C2D68C] px-5 py-2 text-sm text-[#1F261D]"
                     onClick={() => {
                       if (result) {
-                        downloadTextFile("baxel-spec.json", JSON.stringify(result, null, 2));
+                        const cleanProj = (lastRunMeta?.projectName || projectName || "baxel-spec")
+                          .trim()
+                          .toLowerCase()
+                          .replace(/[^a-z0-9_-]/g, "-")
+                          .replace(/-+/g, "-");
+                        const dateStr = new Date().toISOString().split("T")[0];
+                        downloadTextFile(`${cleanProj}-${dateStr}.json`, JSON.stringify(result, null, 2));
                       }
                     }}
                   >
