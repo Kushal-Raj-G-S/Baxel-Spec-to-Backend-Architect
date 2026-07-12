@@ -5,6 +5,7 @@ from typing import List, Dict, Any, Tuple
 from openai import OpenAI
 import instructor
 from dotenv import load_dotenv
+from pydantic import BaseModel
 
 from app.schemas.spec import (
     GeneratedArchitectureSpec, 
@@ -27,15 +28,92 @@ from app.schemas.spec import (
 from pathlib import Path
 
 # Load environment variables
-load_dotenv()
+load_dotenv(override=True)
 
 logger = logging.getLogger(__name__)
 
+
+class _DatabaseSpec(BaseModel):
+    project_name: str
+    tech_stack: TechStack
+    auth_strategy: AuthStrategy
+    database: DatabaseSchema
+
+
+class _EndpointsSpec(BaseModel):
+    endpoints: List[EndpointSchema]
+
+
+class _BusinessRulesSpec(BaseModel):
+    business_rules: List[BusinessRule]
+
+
+class _DevOpsSpec(BaseModel):
+    devops: DevOpsSetup
+
+
+class _SpiceSpec(BaseModel):
+    spice: SpiceLayer
+
+
+class _ResilienceSpec(BaseModel):
+    anti_fragility: AntiFragilityHardening
+
+
+
+ENUM_VALUE_HINTS: Dict[str, List[str]] = {
+    "users.role": ["customer", "provider", "admin", "support"],
+    "providers.verification_status": ["draft", "pending_verification", "verified", "live", "rejected", "suspended"],
+    "providers.subscription_tier": ["free", "pro", "business", "enterprise"],
+    "providers.service_area_type": ["radius", "zip_list", "unlimited"],
+    "bookings.status": ["pending", "confirmed", "in_progress", "completed", "cancelled", "disputed", "no_show"],
+    "payments.payment_status": ["pending", "captured", "released", "refunded", "failed"],
+    "payments.payout_status": ["pending", "released", "failed"],
+    "disputes.resolution_status": ["open", "under_review", "resolved", "rejected", "closed"],
+    "messages.type": ["text", "photo", "video"],
+}
+
+
+def _normalize_generated_spec(spec: GeneratedArchitectureSpec) -> GeneratedArchitectureSpec:
+    """Apply deterministic cleanup so known state fields and error codes are structurally valid."""
+    for table in spec.database.tables:
+        for column in table.columns:
+            # Clean up foreign key format
+            if column.foreign_key:
+                import re
+                fk = column.foreign_key.strip()
+                fk_match = re.match(r"^([\w_-]+)\(?([\w_-]*)\)?(?:\(?([\w_-]*)\)?)?$", fk)
+                if fk_match:
+                    tbl = fk_match.group(1)
+                    col = fk_match.group(2) or "id"
+                    column.foreign_key = f"{tbl}.{col}"
+                else:
+                    column.foreign_key = fk.replace("(", ".").replace(")", "").replace("..", ".")
+
+            hint_key = f"{table.name}.{column.name}"
+            if hint_key in ENUM_VALUE_HINTS:
+                column.type = "Enum"
+                column.enum_values = ENUM_VALUE_HINTS[hint_key]
+            elif column.type.lower() == "enum" and not column.enum_values:
+                guessed_values = ENUM_VALUE_HINTS.get(hint_key) or ENUM_VALUE_HINTS.get(column.name)
+                if guessed_values:
+                    column.enum_values = guessed_values
+
+    for endpoint in spec.endpoints:
+        cleaned_errors: List[str] = []
+        for error_code in endpoint.error_responses or []:
+            digits = "".join(character for character in str(error_code) if character.isdigit())
+            if len(digits) == 3:
+                cleaned_errors.append(digits)
+        endpoint.error_responses = cleaned_errors or None
+
+    return spec
+
 # LLM Configurations
 LLM_BASE_URL = os.getenv("LLM_BASE_URL", "https://integrate.api.nvidia.com/v1")
-LLM_MODEL = os.getenv("LLM_MODEL", "meta/llama-3.3-70b-instruct")
+LLM_MODEL = "openai/gpt-oss-20b"
 # Lightweight model for fast review agents (DBA, Security, PM) — much lower latency
-LLM_REVIEW_MODEL = os.getenv("LLM_REVIEW_MODEL", "meta/llama-3.1-8b-instruct")
+LLM_REVIEW_MODEL = "meta/llama-3.1-8b-instruct"
 
 def _read_env_file_value(key: str) -> str:
     """
@@ -84,7 +162,7 @@ def get_instructor_client() -> Tuple[Any, bool]:
             base_url=LLM_BASE_URL,
             timeout=360.0  # 6-minute socket timeout — gives 70B model full time to respond
         )
-        instructor_client = instructor.from_openai(client)
+        instructor_client = instructor.from_openai(client, mode=instructor.Mode.JSON)
         return instructor_client, False
     except Exception as e:
         logger.error(f"Failed to initialize OpenAI client: {e}. Falling back to mock.")
@@ -93,6 +171,403 @@ def get_instructor_client() -> Tuple[Any, bool]:
 # -------------------------------------------------------------
 # Agent Definitions
 # -------------------------------------------------------------
+
+async def _generate_database_spec(
+    client: Any,
+    loop: Any,
+    spec_excerpt: str,
+    ir: IntermediateRepresentation,
+    rules: List[str],
+    feedback_history: List[str] = None
+) -> _DatabaseSpec:
+    logger.info(f"[Swarm] Database Spec generation starting with model: {LLM_MODEL}")
+    entity_list = ", ".join(ir.entities[:12]) if ir.entities else "none"
+    actor_list = ", ".join(ir.actors[:10]) if ir.actors else "none"
+    integration_list = ", ".join(ir.implied_integrations[:10]) if ir.implied_integrations else "none"
+    
+    prompt = f"""
+    You are a Principal Software Architect specializing in relational database design.
+    Output only JSON matching the requested schema.
+    Keep field values concise and do not add markdown or filler.
+
+    User Spec Excerpt:
+    {spec_excerpt}
+
+    NLP Context:
+    - Archetype: {ir.archetype}
+    - Entities: {entity_list}
+    - Actors: {actor_list}
+    - Integrations: {integration_list}
+
+    Rules:
+    {chr(10).join([f'- {r}' for r in rules])}
+
+    Task: Generate project_name, tech_stack, auth_strategy, and database schema.
+    Ensure every table has a primary key. Enforce foreign keys when referencing other tables.
+    For stateful columns (e.g. status, verification, payment/booking status), use Enum and define enum_values.
+
+    Before finalizing, check the spec excerpt for these patterns and model them as real tables if present:
+    - payment splits, escrow, commissions, payouts
+    - refunds, cancellations, disputes
+    - reviews, ratings, moderation
+    - verification/approval workflows
+    - messaging/notifications
+    - many-to-many relationships needing join tables (e.g. provider-to-category)
+    Do not omit a subsystem just because it wasn't in the first few sentences of the excerpt — read the whole thing.
+    """
+    if feedback_history:
+        prompt += f"\n\nRevision notes:\n" + "\n".join(feedback_history)
+
+    return await loop.run_in_executor(
+        None,
+        lambda: client.chat.completions.create(
+            model=LLM_MODEL,
+            response_model=_DatabaseSpec,
+            max_retries=0,
+            max_tokens=16384,
+            temperature=1.00,
+            top_p=1.00,
+            messages=[
+                {"role": "system", "content": "Output only compact JSON matching schema."},
+                {"role": "user", "content": prompt}
+            ]
+        )
+    )
+
+
+async def _generate_endpoints_spec(
+    client: Any,
+    loop: Any,
+    spec_excerpt: str,
+    ir: IntermediateRepresentation,
+    db_spec: _DatabaseSpec,
+    rules: List[str],
+    feedback_history: List[str] = None
+) -> _EndpointsSpec:
+    logger.info(f"[Swarm] Endpoints Spec generation starting with model: {LLM_MODEL}")
+    table_names = ", ".join([t.name for t in db_spec.database.tables])
+    prompt = f"""
+    You are a Principal Software Architect specializing in RESTful API design.
+    Output only JSON matching the requested schema.
+
+    User Spec Excerpt:
+    {spec_excerpt}
+
+    Database context (existing tables):
+    {table_names}
+
+    Task: Generate only API endpoints matching the database tables.
+    CRITICAL CONSTRAINT: You MUST only reference tables present in the database context list: {table_names}. Do not invent endpoints for subsystems that have no tables in this list.
+    
+    1. Define a complete REST contract matching the database tables and authentication strategy. Ensure endpoints indicate whether they are protected. Keep request/response schemas clean.
+    2. For any table with a status or state column, include dedicated transition endpoints (e.g. PATCH /bookings/{id}/status) rather than only exposing status as an editable field in PUT.
+    3. Include specific action endpoints implied by the business requirements (e.g. verification pipelines, payout execution, refund processing, dispute creation).
+    4. Populate error_responses with realistic 3-digit HTTP status codes (e.g. ['400', '401', '403', '404', '409']) as appropriate — do not leave error_responses empty.
+    """
+    if feedback_history:
+        prompt += f"\n\nRevision notes:\n" + "\n".join(feedback_history)
+
+    return await loop.run_in_executor(
+        None,
+        lambda: client.chat.completions.create(
+            model=LLM_MODEL,
+            response_model=_EndpointsSpec,
+            max_retries=0,
+            max_tokens=16384,
+            temperature=1.00,
+            top_p=1.00,
+            messages=[
+                {"role": "system", "content": "Output only compact JSON matching schema."},
+                {"role": "user", "content": prompt}
+            ]
+        )
+    )
+
+
+async def _generate_business_rules_spec(
+    client: Any,
+    loop: Any,
+    spec_excerpt: str,
+    ir: IntermediateRepresentation,
+    db_spec: _DatabaseSpec,
+    rules: List[str],
+    feedback_history: List[str] = None
+) -> _BusinessRulesSpec:
+    logger.info(f"[Swarm] Business Rules Spec generation starting with model: {LLM_MODEL}")
+    table_names = ", ".join([t.name for t in db_spec.database.tables])
+    prompt = f"""
+    You are a Principal Software Architect.
+    Output only JSON matching the requested schema.
+
+    User Spec Excerpt:
+    {spec_excerpt}
+
+    Database tables:
+    {table_names}
+
+    Task: Generate only business_rules list matching the database.
+    CRITICAL CONSTRAINT: You MUST only reference tables and concepts present in the database context list: {table_names}. Do not invent business rules for subsystems that have no tables in this list.
+    Provide specific constraints and logical checks (e.g. data validation, state transitions)
+    derived from the user prompt and rules.
+    """
+    if feedback_history:
+        prompt += f"\n\nRevision notes:\n" + "\n".join(feedback_history)
+
+    return await loop.run_in_executor(
+        None,
+        lambda: client.chat.completions.create(
+            model=LLM_MODEL,
+            response_model=_BusinessRulesSpec,
+            max_tokens=16384,
+            temperature=1.00,
+            top_p=1.00,
+            messages=[
+                {"role": "system", "content": "Output only compact JSON matching schema."},
+                {"role": "user", "content": prompt}
+            ]
+        )
+    )
+
+
+async def _generate_devops_spec(
+    client: Any,
+    loop: Any,
+    spec_excerpt: str,
+    ir: IntermediateRepresentation,
+    db_spec: _DatabaseSpec,
+    rules: List[str],
+    feedback_history: List[str] = None
+) -> _DevOpsSpec:
+    logger.info(f"[Swarm] DevOps Spec generation starting with model: {LLM_MODEL}")
+    tech_stack_desc = f"Language: {db_spec.tech_stack.language}, Framework: {db_spec.tech_stack.framework}, Database: {db_spec.tech_stack.database_engine}"
+    prompt = f"""
+    You are a DevOps and Cloud Infrastructure Engineer.
+    Output only JSON matching the requested schema.
+
+    Tech Stack:
+    {tech_stack_desc}
+
+    Task: Generate only devops setup details.
+    1. A list of key environment variables keys needed for this stack.
+    2. A complete, production-ready Dockerfile for this tech stack.
+    3. An optional docker-compose.yml including database, cache (Redis), and backend service configured properly.
+    """
+    if feedback_history:
+        prompt += f"\n\nRevision notes:\n" + "\n".join(feedback_history)
+
+    return await loop.run_in_executor(
+        None,
+        lambda: client.chat.completions.create(
+            model=LLM_MODEL,
+            response_model=_DevOpsSpec,
+            max_tokens=16384,
+            temperature=1.00,
+            top_p=1.00,
+            messages=[
+                {"role": "system", "content": "Output only compact JSON matching schema."},
+                {"role": "user", "content": prompt}
+            ]
+        )
+    )
+
+
+async def _generate_spice_spec(
+    client: Any,
+    loop: Any,
+    spec_excerpt: str,
+    ir: IntermediateRepresentation,
+    db_spec: _DatabaseSpec,
+    feedback_history: List[str] = None
+) -> _SpiceSpec:
+    logger.info(f"[Swarm] Spice Spec generation starting with model: {LLM_MODEL}")
+    prompt = f"""
+    You are a Principal Software Architect and Tech Lead.
+    Output only JSON matching the requested schema.
+
+    Project Name: {db_spec.project_name}
+    Tech Stack: {db_spec.tech_stack.language} / {db_spec.tech_stack.framework} / {db_spec.tech_stack.database_engine}
+
+    Task: Generate only the spice layer.
+    - devils_advocate: Warning about failure points or trade-offs at extreme scale.
+    - design_rationale: Deep explanation of why this stack fits the archetype.
+    - estimated_time_saved_hours: Value estimation.
+    """
+    if feedback_history:
+        prompt += f"\n\nRevision notes:\n" + "\n".join(feedback_history)
+
+    return await loop.run_in_executor(
+        None,
+        lambda: client.chat.completions.create(
+            model=LLM_MODEL,
+            response_model=_SpiceSpec,
+            max_retries=0,
+            max_tokens=16384,
+            temperature=1.00,
+            top_p=1.00,
+            messages=[
+                {"role": "system", "content": "Output only compact JSON matching schema."},
+                {"role": "user", "content": prompt}
+            ]
+        )
+    )
+
+
+async def _generate_resilience_spec(
+    client: Any,
+    loop: Any,
+    spec_excerpt: str,
+    ir: IntermediateRepresentation,
+    db_spec: _DatabaseSpec,
+    rules: List[str],
+    feedback_history: List[str] = None
+) -> _ResilienceSpec:
+    logger.info(f"[Swarm] Resilience Spec generation starting with model: {LLM_MODEL}")
+    table_names = ", ".join([t.name for t in db_spec.database.tables])
+    prompt = f"""
+    You are a Chaos Engineering and Reliability Architect.
+    Output only JSON matching the requested schema.
+
+    Project: {db_spec.project_name}
+    Archetype: {ir.archetype}
+    Tables: {table_names}
+
+    Task: Generate only the anti_fragility plan.
+    CRITICAL CONSTRAINT: You MUST invent failure scenarios and checklists that are 100% relevant to this project's domains and stack ({ir.archetype}).
+    Do NOT copy or use the examples from the Pydantic schema descriptions (like Acoustic Telemetry or Ledger DB Lock). Choose realistic failure scenarios relevant to database locks, payment failures, API load spikes, or websocket drops.
+    - resilience_rating: Letter grade (A+ to F).
+    - critical_vulnerabilities: single points of failure.
+    - chaos_scenarios: 3 detailed production failure scenarios and mitigations.
+    - hardening_checklist: 4-step hardening checklist.
+    """
+    if feedback_history:
+        prompt += f"\n\nRevision notes:\n" + "\n".join(feedback_history)
+
+    return await loop.run_in_executor(
+        None,
+        lambda: client.chat.completions.create(
+            model=LLM_MODEL,
+            response_model=_ResilienceSpec,
+            max_tokens=16384,
+            temperature=1.00,
+            top_p=1.00,
+            messages=[
+                {"role": "system", "content": "Output only compact JSON matching schema."},
+                {"role": "user", "content": prompt}
+            ]
+        )
+    )
+
+
+def _merge_specs(
+    db_spec: Any,
+    ep_spec: Any,
+    br_spec: Any,
+    do_spec: Any,
+    sp_spec: Any,
+    res_spec: Any,
+    ir: IntermediateRepresentation,
+    prompt_used: str
+) -> GeneratedArchitectureSpec:
+    # If DB Spec itself failed/exception, raise it because DB is critical
+    if isinstance(db_spec, Exception):
+        logger.error(f"Critical Core Spec Generation failed: {db_spec}")
+        raise db_spec
+
+    # Extract Endpoints (with fallback)
+    endpoints = []
+    if isinstance(ep_spec, Exception):
+        logger.warning("Endpoints generation failed. Using fallback REST endpoints.", exc_info=ep_spec)
+        for table in db_spec.database.tables:
+            endpoints.append(
+                EndpointSchema(
+                    method="GET",
+                    path=f"/api/v1/{table.name}",
+                    summary=f"Get list of {table.name}",
+                    is_protected=True,
+                    response_payload_schema="items: array"
+                )
+            )
+            endpoints.append(
+                EndpointSchema(
+                    method="POST",
+                    path=f"/api/v1/{table.name}",
+                    summary=f"Create a new {table.name[:-1] if table.name.endswith('s') else table.name}",
+                    is_protected=True,
+                    request_payload_schema="data: object",
+                    response_payload_schema="id: string"
+                )
+            )
+    else:
+        endpoints = ep_spec.endpoints
+
+    # Extract Business Rules (with fallback)
+    business_rules = []
+    if isinstance(br_spec, Exception):
+        logger.warning("Business Rules generation failed. Using generic rule.", exc_info=br_spec)
+        business_rules.append(
+            BusinessRule(
+                rule="Verify tenant data isolation on every transactional query",
+                reason="Mandatory system rule for multi-tenant isolation."
+            )
+        )
+    else:
+        business_rules = br_spec.business_rules
+
+    # Extract DevOps (with fallback)
+    devops = None
+    if isinstance(do_spec, Exception):
+        logger.warning("DevOps generation failed. Using fallback Docker setup.", exc_info=do_spec)
+        devops = DevOpsSetup(
+            environment_variables=["DATABASE_URL", "PORT"],
+            dockerfile_content="FROM python:3.11\nWORKDIR /app\nCOPY . .\nCMD [\"python\", \"main.py\"]"
+        )
+    else:
+        devops = do_spec.devops
+
+    # Extract Spice (with fallback)
+    spice = None
+    if isinstance(sp_spec, Exception):
+        logger.warning("Spice generation failed. Using fallback design rationale.", exc_info=sp_spec)
+        spice = SpiceLayer(
+            devils_advocate="High concurrent connections could exhaust DB pool size. Ensure pool bounds are explicit.",
+            design_rationale="Selected stack is tailored for microservice scalability.",
+            estimated_time_saved_hours=8
+        )
+    else:
+        spice = sp_spec.spice
+
+    # Create Merged spec shell
+    merged_spec_stub = GeneratedArchitectureSpec(
+        metadata=SpecMetadata(
+            version="1.0.0",
+            parent_spec_id=None,
+            created_at="2025-11-03T12:00:00Z",
+            prompt_used=prompt_used[:200],
+            confidence_score=None,
+            generation_status="complete"
+        ),
+        project_name=db_spec.project_name,
+        tech_stack=db_spec.tech_stack,
+        auth_strategy=db_spec.auth_strategy,
+        database=db_spec.database,
+        endpoints=endpoints,
+        business_rules=business_rules,
+        devops=devops,
+        spice=spice,
+        anti_fragility=None
+    )
+
+    # Extract Resilience / Anti-Fragility (with fallback)
+    anti_fragility = None
+    if isinstance(res_spec, Exception):
+        logger.warning("Resilience generation failed. Using rule-based fallback.", exc_info=res_spec)
+        anti_fragility = generate_fallback_anti_fragility(merged_spec_stub, ir)
+    else:
+        anti_fragility = res_spec.anti_fragility
+
+    merged_spec_stub.anti_fragility = anti_fragility
+    return _normalize_generated_spec(merged_spec_stub)
+
 
 async def run_architect_agent(
     client: Any,
@@ -103,68 +578,45 @@ async def run_architect_agent(
 ) -> GeneratedArchitectureSpec:
     """
     Principal Architect Agent: Drafts or refines the system design specification.
+    Uses Phase 1A Database generation, followed by Phase 1B concurrent fan-out content generation.
     """
-    logger.info("Principal Architect drafting system design...")
+    logger.info("Principal Architect drafting system design using parallel hybrid flow...")
     
-    # Truncate input spec to prevent NVIDIA API timeout on large specs (>5000 chars).
-    # The NLP-extracted IR (entities, actors, integrations) already captures the full context,
-    # so truncating the raw text is safe and cuts architect processing time by ~50%.
-    MAX_SPEC_CHARS = 4500
+    # Truncate input spec to keep the architect prompt compact.
+    MAX_SPEC_CHARS = 9000
     spec_excerpt = prompt_used[:MAX_SPEC_CHARS]
     if len(prompt_used) > MAX_SPEC_CHARS:
-        spec_excerpt += f"\n[...{len(prompt_used) - MAX_SPEC_CHARS} chars truncated — full context captured in entities below...]"
+        spec_excerpt += f"\n[...{len(prompt_used) - MAX_SPEC_CHARS} chars truncated...]"
         logger.info(f"Spec truncated from {len(prompt_used)} to {MAX_SPEC_CHARS} chars for architect prompt.")
     
-    # Build dynamic component list from NLP-extracted entities
-    entity_list = "\n".join([f"   - {e}" for e in ir.entities]) if ir.entities else "   - (see spec excerpt above)"
-    
-    prompt = f"""
-    You are a Principal Software Architect. Draft a detailed system design specification.
-    
-    User Spec Excerpt (primary source — read carefully):
-    {spec_excerpt}
-    
-    NLP-Extracted Context (supplementary — covers the full spec):
-    - System Archetype: {ir.archetype}
-    - All Domain Entities (MUST each have dedicated DB tables and endpoints):
-{entity_list}
-    - User Roles/Actors: {', '.join(ir.actors)}
-    - Required Integrations: {', '.join(ir.implied_integrations)}
-    
-    Architectural Rules:
-    {chr(10).join([f'- {r}' for r in rules])}
-    
-    STRICT REQUIREMENTS:
-    1. Generate MINIMUM 8 separate database tables — one per major domain entity above. Do NOT group entities.
-    2. Generate MINIMUM 15 API endpoints covering the full lifecycle of every entity.
-    3. Every table must have 4+ columns (id, foreign keys, domain-specific fields, timestamps).
-    4. Tech stack, auth strategy, business rules, and devops must be production-grade and domain-specific.
-    5. Never produce generic/placeholder output — all names, fields, and endpoints must reflect this specific system.
-    """
-    
-    if feedback_history:
-        prompt += f"\n\nCRITICAL FIXES REQUIRED FROM PREVIOUS REVIEW:\n" + "\n".join(feedback_history)
-        prompt += "\nModify the previous design to fix all issues listed above."
-        
     loop = asyncio.get_running_loop()
-    
-    # Run in executor to prevent blocking the event loop.
-    # The 70B model on NVIDIA API needs up to 300s for a full structured spec.
-    # max_retries=0: One clean call — no instructor retry loops.
-    # max_tokens=6000: Sufficient budget for 8+ tables and 15+ endpoints.
-    spec = await loop.run_in_executor(
-        None,
-        lambda: client.chat.completions.create(
-            model=LLM_MODEL,
-            response_model=GeneratedArchitectureSpec,
-            max_retries=0,  # No retries — avoids multiple 70B calls
-            max_tokens=6000,
-            messages=[
-                {"role": "system", "content": "You are an expert principal software architect. Generate a HIGHLY DETAILED architecture spec matching the Pydantic schema. MINIMUM 8 database tables, MINIMUM 12 API endpoints. Every domain in the user's spec MUST have its own dedicated tables and endpoints. Never collapse multiple domains into a single table. Never produce placeholder or minimal output."},
-                {"role": "user", "content": prompt}
-            ]
-        )
+
+    # ── Phase 1A: Core Database Spec (Call 1)
+    logger.info("[Swarm] Phase 1A — Generating core Database spec...")
+    db_spec = await _generate_database_spec(
+        client, loop, spec_excerpt, ir, rules, feedback_history
     )
+    logger.info("[Swarm] Phase 1A complete — core Database spec received.")
+
+    # ── Phase 1B: Concurrent Content Generation (Calls 2-6)
+    logger.info("[Swarm] Phase 1B — Triggering parallel generation tasks for endpoints, business rules, devops, spice, and resilience...")
+    tasks = [
+        _generate_endpoints_spec(client, loop, spec_excerpt, ir, db_spec, rules, feedback_history),
+        _generate_business_rules_spec(client, loop, spec_excerpt, ir, db_spec, rules, feedback_history),
+        _generate_devops_spec(client, loop, spec_excerpt, ir, db_spec, rules, feedback_history),
+        _generate_spice_spec(client, loop, spec_excerpt, ir, db_spec, feedback_history),
+        _generate_resilience_spec(client, loop, spec_excerpt, ir, db_spec, rules, feedback_history)
+    ]
+
+    content_results = await asyncio.gather(*tasks, return_exceptions=True)
+    ep_spec, br_spec, do_spec, sp_spec, res_spec = content_results
+    logger.info("[Swarm] Phase 1B complete — all parallel generation tasks returned.")
+
+    # ── Phase 1C: Merging Specs into final GeneratedArchitectureSpec
+    spec = _merge_specs(
+        db_spec, ep_spec, br_spec, do_spec, sp_spec, res_spec, ir, prompt_used
+    )
+    
     return spec
 
 async def run_dba_agent(client: Any, database: DatabaseSchema, rules: List[str]) -> ReviewResult:
@@ -266,7 +718,6 @@ async def run_anti_fragility_agent(
 System context:
 - Archetype: {ir.archetype}
 - Project: {spec.project_name}
-- Stack: {spec.tech_stack.language}/{spec.tech_stack.framework}, DB={spec.tech_stack.database_engine}, Cache={spec.tech_stack.cache}
 - Tables: {compact_tables}
 - Endpoints: {compact_endpoints}
 
@@ -370,6 +821,23 @@ async def run_agent_swarm(
     client, is_mock = get_instructor_client()
     if is_mock:
         return generate_mock_spec(ir, rules, prompt_used, parent_spec_id, confidence_score, generation_status)
+
+    async def run_review_panel(current_spec: GeneratedArchitectureSpec):
+        """Run the fast review agents plus anti-fragility for a given spec."""
+        logger.info("[Swarm] Phase 2 — Dispatching DBA + Security + PM + Anti-Fragility concurrently...")
+        results = await asyncio.wait_for(
+            asyncio.gather(
+                run_dba_agent(client, current_spec.database, rules),
+                run_security_agent(client, current_spec.endpoints, rules),
+                run_pm_agent(client, current_spec, prompt_used),
+                run_anti_fragility_agent(client, current_spec, ir),
+                return_exceptions=True
+            ),
+            timeout=60.0
+        )
+        dba_res, sec_res, pm_res, anti_frag_res = results
+        logger.info("[Swarm] Phase 2 complete — all concurrent agents returned.")
+        return dba_res, sec_res, pm_res, anti_frag_res
     
     # ── Phase 1: Architect Agent ─────────────────────────────────────────────
     logger.info("[Swarm] Phase 1 — Architect Agent drafting spec...")
@@ -377,13 +845,13 @@ async def run_agent_swarm(
     try:
         spec = await asyncio.wait_for(
             run_architect_agent(client, ir, rules, prompt_used, feedback_history=[]),
-            timeout=360.0  # 6 minutes — gives 70B model full time; if it still fails, report as failed (no mock)
+            timeout=180.0  # 3 minutes — gives 70B model full time; if it still fails, report as failed (no mock)
         )
         logger.info("[Swarm] Phase 1 complete — Architect spec received.")
     except asyncio.TimeoutError:
-        # Timeout after 360s means the NVIDIA API is overloaded — report as failed, do NOT silently return mock
-        logger.error("[Swarm] Architect Agent timed out after 360s. Reporting as failed.")
-        raise RuntimeError("LLM generation timed out after 6 minutes. Please retry — the NVIDIA API may be under load.")
+        # Timeout after 120s means the NVIDIA API is overloaded — report as failed, do NOT silently return mock
+        logger.error("[Swarm] Architect Agent timed out after 180s. Reporting as failed.")
+        raise RuntimeError("LLM generation timed out after 3 minutes. Please retry — the NVIDIA API may be under load.")
     except Exception as e:
         # Any other error (Pydantic validation, API error) — also report as failed, do NOT silently return mock
         logger.error(f"[Swarm] Architect Agent failed: {e}. Reporting as failed.")
@@ -391,22 +859,9 @@ async def run_agent_swarm(
     
     # ── Phase 2: Concurrent Review Panel + Anti-Fragility ───────────────────
     # DBA, Security, PM → fast 8B model (compact prompts)
-    # Anti-Fragility    → 70B model (needs structured chaos scenario output)
-    # All 4 run simultaneously in a thread pool — total wait = slowest task
-    logger.info("[Swarm] Phase 2 — Dispatching DBA + Security + PM + Anti-Fragility concurrently...")
+    # Anti-Fragility    → compact reliability prompt
     try:
-        results = await asyncio.wait_for(
-            asyncio.gather(
-                run_dba_agent(client, spec.database, rules),
-                run_security_agent(client, spec.endpoints, rules),
-                run_pm_agent(client, spec, prompt_used),
-                run_anti_fragility_agent(client, spec, ir),
-                return_exceptions=True
-            ),
-            timeout=60.0  # All 4 agents now use the fast 8B model — should complete well within 60s
-        )
-        dba_res, sec_res, pm_res, anti_frag_res = results
-        logger.info("[Swarm] Phase 2 complete — all concurrent agents returned.")
+        dba_res, sec_res, pm_res, anti_frag_res = await run_review_panel(spec)
     except asyncio.TimeoutError:
         logger.warning("[Swarm] Phase 2 timed out. Applying fallback anti-fragility. Spec still valid.")
         spec.anti_fragility = generate_fallback_anti_fragility(spec, ir)
@@ -433,6 +888,39 @@ async def run_agent_swarm(
         logger.info(f"[Swarm] Review panel flagged issues (logged, no revision cycle): {review_issues}")
     else:
         logger.info("[Swarm] Review panel: all agents passed.")
+ 
+    if review_issues:
+        logger.info("[Swarm] Review panel requested a revision pass; rerunning architect once with feedback.")
+        spec = await asyncio.wait_for(
+            run_architect_agent(client, ir, rules, prompt_used, feedback_history=review_issues),
+            timeout=120.0
+        )
+        try:
+            dba_res, sec_res, pm_res, anti_frag_res = await run_review_panel(spec)
+        except asyncio.TimeoutError:
+            logger.warning("[Swarm] Revision review panel timed out. Applying fallback anti-fragility.")
+            spec.anti_fragility = generate_fallback_anti_fragility(spec, ir)
+            anti_frag_res = spec.anti_fragility
+            dba_res = sec_res = pm_res = Exception("timed out")
+ 
+        if isinstance(anti_frag_res, Exception):
+            logger.warning(f"[Swarm] Revision anti-fragility agent failed ({anti_frag_res}). Using fallback.")
+            spec.anti_fragility = generate_fallback_anti_fragility(spec, ir)
+        else:
+            spec.anti_fragility = anti_frag_res
+
+        review_issues = []
+        if not isinstance(dba_res, Exception) and not dba_res.passed:
+            review_issues.append(f"DBA: {'; '.join(dba_res.issues)}")
+        if not isinstance(sec_res, Exception) and not sec_res.passed:
+            review_issues.append(f"Security: {'; '.join(sec_res.issues)}")
+        if not isinstance(pm_res, Exception) and not pm_res.passed:
+            review_issues.append(f"PM: {'; '.join(pm_res.issues)}")
+
+        if review_issues:
+            logger.info(f"[Swarm] Revision review panel still flagged issues: {review_issues}")
+        else:
+            logger.info("[Swarm] Revision review panel passed.")
     
     # ── Phase 3: Inject Final Metadata ──────────────────────────────────────
     spec.metadata = SpecMetadata(

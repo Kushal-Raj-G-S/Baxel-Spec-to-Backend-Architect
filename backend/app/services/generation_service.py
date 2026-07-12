@@ -81,7 +81,7 @@ async def run_generation_pipeline(
             spec_id=spec_id_str,
             status="completed",
             stages={"stages": []},
-            result=spec.model_dump(),
+            result=spec.model_dump(mode="json"),
             completed_at=datetime.datetime.utcnow(),
             user_id=None
         )
@@ -92,7 +92,7 @@ async def run_generation_pipeline(
             "status": "completed",
             "progress": 100,
             "current_stage": "completed",
-            "result": spec.model_dump()
+            "result": spec.model_dump(mode="json")
         })
         logger.info(f"[{spec_id_str}] Generation process completed successfully.")
         

@@ -1,5 +1,5 @@
 from typing import List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 # -----------------------------------------
 # Metadata & Tech Stack
@@ -34,6 +34,7 @@ class ColumnSchema(BaseModel):
     is_primary_key: bool = Field(default=False, description="True if this is the primary key")
     is_nullable: bool = Field(default=False, description="True if the column can be null")
     foreign_key: Optional[str] = Field(None, description="If this is a foreign key, the 'table.column' it references")
+    enum_values: Optional[List[str]] = Field(None, description="Allowed values when the column type is an enum")
 
 class TableSchema(BaseModel):
     name: str = Field(..., description="The name of the table, e.g., 'users' or 'invoices'")
@@ -55,6 +56,21 @@ class EndpointSchema(BaseModel):
     request_payload_schema: Optional[str] = Field(None, description="Brief description of the expected request body fields")
     response_payload_schema: Optional[str] = Field(None, description="Brief description of the successful response fields")
     error_responses: Optional[List[str]] = Field(None, description="List of possible HTTP error status codes, e.g., ['401', '404']")
+
+    @field_validator("error_responses", mode="before")
+    @classmethod
+    def normalize_error_responses(cls, value):
+        if value is None:
+            return None
+        if isinstance(value, str):
+            value = [value]
+        normalized = []
+        for item in value:
+            text = str(item)
+            digits = "".join(character for character in text if character.isdigit())
+            if len(digits) == 3:
+                normalized.append(digits)
+        return normalized or None
 
 # -----------------------------------------
 # The Spice Layer & Simple Premium Features
@@ -79,7 +95,7 @@ class DevOpsSetup(BaseModel):
 # -----------------------------------------
 
 class ChaosFailureScenario(BaseModel):
-    scenario_name: str = Field(..., description="E.g., 'Acoustic Telemetry Latency Spike' or 'Ledger DB Lock'")
+    scenario_name: str = Field(..., description="A domain-specific name for the failure scenario, e.g., 'Payment Gateway Outage' or 'Database Connection Lock'")
     failure_description: str = Field(..., description="Detailed description of what fails under load or outage")
     impact_analysis: str = Field(..., description="What happens to the endpoints/data when this failure occurs")
     mitigation_strategy: str = Field(..., description="Specific implementation design to survive this failure (e.g. queue buffering, circuit-breakers)")

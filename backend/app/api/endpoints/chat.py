@@ -14,7 +14,7 @@ from app.core.auth import get_current_user
 
 from pathlib import Path
 
-load_dotenv()
+load_dotenv(override=True)
 logger = logging.getLogger(__name__)
 
 router = APIRouter()

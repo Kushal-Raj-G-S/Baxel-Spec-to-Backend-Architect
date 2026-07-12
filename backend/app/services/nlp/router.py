@@ -16,7 +16,10 @@ class SemanticRouterWrapper:
         try:
             from semantic_router import Route
             from semantic_router.encoders import HuggingFaceEncoder
-            from semantic_router import RouteLayer
+            try:
+                from semantic_router import RouteLayer
+            except ImportError:
+                from semantic_router import SemanticRouter as RouteLayer
             
             spec_route = Route(
                 name="software_spec",

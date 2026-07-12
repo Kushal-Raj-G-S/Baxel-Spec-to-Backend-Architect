@@ -1,19 +1,56 @@
-node_modules/
-.next/
-.env
-.env.local
-.env.*.local
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.pyc
-.venv/
-venv/
+*.pyo
+*.pyd
+
+# Caches and settings
 .idea/
 .vscode/
 .DS_Store
 *.log
-3d-frames
+.claude/
+.sixth/
+
+# Virtual Environments
+.venv/
+venv/
+ENV/
+env/
+
+# Environments and Secrets
+.env
+.env.local
+.env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Databases
+*.db
+*.sqlite
 baxel.db
 baxel_temp.db
+
+# Model caches / Weights
 backend/models/
-test idea*
+models/
+
+# Temporary / Scratch Files / Drafts
+scratch/
 backend/scratch/
+test idea*
+convo
+backup.py
+gpt-gen.py
+kill
+test_api.py
+cmd
+
+# Frontend dependencies and builds
+node_modules/
+.next/
+dist/
+build/
+out/
+3d-frames/
