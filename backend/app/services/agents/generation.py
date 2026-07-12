@@ -62,7 +62,6 @@ class _ResilienceSpec(BaseModel):
 
 
 ENUM_VALUE_HINTS: Dict[str, List[str]] = {
-    "users.role": ["customer", "provider", "admin", "support"],
     "providers.verification_status": ["draft", "pending_verification", "verified", "live", "rejected", "suspended"],
     "providers.subscription_tier": ["free", "pro", "business", "enterprise"],
     "providers.service_area_type": ["radius", "zip_list", "unlimited"],
@@ -93,7 +92,8 @@ def _normalize_generated_spec(spec: GeneratedArchitectureSpec) -> GeneratedArchi
             hint_key = f"{table.name}.{column.name}"
             if hint_key in ENUM_VALUE_HINTS:
                 column.type = "Enum"
-                column.enum_values = ENUM_VALUE_HINTS[hint_key]
+                if not column.enum_values:
+                    column.enum_values = ENUM_VALUE_HINTS[hint_key]
             elif column.type.lower() == "enum" and not column.enum_values:
                 guessed_values = ENUM_VALUE_HINTS.get(hint_key) or ENUM_VALUE_HINTS.get(column.name)
                 if guessed_values:
@@ -206,14 +206,7 @@ async def _generate_database_spec(
     Ensure every table has a primary key. Enforce foreign keys when referencing other tables.
     For stateful columns (e.g. status, verification, payment/booking status), use Enum and define enum_values.
 
-    Before finalizing, check the spec excerpt for these patterns and model them as real tables if present:
-    - payment splits, escrow, commissions, payouts
-    - refunds, cancellations, disputes
-    - reviews, ratings, moderation
-    - verification/approval workflows
-    - messaging/notifications
-    - many-to-many relationships needing join tables (e.g. provider-to-category)
-    Do not omit a subsystem just because it wasn't in the first few sentences of the excerpt — read the whole thing.
+    Before finalizing, double check the user's spec excerpt to ensure you have modeled all key domain concepts as real tables, especially any payment models, workflows, or custom domain entity relationships mentioned in the requirements. Do not invent marketplace constructs (e.g., commissions, independent provider reviews, buyer/seller escrows) unless explicitly mentioned in the spec. Do not omit a subsystem just because it wasn't in the first few sentences of the excerpt — read the whole thing.
     """
     if feedback_history:
         prompt += f"\n\nRevision notes:\n" + "\n".join(feedback_history)

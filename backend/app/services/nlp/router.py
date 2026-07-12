@@ -1,22 +1,23 @@
 import logging
 from typing import Tuple, Optional
+from semantic_router.encoders.base import DenseEncoder
 
 logger = logging.getLogger(__name__)
 
 
-class NvidiaEmbeddingEncoder:
+class NvidiaEmbeddingEncoder(DenseEncoder):
     """
     Thin adapter that implements the semantic-router encoder interface
     using the shared CloudEmbedder (Nvidia NIM API) instead of loading
     local HuggingFace weights.
     """
+    name: str = "nvidia-nim"
+    score_threshold: float = 0.5
+    type: str = "dense"
 
-    def __init__(self, cloud_embedder):
+    def __init__(self, cloud_embedder, **kwargs):
+        super().__init__(name="nvidia-nim", score_threshold=0.5, type="dense", **kwargs)
         self._embedder = cloud_embedder
-        # semantic-router expects a 'score_threshold' attribute
-        self.score_threshold = 0.5
-        # semantic-router needs to know dimensions for internal index building
-        self.type = "nvidia-nim"
 
     def __call__(self, docs: list) -> list:
         """

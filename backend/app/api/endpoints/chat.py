@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 from app.core.db import get_db
 from app.models.spec_db import SpecModel, PipelineRunModel, ChatMessageModel
 from app.core.auth import get_current_user
+from app.services.agents.generation import LLM_REVIEW_MODEL
 
 from pathlib import Path
 
@@ -152,7 +153,23 @@ async def chat_with_spec(
         
     spec_json = run_record.result
     prompt_used = spec_record.content
-    
+
+    # Prune context to only what is relevant to avoid huge context processing lag
+    compact_spec = {
+        "project_name": spec_json.get("project_name"),
+        "tech_stack": spec_json.get("tech_stack"),
+        "auth_strategy": spec_json.get("auth_strategy"),
+        "database": spec_json.get("database"),
+        "endpoints": spec_json.get("endpoints"),
+        "business_rules": spec_json.get("business_rules"),
+    }
+
+    msg_lower = request.message.lower()
+    if any(kw in msg_lower for kw in ["docker", "compose", "devops", "env", "variables", "setup"]):
+        compact_spec["devops"] = spec_json.get("devops")
+    if any(kw in msg_lower for kw in ["chaos", "resilience", "hardening", "failure", "vulnerabilit"]):
+        compact_spec["anti_fragility"] = spec_json.get("anti_fragility")
+        
     client = get_llm_client()
     
     # 1. Classify the user query intent to protect context limits
@@ -169,7 +186,7 @@ async def chat_with_spec(
         Original User Prompt: {prompt_used}
         
         Full Architecture Specification (JSON):
-        {spec_json}
+        {compact_spec}
         
         Answering queries:
         - Refer directly to specific tables, fields, columns, and REST API paths present in the JSON context.
@@ -230,7 +247,7 @@ async def chat_with_spec(
         
     try:
         response = client.chat.completions.create(
-            model=os.getenv("LLM_MODEL", "meta/llama-3.3-70b-instruct"),
+            model=os.getenv("LLM_REVIEW_MODEL", LLM_REVIEW_MODEL),
             messages=chat_messages
         )
         reply = response.choices[0].message.content

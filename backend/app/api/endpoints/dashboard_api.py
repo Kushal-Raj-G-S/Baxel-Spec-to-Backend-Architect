@@ -9,7 +9,7 @@ from sqlalchemy import func
 
 from app.core.auth import get_current_user
 from app.services.nlp.pipeline import run_nlp_pipeline
-from app.services.agents.generation import run_agent_swarm
+from app.services.agents.generation import run_agent_swarm, LLM_MODEL
 from app.core.db import get_db
 from app.models.spec_db import ProjectModel, SpecModel, PipelineRunModel, ProfileModel, PricingPlanModel
 from sqlalchemy.orm import Session
@@ -633,7 +633,8 @@ async def run_pipeline_job(
     migration_sql = generate_migration_sql(spec)
     
     result = {
-        "summary": spec.spice.design_rationale,
+        "summary": f"Baxel generated a {spec.tech_stack.language} / {spec.tech_stack.framework} system architecture for {spec.project_name} ({ir.archetype}), featuring {len(db_tables)} database tables, {len(api_endpoints)} REST endpoints, and {len(business_rules)} business rules.",
+        "tech_stack": spec.tech_stack.model_dump(mode="json"),
         "entities": db_tables,
         "relationships": relationships,
         "join_tables": [],
@@ -644,7 +645,7 @@ async def run_pipeline_job(
         "anti_fragility": spec.anti_fragility.model_dump(mode="json") if spec.anti_fragility else None,
         "__meta": {
             "source": "nvidia",
-            "model": "meta/llama-3.3-70b-instruct",
+            "model": LLM_MODEL,
             "spec_expansion": {
                 "original_chars": len(payload.spec_content),
                 "expanded_chars": len(payload.spec_content) * 3,
@@ -666,7 +667,7 @@ async def run_pipeline_job(
     )
         
     response.headers["x-baxel-generation-source"] = "nvidia"
-    response.headers["x-baxel-generation-model"] = "meta/llama-3.3-70b-instruct"
+    response.headers["x-baxel-generation-model"] = LLM_MODEL
     response.headers["x-baxel-plan-code"] = "studio"
     
     return {
