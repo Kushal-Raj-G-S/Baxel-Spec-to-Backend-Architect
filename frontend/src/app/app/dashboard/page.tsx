@@ -554,6 +554,52 @@ function DashboardContent() {
     await runPipeline();
   };
 
+  const downloadZipScaffold = async () => {
+    const runId = lastRunMeta?.runId || summary?.recent_pipeline_runs?.[0]?.id;
+    if (!runId) return;
+    try {
+      setStatus("Generating Zip scaffold...");
+      const token = await getAccessToken();
+      if (!token) {
+        setStatus("Authorization failed.");
+        return;
+      }
+      
+      const response = await fetch(`${apiBaseUrl}/pipelines/${runId}/download-zip`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      if (!response.ok) {
+        throw new Error("Scaffold generation failed");
+      }
+      const blob = await response.blob();
+      
+      const contentDisposition = response.headers.get("Content-Disposition");
+      let filename = "baxel-scaffold.zip";
+      if (contentDisposition) {
+        const matches = /filename=(.*)/.exec(contentDisposition);
+        if (matches && matches[1]) {
+          filename = matches[1].replace(/['"]/g, "");
+        }
+      }
+      
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      setStatus("Completed");
+    } catch (err) {
+      console.error("Failed to download ZIP scaffold:", err);
+      setStatus("Failed to download ZIP scaffold");
+    }
+  };
+
   const copyShareLinkFromLatest = async () => {
     const targetRunId = lastRunMeta?.runId || summary?.recent_pipeline_runs?.[0]?.id;
     if (!targetRunId) return;
@@ -1289,6 +1335,12 @@ function DashboardContent() {
                     }}
                   >
                     Export JSON
+                  </button>
+                  <button
+                    className="rounded-full border border-[#C2D68C]/50 bg-[#C2D68C]/10 px-5 py-2 text-sm text-[#C2D68C] transition-all hover:bg-[#C2D68C]/20"
+                    onClick={downloadZipScaffold}
+                  >
+                    Download ZIP Scaffold
                   </button>
                   <button className="rounded-full border border-white/35 px-4 py-2 text-sm text-white" onClick={copyShareLinkFromLatest}>Copy share link</button>
                   <button className="rounded-full border border-white/35 px-4 py-2 text-sm text-white disabled:cursor-not-allowed disabled:opacity-60" onClick={rerunLatest} disabled={isRerunBlocked}>Re-run</button>

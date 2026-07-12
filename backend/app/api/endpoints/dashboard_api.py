@@ -643,6 +643,7 @@ async def run_pipeline_job(
         "rules": business_rules,
         "code_skeleton": code_skeleton,
         "migration_sql": migration_sql,
+        "devops": spec.devops.model_dump(mode="json"),
         "anti_fragility": spec.anti_fragility.model_dump(mode="json") if spec.anti_fragility else None,
         "__meta": {
             "source": "nvidia",
@@ -696,6 +697,93 @@ async def get_pipeline_status(pipeline_id: str, user=Depends(get_current_user), 
         "result": run.result,
         "created_at": run.created_at.isoformat() if isinstance(run.created_at, datetime.datetime) else str(run.created_at)
     }
+
+@pipelines_router.get("/{pipeline_id}/download-zip")
+async def download_pipeline_zip(
+    pipeline_id: str,
+    user=Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    import io
+    import zipfile
+    from fastapi.responses import StreamingResponse
+
+    uid = user.get("sub")
+    run = db.query(PipelineRunModel).filter(
+        PipelineRunModel.id == pipeline_id, 
+        PipelineRunModel.user_id == uid
+    ).first()
+    if not run or not run.result:
+        raise HTTPException(status_code=404, detail="Pipeline run or result not found")
+        
+    spec_json = run.result
+    code_skeleton = spec_json.get("code_skeleton", {})
+    devops = spec_json.get("devops", {})
+
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+        # requirements.txt
+        requirements = "fastapi>=0.100.0\nuvicorn>=0.22.0\npydantic>=2.0\nsqlalchemy>=2.0\npsycopg2-binary>=2.9.6\npython-dotenv>=1.0.0\n"
+        zip_file.writestr("requirements.txt", requirements)
+
+        # .env
+        zip_file.writestr(".env", "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/postgres\n")
+
+        # Dockerfile
+        dockerfile = devops.get("dockerfile_content") or "FROM python:3.11-slim\nWORKDIR /code\nCOPY ./requirements.txt /code/requirements.txt\nRUN pip install --no-cache-dir --upgrade -r /code/requirements.txt\nCOPY ./app /code/app\nCMD [\"uvicorn\", \"app.main:app\", \"--host\", \"0.0.0.0\", \"--port\", \"80\"]\n"
+        zip_file.writestr("Dockerfile", dockerfile)
+
+        # docker-compose.yml
+        compose = devops.get("docker_compose_content") or "version: '3.8'\nservices:\n  web:\n    build: .\n    ports:\n      - \"8000:80\"\n    environment:\n      - DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres\n    depends_on:\n      - db\n  db:\n    image: postgres:15\n    ports:\n      - \"5432:5432\"\n    environment:\n      - POSTGRES_USER=postgres\n      - POSTGRES_PASSWORD=postgres\n      - POSTGRES_DB=postgres\n"
+        zip_file.writestr("docker-compose.yml", compose)
+
+        # app/main.py
+        main_py = "import os\nfrom fastapi import FastAPI\nfrom app.routes.endpoints import router as api_router\n\napp = FastAPI(title=\"Baxel Generated API\")\n\napp.include_router(api_router, prefix=\"/api\")\n\n@app.get(\"/\")\ndef root():\n    return {\"message\": \"API is running.\"}\n"
+        zip_file.writestr("app/main.py", main_py)
+
+        # app/__init__.py
+        zip_file.writestr("app/__init__.py", "")
+
+        # app/core/__init__.py
+        zip_file.writestr("app/core/__init__.py", "")
+
+        # app/core/db.py
+        db_py = "import os\nfrom sqlalchemy import create_engine\nfrom sqlalchemy.orm import sessionmaker, declarative_base\n\nDATABASE_URL = os.getenv(\"DATABASE_URL\", \"postgresql://postgres:postgres@localhost:5432/postgres\")\n\nengine = create_engine(DATABASE_URL)\nSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)\nBase = declarative_base()\n\ndef get_db():\n    db = SessionLocal()\n    try:\n        yield db\n    finally:\n        db.close()\n"
+        zip_file.writestr("app/core/db.py", db_py)
+
+        # app/models/__init__.py
+        zip_file.writestr("app/models/__init__.py", "")
+
+        # app/models/spec_models.py
+        zip_file.writestr("app/models/spec_models.py", code_skeleton.get("models") or "# No models generated\n")
+
+        # app/routes/__init__.py
+        zip_file.writestr("app/routes/__init__.py", "")
+
+        # app/routes/endpoints.py
+        routers_code = code_skeleton.get("routers") or "# No routes generated\n"
+        if "get_current_user" in routers_code and "def get_current_user" not in routers_code:
+            routers_code = "def get_current_user():\n    return {'sub': 'mock-user'}\n\n" + routers_code
+        zip_file.writestr("app/routes/endpoints.py", routers_code)
+
+        # migrations/schema.sql
+        zip_file.writestr("migrations/schema.sql", spec_json.get("migration_sql") or "-- No migration sql generated\n")
+
+    zip_buffer.seek(0)
+    
+    # Get clean project name for filename
+    entities = spec_json.get("entities", [])
+    project_name = entities[0].get("name", "baxel-project") if entities else "baxel-project"
+    clean_proj = "".join(c if c.isalnum() or c in "-_" else "-" for c in project_name.lower()).strip("-")
+    
+    return StreamingResponse(
+        zip_buffer,
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": f"attachment; filename={clean_proj}-scaffold.zip",
+            "Access-Control-Expose-Headers": "Content-Disposition"
+        }
+    )
 
 # --- Runs Router ---
 @runs_router.get("/{pipeline_id}/share")
