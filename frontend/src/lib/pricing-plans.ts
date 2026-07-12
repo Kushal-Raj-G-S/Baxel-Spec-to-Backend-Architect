@@ -73,7 +73,6 @@ export const pricingPlans: PricingPlan[] = [
       "60 active projects",
       "Up to 15,000 character prompt specs",
       "Full API, DB, and code stubs generation",
-      "Priority swarm priority + dedicated support"
     ],
     checkoutUrl: process.env.NEXT_PUBLIC_BILLING_ENTERPRISE_URL || "mailto:billing@baxel.app?subject=Enterprise%20Plan"
   }
