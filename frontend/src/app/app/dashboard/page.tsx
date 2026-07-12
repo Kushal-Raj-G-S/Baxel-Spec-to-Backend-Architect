@@ -210,35 +210,35 @@ const starterTemplates = [
     projectName: "ShopFlow",
     specTitle: "E-commerce platform with catalog and orders",
     specContent:
-      "Customers browse products, add items to cart, place orders, and track shipments. Admin manages inventory and promotions. Include payments, refunds, and order status timeline."
+      "Design an enterprise e-commerce platform called ShopFlow. The system must manage a hierarchical product catalog with products, categories, dynamic product attributes, and inventory stock tracking.\nCustomers can browse products, manage their cart, apply discount codes, and place orders.\nThe order management workflow must support multiple states: pending, processing, shipped, delivered, and cancelled.\nWe need full payment integration tracking transaction status (success, failed, refunded) and refund logs.\nAdd a shipping tracker table linked to orders.\nInclude business rules:\n1. If an order is marked as cancelled, return the reserved item quantities back to product inventory stock.\n2. Ensure a discount code cannot be applied to an order if the order total is below the discount code's minimum purchase threshold."
   },
   {
     label: "SaaS with teams",
     projectName: "TeamOrbit",
     specTitle: "B2B SaaS with org workspaces and roles",
     specContent:
-      "Organizations create workspaces, invite members, assign roles, and manage projects. Add usage analytics, audit logs, and tier-based feature access."
+      "Design a B2B SaaS platform called TeamOrbit. The system must support organization workspaces, multi-tenant billing, and granular user roles.\nOrganizations can have multiple workspaces. Users can belong to multiple workspaces with different roles (owner, admin, member, billing_contact).\nImplement tier-based feature access (Free, Pro, Enterprise) where each tier has limit thresholds:\n1. Max number of active projects per workspace.\n2. Max number of members.\nTrack billing subscriptions with billing periods, payment statuses, and invoice generation.\nInclude an audit log table to record all sensitive actions (e.g., inviting members, deleting resources, changing subscription tiers) with fields: user_id, action, timestamp, metadata, and workspace_id."
   },
   {
     label: "Hospital management",
     projectName: "MediCore",
     specTitle: "Hospital operations and patient records",
     specContent:
-      "Manage patient registration, doctors, appointments, ward admissions, prescriptions, and billing. Include role-based access and clinical timeline history."
+      "Design a hospital operations and electronic health record system called MediCore.\nIt must manage patient registration, doctor schedules, departments, appointment slots, ward admissions, clinical histories, prescriptions, and billing.\nAppointments have states: scheduled, checked_in, completed, and no_show.\nWard admissions must track patient admission date, discharge date, ward number, and bed number.\nPrescriptions are linked to doctor consultations and contain multiple medication items, dosages, and duration.\nInclude rules:\n1. A bed in a ward cannot be allocated to a patient if its current status is 'occupied'.\n2. Patient charts and prescriptions can only be updated by authenticated doctors assigned to the patient's case."
   },
   {
     label: "Food delivery",
     projectName: "QuickBite",
     specTitle: "Food delivery app with dispatch workflow",
     specContent:
-      "Users place food orders, restaurants accept and prepare, delivery agents pick up and deliver. Include real-time order states, tips, and delivery SLA rules."
+      "Design a real-time food delivery dispatch system called QuickBite.\nIt must manage customers, restaurant menus (categories, dishes, modifiers), driver assignments, and delivery tracking.\nThe delivery order workflow follows states: placed, accepted_by_restaurant, preparing, ready_for_pickup, picked_up, and delivered.\nTrack driver real-time status (active, offline, on_delivery).\nStore delivery agent payouts, customer tips, and delivery SLA rules.\nInclude rules:\n1. A delivery agent cannot be assigned to a new order if they are currently on_delivery or offline.\n2. Trigger an admin notification if the preparation time of an order exceeds the estimated prep time by more than 15 minutes."
   },
   {
     label: "Learning platform",
     projectName: "LearnSphere",
     specTitle: "Learning management platform with live classes",
     specContent:
-      "Students enroll in courses, watch lessons, attend live classes, submit assignments, and receive grades. Instructors manage curriculum and attendance."
+      "Design a learning management platform called LearnSphere.\nIt must manage courses, modules, lessons, live classes, enrollments, student submissions, grades, and attendance tracking.\nCourses are created by instructors and contain multiple structured modules and lessons (video files, text content).\nStudents enroll in courses and track their completion percentage.\nLive classes are scheduled sessions linked to Zoom/meet URL, tracking participant attendance.\nAssignments are submitted by students and graded by instructors.\nInclude rules:\n1. A student cannot view module 2 unless they have marked all lessons in module 1 as completed.\n2. Automatically issue a course completion certificate when the student's completion rate reaches 100% and all assignments have a passing grade."
   }
 ];
 
@@ -448,6 +448,13 @@ function DashboardContent() {
       const activeCharLimit = plan?.idea_char_limit || charLimitMap[planCode] || 3000;
       if (trimmedSpec.length > activeCharLimit) {
         setStatus(`Idea is too long for ${plan?.plan_name || "Starter"}. Max ${activeCharLimit} characters.`);
+        return;
+      }
+
+      const projectsUsed = plan?.projects_used_this_month || 0;
+      const projectsLimit = plan?.monthly_project_limit || 3;
+      if (projectsUsed >= projectsLimit) {
+        setStatus(`Project limit reached (${projectsUsed}/${projectsLimit}) for your plan. Please upgrade to create or modify projects.`);
         return;
       }
 
@@ -830,8 +837,8 @@ function DashboardContent() {
     ? (plan.projects_used_this_month || 0) >= (plan.monthly_project_limit || 0)
     : false;
   const isPlanLimitReached = runLimitReached || projectLimitReached;
-  const isGenerateBlocked = runLimitReached || (isPlanLoading && !plan);
-  const isRerunBlocked = runLimitReached;
+  const isGenerateBlocked = runLimitReached || projectLimitReached || (isPlanLoading && !plan);
+  const isRerunBlocked = runLimitReached || projectLimitReached;
   const planUsageText = plan
     ? `Projects ${plan.projects_used_this_month}/${plan.monthly_project_limit} · Runs ${plan.runs_used_this_month}/${plan.monthly_run_limit}`
     : "Usage unavailable";
