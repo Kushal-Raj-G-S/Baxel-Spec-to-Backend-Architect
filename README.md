@@ -48,6 +48,7 @@ Baxel compresses that into minutes by running your idea through a full multi-age
 - 📚 **RAG archetype matching** — retrieves the best design blueprint for your system type
 - 🤖 **Agent swarm** — Architect, DBA, Security, PM, and Anti-Fragility agents debate the design
 - 💬 **SAGE chatbot** — a spec-aware AI assistant that answers questions about your generated architecture
+- 📦 **ZIP Scaffold Export** — download a fully-structured, dockerized FastAPI boilerplate to start coding instantly
 
 This project was built with a **product-first engineering mindset**:
 
@@ -67,47 +68,48 @@ This project was built with a **product-first engineering mindset**:
 - **Security Agent** audits API endpoints for authentication coverage
 - **PM Agent** validates the spec matches the original product requirements
 - **Anti-Fragility Agent** simulates chaos scenarios and generates a hardening checklist
-- All review agents run **concurrently** after the Architect draft — total Phase 2 time ≈ 5-10s
+- All review agents run **concurrently** after the Architect draft — total Phase 2 time ≈ 2-5s
 
-## 🔍 NLP Pipeline (Flow A + Flow B)
+## 🔍 Cloud-Native NLP Pipeline (Flow A + Flow B)
 - **Semantic Router** classifies the input prompt into an intent category
 - **GLiNER / LLM-based Entity Extractor** pulls actors, domain entities, and integration names
 - **Semantic Clustering** merges synonym entities (e.g. "Customer", "Client" → canonical form)
-- **RAG Blueprint Retriever** (Faiss + SentenceTransformer) matches your system to the best-fit archetype blueprint from a curated 10-blueprint knowledge base
+- **RAG Blueprint Retriever** (Faiss + CloudEmbedder) matches your system to the best-fit archetype blueprint
+- **0.75s Latency Embeddings**: Employs `nvidia/llama-nemotron-embed-1b-v2` cloud embeddings and pre-loaded indices on boot, slashing pre-processing time from **16s to under 3s**.
 
 ## 💬 SAGE — Specification Answering & Guidance Engine
 - A dedicated spec-aware AI chatbot embedded in the platform
 - Automatically loads your latest generated spec as context
-- Maintains **5-turn conversation memory** — understands follow-up questions
-- All queries and responses persisted to PostgreSQL `chat_messages` table
-- Intent classification routes queries to appropriate response strategies
+- **70% Context-Pruning Optimization**: Excludes verbose DevOps scripts and Chaos logs unless relevant to keep chatbot generation times under **2 seconds**.
+- **Grounding & Consistency Checkers**: Automatically audits query premises against both the Original User Prompt and the output JSON schema, flagging mismatches as the first line of responses.
+- Maintains **5-turn conversation memory** persisted in the database.
 
-## 🗃️ Full PostgreSQL Persistence
-- Projects, Specs, Pipeline Runs, Profiles, Pricing Plans, and Chat Messages — all stored in PostgreSQL via SQLAlchemy
-- Supabase as the managed Postgres provider with RLS policies
-- Projects and Conversations pages load historical records from the database
+## 📦 One-Click ZIP Scaffold Downloader
+- Downloads a fully-structured backend project directory directly from the browser:
+  ```bash
+  workspace.zip/
+  ├── main.py
+  ├── Dockerfile
+  ├── docker-compose.yml
+  ├── requirements.txt
+  ├── .env
+  ├── app/
+  │   ├── core/db.py
+  │   ├── models/spec_models.py
+  │   └── routes/endpoints.py
+  └── migrations/
+      └── schema.sql
+  ```
+- Integrates custom Docker configurations and PostgreSQL migrations out of the box.
 
-## 🎨 Premium Dashboard UI
-- Dark-olive glassmorphism design system with smooth micro-animations
-- Real-time pipeline stage progress with honest timing (30s/stage matches actual 70B generation)
-- "SAGE is drafting your architecture..." waiting state — never shows fake 100% completion
-- Stage insights show **real data** on completion: table counts, endpoint counts, resilience ratings
-- Starter template quick-fills for common system types
-
-## 📋 Rich Output Tabs
-| Tab | Contents |
-|---|---|
-| Schema | Entity-Relationship map with field types and foreign keys |
-| API | All REST endpoints with methods, paths, auth flags, and error shapes |
-| Code | Generated FastAPI model stubs and router scaffolds |
-| SQL | Migration SQL ready to run in Supabase |
-| Rules | Business rules and invariants extracted from the spec |
-| Resilience | Chaos scenarios, hardening checklist, and resilience rating |
-
-## 💎 Plan-Gated Access
-- Supported tiers: `starter`, `creator`, `studio`, `growth`, `enterprise`
-- Limits enforced server-side — quota checks on project creation and pipeline runs
-- HTTP 402 returned gracefully when plan limits are reached
+## 💎 Pricing & Spec-Detail Gating (Zero Throttling)
+- Tiers are configured on **project count** and **prompt spec complexity** (character limits):
+  * **Starter ($0)**: 3 active projects | Up to 3,000 character prompt specs
+  * **Creator ($8)**: 7 active projects | Up to 4,500 character prompt specs
+  * **Studio ($20)**: 15 active projects | Up to 6,500 character prompt specs
+  * **Growth ($50)**: 30 active projects | Up to 9,000 character prompt specs
+  * **Enterprise ($158)**: 60 active projects | Up to 15,000 character prompt specs
+- **Performance Disclaimer**: Baxel never limits generation details or throttles the swarm engine based on your plan. Every tier gets full code/SQL generation. The output complexity scales dynamically with the depth and detail of your input prompt spec.
 
 ---
 
@@ -130,7 +132,7 @@ graph TD
         RAG --> Blueprints[(10 Archetype Blueprints)]
 
         API --> Swarm[Agent Swarm]
-        Swarm --> Architect[Architect Agent - 20B / 70B]
+        Swarm --> Architect[Architect Agent - 70B]
         Architect --> Reviews[Concurrent Review Panel]
         Reviews --> DBA[DBA Agent - 8B]
         Reviews --> Security[Security Agent - 8B]
@@ -152,15 +154,17 @@ graph TD
     SAGE --> API
 
     subgraph LLM["⚡ NVIDIA NIM API"]
+        Model70B[meta/llama-3.3-70b-instruct]
         Model20B[openai/gpt-oss-20b]
         Model8B[meta/llama-3.1-8b-instruct]
         EmbedModel[nvidia/llama-nemotron-embed-1b-v2]
     end
 
-    Architect --> Model20B
+    Architect --> Model70B
     Reviews --> Model8B
     EntityExtractor --> Model8B
     NLP --> EmbedModel
+    SAGE --> Model20B
 ```
 
 ---
@@ -170,21 +174,17 @@ graph TD
 The generation pipeline runs in three phases:
 
 ### Phase 1 — Cloud-Native NLP & RAG (concurrent)
-| Flow | What happens |
-|---|---|
-| Flow A | Entity extraction → Semantic clustering via CloudEmbedder → builds Intermediate Representation (IR) |
-| Flow B | Semantic routing → RAG archetype retrieval via CloudEmbedder → builds architectural rules set |
-
-*   **Cloud Embeddings**: Slashes pre-processing time from **16s to under 3s** by replacing local SentenceTransformer weight-materialization with a high-throughput cloud API endpoint (`nvidia/llama-nemotron-embed-1b-v2`).
-*   **Startup Pre-Warming**: Utilizes a FastAPI `lifespan` context manager to pre-warm the cloud embedders and Faiss vector index on boot, eliminating cold start delays.
+*   **Flow A**: Entity extraction → Semantic clustering via `nvidia/llama-nemotron-embed-1b-v2` → builds Intermediate Representation (IR).
+*   **Flow B**: Semantic routing → RAG archetype retrieval → builds architectural rules set.
+*   **Startup Pre-Warming**: Utilizes a FastAPI `lifespan` context manager to pre-warm the cloud embedder and Faiss vector index on boot, eliminating cold start delays.
 
 ### Phase 2 — Architect Agent (~60-90s)
-The **Principal Architect Agent** receives the full IR + rules and generates a `GeneratedArchitectureSpec` Pydantic object enforced by `instructor.Mode.JSON` (enabling 100% structured output compatibility with open-source models):
+The **Principal Architect Agent** receives the full IR + rules and generates a `GeneratedArchitectureSpec` Pydantic object enforced by `instructor.Mode.JSON`:
 - Minimum 8 database tables (supports up to 24 tables for rich architectures)
 - Minimum 15 REST API endpoints
 - Production-grade tech stack, auth strategy, DevOps config, and SpiceLayer
 
-**Model**: `openai/gpt-oss-20b` (or `abacusai/dracarys-llama-3.1-70b-instruct`) via NVIDIA NIM  
+**Model**: `meta/llama-3.3-70b-instruct` via NVIDIA NIM  
 **Parameters**: `max_tokens = 16384` (generous token limits to support large reasoning traces), `temperature = 1.00`, `top_p = 1.00`  
 **Timeout**: 360s (6 minutes) — real generation, no mock fallback
 
@@ -198,8 +198,6 @@ Four agents run simultaneously against the Architect's draft:
 | PM Agent | 8B | Spec completeness vs. user requirements |
 | Anti-Fragility Agent | 8B | Chaos scenarios, resilience rating, hardening checklist |
 
-Review results are **logged and annotated** — trigger a revision cycle only if any agent flags blocking issues.
-
 ---
 
 # 💬 SAGE Chatbot
@@ -212,10 +210,8 @@ It is a spec-aware AI assistant that:
 - Maintains 5-turn conversation memory (stored in `chat_messages` table).
 - Classifies user intent before answering (technical, cost, general).
 
-**Model**: `openai/gpt-oss-20b` (SAGE Chatbot configuration hardcoded in Python)  
-**Performance**: SAGE's context payload size is pruned by **70%** (omitting DevOps and Anti-fragility/Chaos scenarios unless explicitly relevant) to maximize generation speeds and avoid context-bloat delays.
-
-All conversations are persisted to PostgreSQL and visible in the Conversations page.
+**Model**: `openai/gpt-oss-20b` (hardcoded for SAGE completions)  
+**Performance**: Fast structured JSON completions that return in under 2 seconds.
 
 ---
 
@@ -229,7 +225,7 @@ All conversations are persisted to PostgreSQL and visible in the Conversations p
 | **Pydantic + instructor** | Structured LLM output enforcement with JSON Mode parsing |
 | **SQLAlchemy** | ORM for all database models |
 | **Supabase (PgBouncer)** | Direct database URLs automatically upgraded from port `5432` to transaction pooler port `6543` to ensure safe concurrent cloud scaling |
-| **NVIDIA NIM API** | LLM inference — 20B/70B Architect & SAGE Chat + 8B review agents |
+| **NVIDIA NIM API** | LLM inference — 70B Architect + 20B SAGE Chat + 8B review agents |
 | **Faiss** | Vector similarity search for RAG blueprint retrieval |
 | **CloudEmbedder** | Cloud-native RAG embedding via `nvidia/llama-nemotron-embed-1b-v2` (0.75s latency) |
 | **GLiNER** | Zero-shot NLP entity extraction |
@@ -242,17 +238,15 @@ All conversations are persisted to PostgreSQL and visible in the Conversations p
 Forcing LLM output into a strongly-typed Pydantic schema (`GeneratedArchitectureSpec`) removes all post-processing and hallucination cleanup. Every field — tables, columns, endpoints, business rules, chaos scenarios — is type-validated before it reaches the frontend.
 
 ## Why NVIDIA NIM?
-NVIDIA NIM provides access to large open-weight models (70B, 20B, 8B) via an OpenAI-compatible API with high throughput. The 20B/70B models produce dramatically richer architecture specs than smaller models.
+NVIDIA NIM provides access to large open-weight models (70B, 20B, 8B) via an OpenAI-compatible API with high throughput. The 70B models produce dramatically richer architecture specs than smaller models.
 
 ## Why separate 8B and 20B/70B models?
-- **20B/70B** (Architect & SAGE Chatbot): High-capacity models with deep reasoning across spec schemas, API surfaces, database normalization, and domain constraints.
+- **70B** (Architect Swarm): High-capacity models with deep reasoning across spec schemas, API surfaces, database normalization, and domain constraints.
+- **20B** (SAGE Chatbot): Optimized for fast, accurate text responses that return under 2 seconds.
 - **8B** (review agents + entity extraction): Short, structured JSON checks that complete in under 2 seconds, maintaining sub-second user responsiveness.
 
 ## Why PgBouncer in Production?
 Connecting directly to PostgreSQL (port 5432) under serverless or high-concurrency cloud scaling risks exhausting connection limits instantly. Direct connections are dynamically intercepted and routed through PgBouncer's Transaction Pooler (port 6543) with explicit connection pools (`pool_size=5`, `max_overflow=10`).
-
-## Why SQLAlchemy over Supabase client for persistence?
-The backend owns the data layer entirely. SQLAlchemy with Supabase Postgres gives full ORM control, proper migrations, and keeps the persistence logic decoupled from Supabase's client SDK. Auth is handled by Supabase JWT validation, while data storage uses direct SQL via SQLAlchemy.
 
 ---
 
@@ -269,7 +263,7 @@ The backend owns the data layer entirely. SQLAlchemy with Supabase Postgres give
 │   │   │       ├── chat.py            # POST /api/chat — SAGE chatbot endpoint
 │   │   │       └── dashboard_api.py   # Projects, Specs, Pipelines, Profile, Plans routers
 │   │   ├── core/
-│   │   │   └── db.py                  # SQLAlchemy engine + session factory
+│   │   │   └── db.py                  # SQLAlchemy engine + session factory (PgBouncer enabled)
 │   │   ├── models/
 │   │   │   └── spec_db.py             # All SQLAlchemy table models
 │   │   ├── schemas/
@@ -280,14 +274,13 @@ The backend owns the data layer entirely. SQLAlchemy with Supabase Postgres give
 │   │       │   └── generation.py      # Architect, DBA, Security, PM, Anti-Fragility agents
 │   │       ├── nlp/
 │   │       │   ├── pipeline.py        # Flow A + Flow B parallel NLP runner
-│   │       │   ├── router.py          # Semantic intent router
+│   │       │   ├── router.py          # Semantic intent router (NvidiaEmbeddingEncoder)
 │   │       │   ├── entity_extractor.py # GLiNER + LLM entity extraction
 │   │       │   ├── clustering.py      # Semantic synonym clustering
 │   │       │   └── implication_map.py # Integration implication rules
 │   │       └── rag/
 │   │           ├── retriever.py       # Faiss RAG blueprint retriever
 │   │           └── blueprints.py      # 10 curated system archetype blueprints
-│   ├── knowledge_hub/                 # LLM benchmark scripts across NVIDIA-hosted models
 │   └── test_api.py                    # End-to-end backend test harness
 │
 └── frontend/
@@ -304,7 +297,7 @@ The backend owns the data layer entirely. SQLAlchemy with Supabase Postgres give
         │   └── app-shell.tsx          # Shared navigation sidebar
         └── lib/
             ├── supabase-browser.ts    # Supabase browser client
-            └── avatar.ts              # Avatar URL resolution
+            └── pricing-plans.ts       # Plans list with character & projects limits
 ```
 
 ---
@@ -314,19 +307,15 @@ The backend owns the data layer entirely. SQLAlchemy with Supabase Postgres give
 All tables auto-created via SQLAlchemy `Base.metadata.create_all()` on server startup.
 
 ## `projects`
-
 | Column | Type | Description |
 |---|---|---|
 | id | UUID | Primary key |
 | name | String | Project display name |
 | description | Text | Optional description |
 | user_id | String | Supabase auth user ID |
-| workspace_id | String | Optional workspace grouping |
-| created_at | DateTime | Creation timestamp |
-| updated_at | DateTime | Last updated timestamp |
+| created_at / updated_at | DateTime | Timestamps |
 
 ## `specs`
-
 | Column | Type | Description |
 |---|---|---|
 | id | UUID | Primary key |
@@ -338,7 +327,6 @@ All tables auto-created via SQLAlchemy `Base.metadata.create_all()` on server st
 | created_at / updated_at | DateTime | Timestamps |
 
 ## `pipeline_runs`
-
 | Column | Type | Description |
 |---|---|---|
 | id | UUID | Primary key |
@@ -346,12 +334,11 @@ All tables auto-created via SQLAlchemy `Base.metadata.create_all()` on server st
 | spec_id | UUID | FK → specs |
 | status | String | `processing` / `completed` / `failed` |
 | stages | JSON | Stage metadata |
-| result | JSON | Full `GeneratedArchitectureSpec` output |
+| result | JSON | Full `GeneratedArchitectureSpec` output (with code_skeleton and devops content) |
 | completed_at | DateTime | Completion timestamp |
 | user_id | String | Supabase auth user ID |
 
 ## `chat_messages`
-
 | Column | Type | Description |
 |---|---|---|
 | id | UUID | Primary key |
@@ -363,7 +350,6 @@ All tables auto-created via SQLAlchemy `Base.metadata.create_all()` on server st
 | created_at | DateTime | Message timestamp |
 
 ## `profiles`
-
 | Column | Type | Description |
 |---|---|---|
 | id | UUID | Matches Supabase auth `user.id` |
@@ -374,7 +360,6 @@ All tables auto-created via SQLAlchemy `Base.metadata.create_all()` on server st
 | plan_code | String | Active plan: `starter` / `creator` / `studio` / `growth` / `enterprise` |
 
 ## `pricing_plans`
-
 | Column | Type | Description |
 |---|---|---|
 | id | UUID | Primary key |
@@ -382,7 +367,7 @@ All tables auto-created via SQLAlchemy `Base.metadata.create_all()` on server st
 | display_name | String | Human-readable plan name |
 | price_usd | Integer | Price in USD cents |
 | monthly_project_limit | Integer | Max projects per month |
-| monthly_run_limit | Integer | Max pipeline runs per month |
+| monthly_run_limit | Integer | Max pipeline runs per month (unlimited/9999 for Starter) |
 | is_active | Boolean | Plan availability flag |
 
 ---
@@ -390,7 +375,6 @@ All tables auto-created via SQLAlchemy `Base.metadata.create_all()` on server st
 # 🚀 Local Setup
 
 ## Prerequisites
-
 - Node.js 18+
 - Python 3.11+
 - A [Supabase](https://supabase.com) project
@@ -399,7 +383,6 @@ All tables auto-created via SQLAlchemy `Base.metadata.create_all()` on server st
 ---
 
 ## 1️⃣ Clone
-
 ```bash
 git clone https://github.com/your-username/baxel.git
 cd baxel
@@ -408,7 +391,6 @@ cd baxel
 ---
 
 ## 2️⃣ Backend Setup
-
 ```bash
 cd backend
 
@@ -435,7 +417,6 @@ uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ---
 
 ## 3️⃣ Frontend Setup
-
 ```bash
 cd frontend
 
@@ -456,17 +437,18 @@ Backend API at **http://localhost:8000**
 # 🔐 Environment Variables
 
 ## Backend — `backend/.env`
-
 ```env
 # Supabase
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-SUPABASE_JWT_SECRET=your_jwt_secret
+SUPABASE_DB_URL=postgresql://postgres.your-project:password@aws-1-ap-south-1.pooler.supabase.com:6543/postgres
 
 # NVIDIA NIM (LLM API)
 NVIDIA_API_KEY=nvapi-xxxxxxxxxxxxxxxxxxxx
 LLM_BASE_URL=https://integrate.api.nvidia.com/v1
-LLM_MODEL=meta/llama-3.3-70b-instruct
+
+# Models configurations
+ARCHITECT_LLM_MODEL=meta/llama-3.3-70b-instruct
 LLM_REVIEW_MODEL=meta/llama-3.1-8b-instruct
 
 # Server
@@ -475,7 +457,6 @@ LOG_LEVEL=INFO
 ```
 
 ## Frontend — `frontend/.env.local`
-
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
@@ -484,72 +465,18 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 
 ---
 
-# 📦 Running in Production
-
-## Backend
-```bash
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2
-```
-
-## Frontend
-```bash
-npm run build
-npm run start
-```
-
-> **Recommended**: Deploy the frontend to [Vercel](https://vercel.com) and the backend to a cloud VM or container (Railway, Render, or AWS EC2).
-
----
-
 # 🧪 Testing
 
 ## Backend API E2E test
-
 ```bash
 cd backend
 python test_api.py
 ```
-
 This script runs a full end-to-end pipeline: creates a project → submits a spec → polls generation status → validates output fields.
 
 ---
 
-# 🚀 Roadmap
-
-- [ ] Streaming output — show architecture sections as they generate
-- [ ] Spec versioning — iterate on a generated spec with diff comparison
-- [ ] GitHub export — push generated boilerplate directly to a new repository
-- [ ] Team workspaces — shared projects with collaborators
-- [ ] Custom archetype blueprints — user-defined RAG documents
-- [ ] HF Token support — authenticated model downloads for local NLP
-- [ ] Deployment manifest generation — Terraform / Kubernetes configs
-
----
-
-# 📈 Resume Value
-
-Baxel demonstrates full-stack ownership with real production engineering complexity:
-
-- **Multi-agent AI pipeline** with concurrent execution, structured outputs, and graceful fallback handling
-- **RAG system** — vector-indexed blueprint retrieval with Faiss + SentenceTransformer
-- **Multi-tenant auth** — Supabase JWT, Row-Level Security, profile management
-- **Plan-driven feature gating** — quota enforcement, HTTP 402 on limit breach
-- **PostgreSQL persistence** — 6 tables via SQLAlchemy ORM, all user data stored server-side
-- **Premium frontend** — glassmorphism dark mode, real-time progress, honest UX (never fakes completion)
-- **Production engineering** — timeout management, retry elimination, paging file guards, async background saves
-
----
-
-# 🤝 Contributing
-
-Contributions, ideas, and architecture critiques are welcome.
-
-If you're interested in AI pipeline engineering, structured LLM outputs, or building developer tools with strong product thinking — this project will resonate with you.
-
----
-
 # 📜 License
-
 MIT License
 
 ---
