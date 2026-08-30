@@ -182,7 +182,7 @@ export default function AppShell({ children, wide = false }: { children: React.R
         });
         if (!response.ok) return;
         const plan = await response.json();
-        const nextPlanLabel = plan.plan_name || "Starter";
+        const nextPlanLabel = plan.plan_name || "Free";
         setPlanLabel(nextPlanLabel);
         if (typeof window !== "undefined") {
           window.localStorage.setItem("baxel:plan-label", nextPlanLabel);

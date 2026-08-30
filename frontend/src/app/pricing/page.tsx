@@ -16,13 +16,13 @@ export default function PricingPage() {
           <div className="mt-5 rounded-2xl bg-white/5 border border-white/10 p-5 text-sm text-white/70 max-w-3xl flex items-start gap-3">
             <span className="text-[#C2D68C] text-lg mt-0.5">ℹ️</span>
             <div>
-              <p className="font-semibold text-white">Full Swarm Engine Access for All Plans</p>
+              <p className="font-semibold text-white">Full Swarm Engine Access on Every Plan — Even Free</p>
               <p className="mt-1 text-xs text-white/60 leading-relaxed">
-                We never throttle output quality or generation details based on your tier. Every plan runs on the exact same full-capacity backend swarm engine. The complexity and depth of the generated database schema and codebase depend solely on how detailed and granular you make your input prompt spec.
+                We never throttle output quality or generation details based on your tier — not even on Free. Every plan runs the exact same full-capacity 70B Architect swarm and review panel. What scales with your plan is how often you can run it each month, not how good the output is, so you can fully evaluate Baxel before you ever pay for it.
               </p>
             </div>
           </div>
-          <div className="mt-8 grid gap-6 md:grid-cols-2 xl:grid-cols-5">
+          <div className="mt-8 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
             {pricingPlans.map((tier) => (
               <div key={tier.code} className={`rounded-3xl border bg-white/5 p-6 reveal reveal-delay-1 magnetic ${tier.featured ? "border-[#C2D68C]/50 shadow-[0_0_30px_rgba(194,214,140,0.15)]" : "border-white/5"}`}>
                 <p className="text-xs uppercase tracking-[0.2em] text-white/50">{tier.name}</p>
@@ -45,7 +45,7 @@ export default function PricingPage() {
                   rel="noreferrer"
                   className={`mt-6 block w-full rounded-full px-4 py-2 text-center text-sm font-semibold transition hover:scale-105 ${tier.featured ? "bg-[#C2D68C] text-[#1F261D] shadow-[0_0_15px_rgba(194,214,140,0.3)]" : "border border-white/20 text-white hover:bg-white/10"}`}
                 >
-                  Choose {tier.name}
+                  {tier.ctaLabel || `Choose ${tier.name}`}
                 </a>
               </div>
             ))}

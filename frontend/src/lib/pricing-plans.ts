@@ -6,79 +6,73 @@ export type PricingPlan = {
   desc: string;
   perks: string[];
   checkoutUrl: string;
+  ctaLabel?: string;
   featured?: boolean;
 };
 
 export const pricingPlans: PricingPlan[] = [
   {
-    code: "starter",
-    name: "Starter",
+    code: "free",
+    name: "Free",
     priceLabel: "$0",
     inrPriceLabel: "₹0",
-    desc: "For first projects and student experiments.",
+    desc: "Experience the full swarm engine, no quality caps — just a small monthly run budget.",
     perks: [
+      "Full 70B swarm engine — no quality throttling",
+      "3 pipeline runs / month",
       "3 active projects",
       "Up to 3,000 character prompt specs",
-      "Full API, DB, and code stubs generation",
-      "SAGE AI Systems Architect Chatbot"
+      "SAGE AI chatbot — 15 messages / day",
+      "7-day pipeline history"
     ],
-    checkoutUrl: process.env.NEXT_PUBLIC_BILLING_STARTER_URL || "/auth"
+    checkoutUrl: process.env.NEXT_PUBLIC_BILLING_FREE_URL || "/auth"
   },
   {
-    code: "creator",
-    name: "Creator",
-    priceLabel: "$8",
-    inrPriceLabel: "₹699",
-    desc: "For solo makers shipping customer prototypes.",
+    code: "pro",
+    name: "Pro",
+    priceLabel: "$14",
+    inrPriceLabel: "₹1,199",
+    desc: "For solo builders shipping real projects on a regular cadence.",
     perks: [
-      "7 active projects",
-      "Up to 4,500 character prompt specs",
-      "Full API, DB, and code stubs generation",
-      "SAGE AI Systems Architect Chatbot"
-    ],
-    checkoutUrl: process.env.NEXT_PUBLIC_BILLING_CREATOR_URL || "mailto:billing@baxel.app?subject=Creator%20Plan"
-  },
-  {
-    code: "studio",
-    name: "Studio",
-    priceLabel: "$20",
-    inrPriceLabel: "₹1699",
-    desc: "For indie teams running product sprints.",
-    perks: [
+      "25 pipeline runs / month",
       "15 active projects",
-      "Up to 6,500 character prompt specs",
-      "Full API, DB, and code stubs generation",
-      "SAGE AI Systems Architect Chatbot"
+      "Up to 6,000 character prompt specs",
+      "SAGE AI chatbot — unlimited messages",
+      "Unlimited pipeline history",
+      "Email support"
     ],
-    checkoutUrl: process.env.NEXT_PUBLIC_BILLING_STUDIO_URL || "mailto:billing@baxel.app?subject=Studio%20Plan",
+    checkoutUrl: process.env.NEXT_PUBLIC_BILLING_PRO_URL || "mailto:billing@baxel.app?subject=Pro%20Plan",
     featured: true
   },
   {
-    code: "growth",
-    name: "Growth",
-    priceLabel: "$50",
-    inrPriceLabel: "₹4199",
-    desc: "For scaling teams with multiple products.",
+    code: "team",
+    name: "Team",
+    priceLabel: "$45",
+    inrPriceLabel: "₹3,799",
+    desc: "For small teams running product sprints together.",
     perks: [
-      "30 active projects",
-      "Up to 9,000 character prompt specs",
-      "Full API, DB, and code stubs generation",
-      "SAGE AI Systems Architect Chatbot"
+      "100 pipeline runs / month",
+      "50 active projects",
+      "Up to 10,000 character prompt specs",
+      "5 team seats + shared workspace",
+      "Priority support (24h SLA)",
+      "Unlimited SAGE chatbot & history"
     ],
-    checkoutUrl: process.env.NEXT_PUBLIC_BILLING_GROWTH_URL || "mailto:billing@baxel.app?subject=Growth%20Plan"
+    checkoutUrl: process.env.NEXT_PUBLIC_BILLING_TEAM_URL || "mailto:billing@baxel.app?subject=Team%20Plan"
   },
   {
     code: "enterprise",
     name: "Enterprise",
-    priceLabel: "$158",
-    inrPriceLabel: "₹13199",
-    desc: "For org-wide backend generation programs.",
+    priceLabel: "Custom",
+    desc: "For org-wide backend generation programs with compliance needs.",
     perks: [
-      "60 active projects",
-      "Up to 15,000 character prompt specs",
-      "Full API, DB, and code stubs generation",
-      "SAGE AI Systems Architect Chatbot"
+      "Custom pipeline run & project volume",
+      "Custom prompt spec limits",
+      "SSO / SAML + audit logs",
+      "Dedicated support & onboarding",
+      "Custom contract & invoicing"
     ],
-    checkoutUrl: process.env.NEXT_PUBLIC_BILLING_ENTERPRISE_URL || "mailto:billing@baxel.app?subject=Enterprise%20Plan"
+    checkoutUrl: process.env.NEXT_PUBLIC_BILLING_ENTERPRISE_URL || "mailto:billing@baxel.app?subject=Enterprise%20Plan",
+    ctaLabel: "Contact Sales"
   }
 ];

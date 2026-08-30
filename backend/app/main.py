@@ -103,6 +103,18 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"[Startup] Semantic Router init failed: {e}")
 
+    # 5. Initialize GLiNER (entity-extraction fallback). It's only reached when the
+    # primary LLM-based entity extraction fails, but when that happens mid-request it
+    # was paying a ~7s model-load cost inline, on the critical path. Pre-warming here
+    # doesn't change GLiNER's own behavior or output at all — it just moves that load
+    # to server boot instead of into request latency.
+    try:
+        from app.services.nlp.entity_extractor import gliner_extractor
+        gliner_extractor.initialize()
+        logger.info("[Startup] GLiNER (entity-extraction fallback) ready.")
+    except Exception as e:
+        logger.warning(f"[Startup] GLiNER init failed: {e}")
+
     logger.info("[Startup] All services pre-warmed. Server is ready.")
     yield
     # Shutdown (nothing to clean up for stateless cloud API connections)

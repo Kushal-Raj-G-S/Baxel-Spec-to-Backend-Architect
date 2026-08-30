@@ -12,10 +12,11 @@ logger = logging.getLogger(__name__)
 generation_status_db = {}
 
 async def run_generation_pipeline(
-    spec_id: uuid.UUID, 
-    prompt: str, 
-    parent_spec_id: str, 
-    db_session: Session
+    spec_id: uuid.UUID,
+    prompt: str,
+    parent_spec_id: str,
+    db_session: Session,
+    user_id: str = None
 ):
     """
     Coordinates the entire generation process (NLP, RAG, Agents) asynchronously.
@@ -50,18 +51,21 @@ async def run_generation_pipeline(
             generation_status=status
         )
         
-        # Ensure we have a default project
-        project = db_session.query(ProjectModel).first()
+        # Ensure this caller has a project to attach to — scoped to them, never any
+        # other user's row (a global "first project in the table" lookup here would
+        # attach anonymous/API-triggered specs to whichever user happens to own the
+        # first row in the database).
+        project = db_session.query(ProjectModel).filter(ProjectModel.user_id == user_id).first()
         if not project:
             project = ProjectModel(
                 id=str(uuid.uuid4()),
-                name="Default Project",
-                user_id=None
+                name="API Project",
+                user_id=user_id
             )
             db_session.add(project)
             db_session.commit()
             db_session.refresh(project)
-            
+
         # Save output to Database
         logger.info(f"[{spec_id_str}] Saving generated output to Database...")
         db_spec = SpecModel(
@@ -70,10 +74,10 @@ async def run_generation_pipeline(
             title="Generated Spec",
             content=prompt,
             source_type="api",
-            user_id=None
+            user_id=user_id
         )
         db_session.add(db_spec)
-        
+
         # Save pipeline run record
         db_run = PipelineRunModel(
             id=str(uuid.uuid4()),
@@ -83,7 +87,7 @@ async def run_generation_pipeline(
             stages={"stages": []},
             result=spec.model_dump(mode="json"),
             completed_at=datetime.datetime.utcnow(),
-            user_id=None
+            user_id=user_id
         )
         db_session.add(db_run)
         db_session.commit()

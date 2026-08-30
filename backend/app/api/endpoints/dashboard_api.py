@@ -1,6 +1,7 @@
 import uuid
 import logging
 import datetime
+import time
 import re
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, Field
@@ -38,6 +39,68 @@ class ProfileUpdate(BaseModel):
     username: Optional[str] = None
     full_name: Optional[str] = None
     avatar_url: Optional[str] = None
+
+# -------------------------------------------------------------
+# Plan Limits
+# -------------------------------------------------------------
+# Canonical pricing tiers — matches frontend/src/lib/pricing-plans.ts. These are the
+# source of truth for enforcement; the pricing_plans DB table is used only for a
+# display-name override when a matching row exists, since it can drift or be missing
+# entirely without breaking enforcement.
+PLAN_LIMITS: Dict[str, Dict[str, Any]] = {
+    "free":       {"name": "Free",       "monthly_run_limit": 3,      "monthly_project_limit": 3,      "idea_char_limit": 3000,   "chat_daily_limit": 15},
+    "pro":        {"name": "Pro",        "monthly_run_limit": 25,     "monthly_project_limit": 15,     "idea_char_limit": 6000,   "chat_daily_limit": 999999},
+    "team":       {"name": "Team",       "monthly_run_limit": 100,    "monthly_project_limit": 50,     "idea_char_limit": 10000,  "chat_daily_limit": 999999},
+    "enterprise": {"name": "Enterprise", "monthly_run_limit": 999999, "monthly_project_limit": 999999, "idea_char_limit": 100000, "chat_daily_limit": 999999},
+}
+# profiles.plan_code may still hold values from before the pricing tiers were renamed
+# (starter/creator/studio/growth) — map those onto the current tiers rather than
+# silently downgrading an existing user to Free.
+LEGACY_PLAN_ALIASES: Dict[str, str] = {
+    "starter": "free",
+    "creator": "pro",
+    "studio": "team",
+    "growth": "team",
+}
+
+def normalize_plan_code(raw_code: Optional[str]) -> str:
+    code = (raw_code or "free").strip().lower()
+    code = LEGACY_PLAN_ALIASES.get(code, code)
+    return code if code in PLAN_LIMITS else "free"
+
+def get_user_plan(db: Session, uid: str) -> Dict[str, Any]:
+    """
+    Resolves a user's plan_code and usage against the canonical PLAN_LIMITS.
+    monthly_run_limit is enforced per calendar month; monthly_project_limit is a
+    total active-project cap (matches "N active projects" in the pricing copy, not
+    a per-month allowance).
+    """
+    profile = db.query(ProfileModel).filter(ProfileModel.id == uid).first()
+    plan_code = normalize_plan_code(profile.plan_code if profile else None)
+    limits = PLAN_LIMITS[plan_code]
+
+    plan_row = db.query(PricingPlanModel).filter(
+        func.lower(PricingPlanModel.code) == plan_code
+    ).first()
+    plan_name = f"{plan_row.display_name} Plan" if plan_row else f"{limits['name']} Plan"
+
+    month_start = datetime.datetime.utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    runs_used_this_month = db.query(PipelineRunModel).filter(
+        PipelineRunModel.user_id == uid,
+        PipelineRunModel.created_at >= month_start
+    ).count()
+    projects_used = db.query(ProjectModel).filter(ProjectModel.user_id == uid).count()
+
+    return {
+        "plan_code": plan_code,
+        "plan_name": plan_name,
+        "monthly_run_limit": limits["monthly_run_limit"],
+        "runs_used_this_month": runs_used_this_month,
+        "monthly_project_limit": limits["monthly_project_limit"],
+        "projects_used_this_month": projects_used,
+        "idea_char_limit": limits["idea_char_limit"],
+        "chat_daily_limit": limits["chat_daily_limit"],
+    }
 
 # -------------------------------------------------------------
 # Helpers
@@ -96,7 +159,113 @@ def save_run_in_background(
     finally:
         db.close()
 
+def _detect_stack_family(language: str) -> str:
+    """
+    Maps the Architect's freely-chosen tech_stack.language onto one of the code
+    generators we actually support. Falls back to 'python' for anything we don't
+    recognize — it's the most complete generator, and a safe default beats
+    guessing at an unsupported language's conventions.
+    """
+    lang = (language or "").strip().lower()
+    ts_keywords = ("typescript", "javascript", "node", "nestjs", "nest.js", "next.js", "express")
+    if lang in ("js", "ts") or any(kw in lang for kw in ts_keywords):
+        return "typescript"
+    return "python"
+
+
+def _pascal_case(name: str) -> str:
+    return "".join(part.capitalize() for part in re.split(r"[_\-\s]+", name) if part) or "Entity"
+
+
+def _camel_case(name: str) -> str:
+    parts = [p for p in re.split(r"[_\-\s]+", name) if p]
+    if not parts:
+        return "handler"
+    camel = parts[0].lower() + "".join(p.capitalize() for p in parts[1:])
+    return f"h_{camel}" if camel[0].isdigit() else camel
+
+
 def generate_code_skeleton(spec) -> Dict[str, str]:
+    family = _detect_stack_family(spec.tech_stack.language)
+    if family == "typescript":
+        return _generate_typescript_code_skeleton(spec)
+    return _generate_python_code_skeleton(spec)
+
+
+def _generate_typescript_code_skeleton(spec) -> Dict[str, str]:
+    def column_meta(col):
+        col_type = col.type.upper()
+        opts = {}
+        if col.enum_values:
+            base_type = "'enum'"
+            opts["enum"] = "[" + ", ".join(repr(v) for v in col.enum_values) + "]"
+            ts_type = "string"
+        elif "UUID" in col_type:
+            base_type = "'uuid'"
+            ts_type = "string"
+        elif "INT" in col_type:
+            base_type = "'int'"
+            ts_type = "number"
+        elif "DATE" in col_type or "TIME" in col_type:
+            base_type = "'timestamp'"
+            ts_type = "Date"
+        elif "BOOL" in col_type:
+            base_type = "'boolean'"
+            ts_type = "boolean"
+        else:
+            base_type = "'varchar'"
+            opts["length"] = "255"
+            ts_type = "string"
+
+        if col.is_nullable and not col.is_primary_key:
+            opts["nullable"] = "true"
+
+        opts_str = ", ".join(f"{k}: {v}" for k, v in opts.items())
+        decorator_args = f"{base_type}, {{ {opts_str} }}" if opts_str else base_type
+        decorator = f"@PrimaryColumn({decorator_args})" if col.is_primary_key else f"@Column({decorator_args})"
+        if col.foreign_key:
+            decorator += f"  // FK -> {col.foreign_key}"
+        return decorator, ts_type
+
+    # Entities (TypeORM)
+    models_code = "// TypeORM entities generated by Baxel\n\n"
+    models_code += "import { Entity, PrimaryColumn, Column } from 'typeorm';\n\n"
+    for table in spec.database.tables:
+        models_code += f"@Entity('{table.name}')\n"
+        models_code += f"export class {_pascal_case(table.name)} {{\n"
+        models_code += f"  // {table.description}\n\n"
+        for col in table.columns:
+            decorator, ts_type = column_meta(col)
+            models_code += f"  {decorator}\n  {col.name}: {ts_type};\n\n"
+        models_code += "}\n\n"
+
+    # Controller (NestJS)
+    method_map = {"GET": "Get", "POST": "Post", "PATCH": "Patch", "PUT": "Patch", "DELETE": "Delete"}
+    routers_code = "// NestJS controller generated by Baxel\n\n"
+    routers_code += "import { Controller, Get, Post, Patch, Delete } from '@nestjs/common';\n\n"
+    routers_code += "@Controller()\nexport class AppController {\n"
+    for ep in spec.endpoints:
+        base_name = (ep.summary or ep.path or "endpoint").lower()
+        normalized_name = re.sub(r"[^0-9a-zA-Z_]+", "_", base_name).strip("_")
+        handler_name = _camel_case(normalized_name)
+        decorator_name = method_map.get(ep.method.upper(), "Get")
+        routers_code += f"  @{decorator_name}({ep.path!r})\n"
+        if ep.is_protected:
+            routers_code += "  // TODO: apply an auth guard, e.g. @UseGuards(JwtAuthGuard)\n"
+        routers_code += f"  async {handler_name}() {{\n"
+        routers_code += "    // TODO: Implement endpoint\n"
+        routers_code += f"    return {{ message: {ep.summary!r} }};\n"
+        routers_code += "  }\n\n"
+    routers_code += "}\n"
+
+    return {
+        "models": models_code,
+        "routers": routers_code,
+        "services": "// Business logic & helpers\n"
+    }
+
+
+def _generate_python_code_skeleton(spec) -> Dict[str, str]:
     # Models skeleton
     models_code = "# SQLAlchemy models generated by Baxel\n\n"
     models_code += "from sqlalchemy import Column, String, Integer, DateTime, ForeignKey, Boolean, Enum as SAEnum\n"
@@ -216,7 +385,7 @@ async def profile_me(user=Depends(get_current_user), db: Session = Depends(get_d
             email=email,
             username=email.split("@")[0] if email else "user",
             full_name=email.split("@")[0].title() if email else "User",
-            plan_code="starter"  # Default plan is starter
+            plan_code="free"  # Default plan is free
         )
         try:
             db.add(profile)
@@ -232,7 +401,7 @@ async def profile_me(user=Depends(get_current_user), db: Session = Depends(get_d
         "username": profile.username if profile else (email.split("@")[0] if email else "user"),
         "full_name": profile.full_name if profile else (email.split("@")[0].title() if email else "User"),
         "avatar_url": profile.avatar_url if profile else None,
-        "plan_code": profile.plan_code if profile else "starter"
+        "plan_code": profile.plan_code if profile else "free"
     }
 
 @profile_router.patch("/me")
@@ -250,7 +419,7 @@ async def update_profile(
             email=email,
             username=payload.username or (email.split("@")[0] if email else "user"),
             full_name=payload.full_name or (email.split("@")[0].title() if email else "User"),
-            plan_code="starter"
+            plan_code="free"
         )
         db.add(profile)
     else:
@@ -292,44 +461,12 @@ async def update_profile(
 @profile_router.get("/plan")
 async def profile_plan(user=Depends(get_current_user), db: Session = Depends(get_db)):
     uid = user.get("sub")
-    runs_count = db.query(PipelineRunModel).filter(PipelineRunModel.user_id == uid).count()
-    projects_count = db.query(ProjectModel).filter(ProjectModel.user_id == uid).count()
-    
-    # Get user plan_code from profiles table
-    profile = db.query(ProfileModel).filter(ProfileModel.id == uid).first()
-    plan_code = (profile.plan_code or "starter") if profile else "starter"
-    
-    # Get plan details from pricing_plans table
-    plan = db.query(PricingPlanModel).filter(PricingPlanModel.code == plan_code).first()
-    if plan:
-        plan_name = f"{plan.display_name} Plan"
-        monthly_run_limit = plan.monthly_run_limit
-        monthly_project_limit = plan.monthly_project_limit
-    else:
-        # Fallback to starter plan limits
-        plan_name = "Starter Plan"
-        monthly_run_limit = 9999
-        monthly_project_limit = 3
-        
-    char_limit_map = {
-        "starter": 3000,
-        "creator": 4500,
-        "studio": 6500,
-        "growth": 9000,
-        "enterprise": 15000
-    }
-    idea_char_limit = char_limit_map.get(plan_code.lower(), 3000)
-    
+    plan = get_user_plan(db, uid)
+
     return {
-        "plan_code": plan_code,
-        "plan_name": plan_name,
+        **plan,
         "status": "active",
-        "monthly_run_limit": monthly_run_limit,
-        "runs_used_this_month": runs_count,
-        "monthly_project_limit": monthly_project_limit,
-        "projects_used_this_month": projects_count,
         "runs_per_project_limit": 100,
-        "idea_char_limit": idea_char_limit,
         "billing_period": None,
         "period_start": None,
         "period_end": None,
@@ -457,6 +594,13 @@ async def create_project(payload: ProjectCreate, user=Depends(get_current_user),
             "status": "exists"
         }
 
+    plan = get_user_plan(db, uid)
+    if plan["projects_used_this_month"] >= plan["monthly_project_limit"]:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Project limit reached ({plan['projects_used_this_month']}/{plan['monthly_project_limit']}) for the {plan['plan_name']}. Upgrade to create more projects."
+        )
+
     new_project = ProjectModel(
         id=str(uuid.uuid4()),
         name=payload.name,
@@ -574,10 +718,24 @@ async def run_pipeline_job(
 ):
     uid = user.get("sub")
     logger.info(f"Running synchronous pipeline for user {uid}...")
-    
+
+    plan = get_user_plan(db, uid)
+    if len(payload.spec_content) > plan["idea_char_limit"]:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Spec is too long for the {plan['plan_name']}. Max {plan['idea_char_limit']} characters."
+        )
+    if plan["runs_used_this_month"] >= plan["monthly_run_limit"]:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Monthly run limit reached ({plan['runs_used_this_month']}/{plan['monthly_run_limit']}) for the {plan['plan_name']}. Upgrade or wait for next month's reset."
+        )
+
+    generation_started_at = time.monotonic()
+
     # 1. NLP Intent routing & extraction
     ir, confidence_score, rules, status = await run_nlp_pipeline(payload.spec_content)
-    
+
     # 2. Agent Swarm debate cycles
     spec = await run_agent_swarm(
         ir=ir,
@@ -631,7 +789,9 @@ async def run_pipeline_job(
     # Generate code skeletons & migrations
     code_skeleton = generate_code_skeleton(spec)
     migration_sql = generate_migration_sql(spec)
-    
+
+    generation_seconds = round(time.monotonic() - generation_started_at, 1)
+
     result = {
         "summary": f"Baxel generated a {spec.tech_stack.language} / {spec.tech_stack.framework} system architecture for {spec.project_name} ({ir.archetype}), featuring {len(db_tables)} database tables, {len(api_endpoints)} REST endpoints, and {len(business_rules)} business rules.",
         "tech_stack": spec.tech_stack.model_dump(mode="json"),
@@ -648,6 +808,7 @@ async def run_pipeline_job(
         "__meta": {
             "source": "nvidia",
             "model": LLM_MODEL,
+            "generation_seconds": generation_seconds,
             "spec_expansion": {
                 "original_chars": len(payload.spec_content),
                 "expanded_chars": len(payload.spec_content) * 3,
@@ -670,7 +831,8 @@ async def run_pipeline_job(
         
     response.headers["x-baxel-generation-source"] = "nvidia"
     response.headers["x-baxel-generation-model"] = LLM_MODEL
-    response.headers["x-baxel-plan-code"] = "studio"
+    response.headers["x-baxel-generation-seconds"] = str(generation_seconds)
+    response.headers["x-baxel-plan-code"] = plan["plan_code"]
     
     return {
         "id": run_id,
@@ -719,55 +881,106 @@ async def download_pipeline_zip(
     spec_json = run.result
     code_skeleton = spec_json.get("code_skeleton", {})
     devops = spec_json.get("devops", {})
+    migration_sql = spec_json.get("migration_sql") or "-- No migration sql generated\n"
+    family = _detect_stack_family(spec_json.get("tech_stack", {}).get("language", ""))
 
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-        # requirements.txt
-        requirements = "fastapi>=0.100.0\nuvicorn>=0.22.0\npydantic>=2.0\nsqlalchemy>=2.0\npsycopg2-binary>=2.9.6\npython-dotenv>=1.0.0\n"
-        zip_file.writestr("requirements.txt", requirements)
-
-        # .env
-        zip_file.writestr(".env", "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/postgres\n")
-
-        # Dockerfile
+        # Dockerfile / docker-compose.yml are always LLM-generated for the actual chosen
+        # stack (devops agent sees tech_stack directly) — no branching needed here.
         dockerfile = devops.get("dockerfile_content") or "FROM python:3.11-slim\nWORKDIR /code\nCOPY ./requirements.txt /code/requirements.txt\nRUN pip install --no-cache-dir --upgrade -r /code/requirements.txt\nCOPY ./app /code/app\nCMD [\"uvicorn\", \"app.main:app\", \"--host\", \"0.0.0.0\", \"--port\", \"80\"]\n"
         zip_file.writestr("Dockerfile", dockerfile)
 
-        # docker-compose.yml
         compose = devops.get("docker_compose_content") or "version: '3.8'\nservices:\n  web:\n    build: .\n    ports:\n      - \"8000:80\"\n    environment:\n      - DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres\n    depends_on:\n      - db\n  db:\n    image: postgres:15\n    ports:\n      - \"5432:5432\"\n    environment:\n      - POSTGRES_USER=postgres\n      - POSTGRES_PASSWORD=postgres\n      - POSTGRES_DB=postgres\n"
         zip_file.writestr("docker-compose.yml", compose)
 
-        # app/main.py
-        main_py = "import os\nfrom fastapi import FastAPI\nfrom app.routes.endpoints import router as api_router\n\napp = FastAPI(title=\"Baxel Generated API\")\n\napp.include_router(api_router, prefix=\"/api\")\n\n@app.get(\"/\")\ndef root():\n    return {\"message\": \"API is running.\"}\n"
-        zip_file.writestr("app/main.py", main_py)
+        zip_file.writestr("migrations/schema.sql", migration_sql)
 
-        # app/__init__.py
-        zip_file.writestr("app/__init__.py", "")
-
-        # app/core/__init__.py
-        zip_file.writestr("app/core/__init__.py", "")
-
-        # app/core/db.py
-        db_py = "import os\nfrom sqlalchemy import create_engine\nfrom sqlalchemy.orm import sessionmaker, declarative_base\n\nDATABASE_URL = os.getenv(\"DATABASE_URL\", \"postgresql://postgres:postgres@localhost:5432/postgres\")\n\nengine = create_engine(DATABASE_URL)\nSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)\nBase = declarative_base()\n\ndef get_db():\n    db = SessionLocal()\n    try:\n        yield db\n    finally:\n        db.close()\n"
-        zip_file.writestr("app/core/db.py", db_py)
-
-        # app/models/__init__.py
-        zip_file.writestr("app/models/__init__.py", "")
-
-        # app/models/spec_models.py
-        zip_file.writestr("app/models/spec_models.py", code_skeleton.get("models") or "# No models generated\n")
-
-        # app/routes/__init__.py
-        zip_file.writestr("app/routes/__init__.py", "")
-
-        # app/routes/endpoints.py
-        routers_code = code_skeleton.get("routers") or "# No routes generated\n"
-        if "get_current_user" in routers_code and "def get_current_user" not in routers_code:
-            routers_code = "def get_current_user():\n    return {'sub': 'mock-user'}\n\n" + routers_code
-        zip_file.writestr("app/routes/endpoints.py", routers_code)
-
-        # migrations/schema.sql
-        zip_file.writestr("migrations/schema.sql", spec_json.get("migration_sql") or "-- No migration sql generated\n")
+        if family == "typescript":
+            zip_file.writestr("package.json", (
+                "{\n"
+                '  "name": "baxel-generated-api",\n'
+                '  "version": "1.0.0",\n'
+                '  "private": true,\n'
+                '  "scripts": {\n'
+                '    "build": "nest build",\n'
+                '    "start": "node dist/main",\n'
+                '    "start:dev": "nest start --watch"\n'
+                "  },\n"
+                '  "dependencies": {\n'
+                '    "@nestjs/common": "^10.3.0",\n'
+                '    "@nestjs/core": "^10.3.0",\n'
+                '    "@nestjs/platform-express": "^10.3.0",\n'
+                '    "@nestjs/typeorm": "^10.0.2",\n'
+                '    "typeorm": "^0.3.20",\n'
+                '    "pg": "^8.11.5",\n'
+                '    "reflect-metadata": "^0.2.1",\n'
+                '    "rxjs": "^7.8.1"\n'
+                "  },\n"
+                '  "devDependencies": {\n'
+                '    "@nestjs/cli": "^10.3.2",\n'
+                '    "typescript": "^5.4.5",\n'
+                '    "@types/node": "^20.12.7"\n'
+                "  }\n"
+                "}\n"
+            ))
+            zip_file.writestr("tsconfig.json", (
+                "{\n"
+                '  "compilerOptions": {\n'
+                '    "module": "commonjs",\n'
+                '    "target": "ES2021",\n'
+                '    "experimentalDecorators": true,\n'
+                '    "emitDecoratorMetadata": true,\n'
+                '    "outDir": "./dist",\n'
+                '    "baseUrl": "./"\n'
+                "  }\n"
+                "}\n"
+            ))
+            zip_file.writestr(".env", "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/postgres\nPORT=3000\n")
+            zip_file.writestr("src/main.ts", (
+                "import { NestFactory } from '@nestjs/core';\n"
+                "import { AppModule } from './app.module';\n\n"
+                "async function bootstrap() {\n"
+                "  const app = await NestFactory.create(AppModule);\n"
+                "  app.setGlobalPrefix('api');\n"
+                "  await app.listen(process.env.PORT || 3000);\n"
+                "}\n"
+                "bootstrap();\n"
+            ))
+            zip_file.writestr("src/app.module.ts", (
+                "import { Module } from '@nestjs/common';\n"
+                "import { TypeOrmModule } from '@nestjs/typeorm';\n"
+                "import { AppController } from './app.controller';\n\n"
+                "@Module({\n"
+                "  imports: [\n"
+                "    TypeOrmModule.forRoot({\n"
+                "      type: 'postgres',\n"
+                "      url: process.env.DATABASE_URL,\n"
+                "      autoLoadEntities: true,\n"
+                "      synchronize: false,\n"
+                "    }),\n"
+                "  ],\n"
+                "  controllers: [AppController],\n"
+                "})\n"
+                "export class AppModule {}\n"
+            ))
+            zip_file.writestr("src/entities/spec.entities.ts", code_skeleton.get("models") or "// No entities generated\n")
+            zip_file.writestr("src/app.controller.ts", code_skeleton.get("routers") or "// No routes generated\n")
+            zip_file.writestr("src/app.service.ts", code_skeleton.get("services") or "// No services generated\n")
+        else:
+            zip_file.writestr("requirements.txt", "fastapi>=0.100.0\nuvicorn>=0.22.0\npydantic>=2.0\nsqlalchemy>=2.0\npsycopg2-binary>=2.9.6\npython-dotenv>=1.0.0\n")
+            zip_file.writestr(".env", "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/postgres\n")
+            zip_file.writestr("app/main.py", "import os\nfrom fastapi import FastAPI\nfrom app.routes.endpoints import router as api_router\n\napp = FastAPI(title=\"Baxel Generated API\")\n\napp.include_router(api_router, prefix=\"/api\")\n\n@app.get(\"/\")\ndef root():\n    return {\"message\": \"API is running.\"}\n")
+            zip_file.writestr("app/__init__.py", "")
+            zip_file.writestr("app/core/__init__.py", "")
+            zip_file.writestr("app/core/db.py", "import os\nfrom sqlalchemy import create_engine\nfrom sqlalchemy.orm import sessionmaker, declarative_base\n\nDATABASE_URL = os.getenv(\"DATABASE_URL\", \"postgresql://postgres:postgres@localhost:5432/postgres\")\n\nengine = create_engine(DATABASE_URL)\nSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)\nBase = declarative_base()\n\ndef get_db():\n    db = SessionLocal()\n    try:\n        yield db\n    finally:\n        db.close()\n")
+            zip_file.writestr("app/models/__init__.py", "")
+            zip_file.writestr("app/models/spec_models.py", code_skeleton.get("models") or "# No models generated\n")
+            zip_file.writestr("app/routes/__init__.py", "")
+            routers_code = code_skeleton.get("routers") or "# No routes generated\n"
+            if "get_current_user" in routers_code and "def get_current_user" not in routers_code:
+                routers_code = "def get_current_user():\n    return {'sub': 'mock-user'}\n\n" + routers_code
+            zip_file.writestr("app/routes/endpoints.py", routers_code)
 
     zip_buffer.seek(0)
     
@@ -787,5 +1000,39 @@ async def download_pipeline_zip(
 
 # --- Runs Router ---
 @runs_router.get("/{pipeline_id}/share")
-async def share_run(pipeline_id: str, user=Depends(get_current_user)):
-    return {"token": f"share-{pipeline_id}"}
+async def share_run(pipeline_id: str, user=Depends(get_current_user), db: Session = Depends(get_db)):
+    """
+    Mints a share link for a pipeline run the caller owns. The token IS the run's
+    own UUID primary key — unguessable on its own, no separate token store needed.
+    Anyone holding the link can view the run read-only via GET /runs/share/{token}
+    (no auth on that route by design — it's the whole point of a share link), but
+    minting one is gated to the actual owner so you can't mint a link for a run
+    that isn't yours.
+    """
+    uid = user.get("sub")
+    run = db.query(PipelineRunModel).filter(
+        PipelineRunModel.id == pipeline_id,
+        PipelineRunModel.user_id == uid
+    ).first()
+    if not run:
+        raise HTTPException(status_code=404, detail="Pipeline run not found")
+    return {"token": run.id}
+
+@runs_router.get("/share/{token}")
+async def get_shared_run(token: str, db: Session = Depends(get_db)):
+    """Public, unauthenticated lookup for a share link minted by share_run above."""
+    run = db.query(PipelineRunModel).filter(PipelineRunModel.id == token).first()
+    if not run or not run.result:
+        raise HTTPException(status_code=404, detail="Invalid or expired shared link.")
+
+    project = db.query(ProjectModel).filter(ProjectModel.id == run.project_id).first()
+    spec = db.query(SpecModel).filter(SpecModel.id == run.spec_id).first() if run.spec_id else None
+
+    return {
+        "run_id": run.id,
+        "status": run.status,
+        "created_at": run.created_at.isoformat() if isinstance(run.created_at, datetime.datetime) else str(run.created_at),
+        "project_name": project.name if project else None,
+        "spec_title": spec.title if spec else None,
+        "result": run.result
+    }

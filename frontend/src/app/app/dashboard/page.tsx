@@ -7,6 +7,42 @@ import AppShell from "../../components/app-shell";
 import { supabase } from "../../../lib/supabase-browser";
 import { resolveAvatarUrl } from "../../../lib/avatar";
 
+class ApiError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.status = status;
+  }
+}
+
+// Backend errors are JSON: { detail: "..." }. Falls back to raw text if parsing fails
+// so a non-JSON error (e.g. a proxy/gateway error page) still surfaces something readable.
+async function toApiError(res: Response, fallback: string): Promise<ApiError> {
+  try {
+    const body = await res.json();
+    return new ApiError(body?.detail || fallback, res.status);
+  } catch {
+    const text = await res.text().catch(() => "");
+    return new ApiError(text || fallback, res.status);
+  }
+}
+
+// System context prepended to every submission (persona/behavior guard, idea name,
+// onboarding context) — counts against the plan's char limit on the backend, so the
+// live counter and the pre-submit check both need to account for it, not just the
+// raw idea text length. Single source of truth to keep them from drifting apart.
+function buildSpecPayload(specContent: string, ideaName: string, userPreference: UserPreferenceRow | null): { payload: string; overhead: number } {
+  const formalIdeaName = ideaName.trim();
+  const onboardingPrefix = userPreference
+    ? `[User context]\nRole: ${userPreference.role || "unknown"}\nIntent: ${userPreference.intent || "unknown"}\nExperience: ${userPreference.experience || "unknown"}\nSource: ${userPreference.heard_about === "other" ? (userPreference.heard_about_other || "other") : (userPreference.heard_about || "unknown")}\nAdjust output detail and naming clarity accordingly.`
+    : "";
+  const intelligenceGuardPrefix = "[System behavior]\nApply full intelligence and complete reasoning depth regardless of plan tier. Plan only affects output visibility and export controls, not inference quality.";
+  const formalNamePrefix = formalIdeaName ? `[Idea name]\n${formalIdeaName}` : "";
+  const payloadPreamble = [intelligenceGuardPrefix, formalNamePrefix, onboardingPrefix].filter(Boolean).join("\n\n");
+  const payload = payloadPreamble ? `${payloadPreamble}\n\n[Product spec]\n${specContent}` : specContent;
+  return { payload, overhead: payload.length - specContent.length };
+}
+
 const pipelineStages = [
   "Requirements & scope",
   "Domain model",
@@ -242,13 +278,6 @@ const starterTemplates = [
   }
 ];
 
-const starterLockedPreviewMessages = [
-  "Advanced logic map, SQL migration strategy, and code skeleton are ready internally. Upgrade to reveal full artifact depth and exports.",
-  "Hidden output contains deeper validation paths, relational edge handling, and export-ready artifacts. Upgrade to unlock the full pack.",
-  "Your backend draft already includes richer SQL and implementation scaffolds behind this view. Upgrade to access complete outputs.",
-  "Internal generation has additional architecture layers and advanced rule wiring. Upgrade to reveal all production artifacts.",
-  "This run includes extended schema intelligence and deployment-grade blueprints under the hood. Upgrade to open the complete output set."
-];
 
 const fallbackEntities = [
   {
@@ -282,10 +311,11 @@ function DashboardContent() {
   const [specTitle, setSpecTitle] = useState("");
   const [specContent, setSpecContent] = useState("");
   const [status, setStatus] = useState("Idle");
+  const [errorBanner, setErrorBanner] = useState<{ message: string; isPlanLimit: boolean } | null>(null);
   const [result, setResult] = useState<PipelineResult | null>(null);
   const [lastRunMeta, setLastRunMeta] = useState<{ projectName: string; specTitle: string; runId?: string } | null>(null);
   const [activeSpecId, setActiveSpecId] = useState<string | null>(null);
-  const [generationMeta, setGenerationMeta] = useState<{ source?: string; model?: string } | null>(null);
+  const [generationMeta, setGenerationMeta] = useState<{ source?: string; model?: string; generationSeconds?: number } | null>(null);
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [profileEmail, setProfileEmail] = useState("loading...");
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -299,7 +329,6 @@ function DashboardContent() {
   const [showGenerationDetails, setShowGenerationDetails] = useState(false);
   const [activeTab, setActiveTab] = useState<OutputTab>("schema");
   const [hasCheckedPreferences, setHasCheckedPreferences] = useState(false);
-  const [starterLockedPreviewIndex, setStarterLockedPreviewIndex] = useState(0);
   const summaryRef = useRef<HTMLDivElement | null>(null);
 
   const viewModeStorageKey = "baxel:view-mode";
@@ -425,6 +454,7 @@ function DashboardContent() {
   }, [loadDashboard]);
 
   const runPipeline = async () => {
+    setErrorBanner(null);
     try {
       const trimmedSpec = specContent.trim();
       if (!trimmedSpec) {
@@ -437,26 +467,14 @@ function DashboardContent() {
         return;
       }
 
-      const planCode = (plan?.plan_code || "starter").toLowerCase();
+      const planCode = (plan?.plan_code || "free").toLowerCase();
       const charLimitMap: Record<string, number> = {
-        starter: 3000,
-        creator: 4500,
-        studio: 6500,
-        growth: 9000,
-        enterprise: 15000,
+        free: 3000,
+        pro: 6000,
+        team: 10000,
+        enterprise: 100000,
       };
       const activeCharLimit = plan?.idea_char_limit || charLimitMap[planCode] || 3000;
-      if (trimmedSpec.length > activeCharLimit) {
-        setStatus(`Idea is too long for ${plan?.plan_name || "Starter"}. Max ${activeCharLimit} characters.`);
-        return;
-      }
-
-      const projectsUsed = plan?.projects_used_this_month || 0;
-      const projectsLimit = plan?.monthly_project_limit || 3;
-      if (projectsUsed >= projectsLimit) {
-        setStatus(`Project limit reached (${projectsUsed}/${projectsLimit}) for your plan. Please upgrade to create or modify projects.`);
-        return;
-      }
 
       const inferredTitle = trimmedSpec
         .split(/\n|\./)
@@ -467,6 +485,30 @@ function DashboardContent() {
       const formalIdeaName = ideaName.trim();
       const finalProjectName = projectName.trim() || formalIdeaName || fallbackProject;
       const finalSpecTitle = formalIdeaName || specTitle.trim() || inferredTitle;
+
+      // Built up front (not just at submit time near the API calls) so the char-limit
+      // check below validates the SAME string the backend will actually receive —
+      // otherwise a spec that measures within the limit on its own can still get
+      // rejected once this system preamble is prepended, with no way for the user to
+      // see why (the displayed counter only ever showed the raw idea text length).
+      const { payload: specPayloadContent, overhead: payloadOverhead } = buildSpecPayload(specContent, ideaName, userPreference);
+
+      if (specPayloadContent.length > activeCharLimit) {
+        setStatus("Idle");
+        setErrorBanner({
+          message: `Idea is too long for the ${plan?.plan_name || "Free Plan"}. Max ${activeCharLimit} characters (${Math.max(0, activeCharLimit - payloadOverhead)} available for your idea text after required system context).`,
+          isPlanLimit: false
+        });
+        return;
+      }
+
+      const projectsUsed = plan?.projects_used_this_month || 0;
+      const projectsLimit = plan?.monthly_project_limit || 3;
+      if (projectsUsed >= projectsLimit) {
+        setStatus("Idle");
+        setErrorBanner({ message: `Project limit reached (${projectsUsed}/${projectsLimit}) for the ${plan?.plan_name || "current plan"}. Upgrade to create or modify projects.`, isPlanLimit: true });
+        return;
+      }
 
       setResult(null);
       setElapsedSeconds(0);
@@ -487,27 +529,18 @@ function DashboardContent() {
         body: JSON.stringify({ name: finalProjectName })
       });
       if (!projectRes.ok) {
-        const detail = await projectRes.text();
-        throw new Error(detail || "Project creation failed");
+        throw await toApiError(projectRes, "Project creation failed");
       }
       const project = await projectRes.json();
 
       setStatus("Saving spec...");
-      const onboardingPrefix = userPreference
-        ? `[User context]\nRole: ${userPreference.role || "unknown"}\nIntent: ${userPreference.intent || "unknown"}\nExperience: ${userPreference.experience || "unknown"}\nSource: ${userPreference.heard_about === "other" ? (userPreference.heard_about_other || "other") : (userPreference.heard_about || "unknown")}\nAdjust output detail and naming clarity accordingly.`
-        : "";
-      const intelligenceGuardPrefix = "[System behavior]\nApply full intelligence and complete reasoning depth regardless of plan tier. Plan only affects output visibility and export controls, not inference quality.";
-      const formalNamePrefix = formalIdeaName ? `[Idea name]\n${formalIdeaName}` : "";
-      const payloadPreamble = [intelligenceGuardPrefix, formalNamePrefix, onboardingPrefix].filter(Boolean).join("\n\n");
-      const specPayloadContent = payloadPreamble ? `${payloadPreamble}\n\n[Product spec]\n${specContent}` : specContent;
       const specRes = await fetch(`${apiBaseUrl}/specs`, {
         method: "POST",
         headers,
         body: JSON.stringify({ project_id: project.id, title: finalSpecTitle, content: specPayloadContent })
       });
       if (!specRes.ok) {
-        const detail = await specRes.text();
-        throw new Error(detail || "Spec creation failed");
+        throw await toApiError(specRes, "Spec creation failed");
       }
       const spec = await specRes.json();
       setActiveSpecId(spec.id);
@@ -524,32 +557,33 @@ function DashboardContent() {
         })
       });
       if (!pipelineRes.ok) {
-        const detail = await pipelineRes.text();
-        throw new Error(detail || "Pipeline failed");
+        throw await toApiError(pipelineRes, "Pipeline failed");
       }
 
       const pipeline = await pipelineRes.json();
       setResult(pipeline.result || null);
       setLastRunMeta({ projectName: finalProjectName, specTitle: finalSpecTitle, runId: pipeline.id });
+      const headerSeconds = pipelineRes.headers.get("x-baxel-generation-seconds");
       setGenerationMeta({
         source: pipelineRes.headers.get("x-baxel-generation-source") || pipeline?.result?.__meta?.source,
         model: pipelineRes.headers.get("x-baxel-generation-model") || pipeline?.result?.__meta?.model,
+        generationSeconds: headerSeconds ? Number(headerSeconds) : pipeline?.result?.__meta?.generation_seconds,
       });
       setStatus("Completed");
       await loadDashboard();
     } catch (error) {
-      const message = String((error as Error)?.message || "").toLowerCase();
-      if (message.includes("per-project pipeline limit reached")) {
-        setStatus("This project already used all pipeline runs for your current plan. Use another project or upgrade.");
-        await loadDashboard();
-        return;
+      const apiError = error as ApiError;
+      setStatus("Idle");
+      if (apiError.status === 403) {
+        // Plan/quota limits (monthly runs, active projects) — always upgrade-worthy
+        setErrorBanner({ message: apiError.message, isPlanLimit: true });
+      } else if (apiError.status === 400) {
+        // Validation error (e.g. spec too long for the plan's char limit)
+        setErrorBanner({ message: apiError.message, isPlanLimit: false });
+      } else {
+        setErrorBanner({ message: apiError.message || "Something went wrong — check the backend server.", isPlanLimit: false });
       }
-      if (message.includes("plan limit reached") || message.includes("upgrade required") || message.includes("402")) {
-        setStatus("Plan limit reached. Upgrade to continue.");
-        await loadDashboard();
-        return;
-      }
-      setStatus("Error - check backend server");
+      await loadDashboard();
     }
   };
 
@@ -692,11 +726,11 @@ function DashboardContent() {
   // Build summary from real spec fields — avoids showing raw design_rationale text
   const _rawResult = result as unknown as Record<string, unknown>;
   const _specStack = _rawResult?.tech_stack as { language?: string; framework?: string; database_engine?: string } | undefined;
-  const _specDb = _rawResult?.database as { tables?: unknown[] } | undefined;
+  const _specEntities = _rawResult?.entities as unknown[] | undefined;
   const _specEndpoints = _rawResult?.endpoints as unknown[] | undefined;
   const generatedSummaryText = result
     ? _specStack
-      ? `${_specStack.language} / ${_specStack.framework} \u2014 ${(_specDb?.tables || []).length} tables, ${(_specEndpoints || []).length} endpoints generated`
+      ? `${_specStack.language} / ${_specStack.framework} \u2014 ${(_specEntities || []).length} tables, ${(_specEndpoints || []).length} endpoints generated`
       : typeof result?.summary === "string"
         ? result.summary
         : result?.summary?.summary || "Baxel translated your spec into a data model, API surface, and implementation scaffold."
@@ -755,16 +789,25 @@ function DashboardContent() {
     const s = seconds % 60;
     return `${m}m ${s}s elapsed`;
   };
+
+  // Server-measured final generation duration (NLP + swarm, not client network time).
+  const formatDuration = (seconds: number) => {
+    if (seconds < 60) return `${seconds.toFixed(1)}s`;
+    const m = Math.floor(seconds / 60);
+    const s = Math.round(seconds % 60);
+    return `${m}m ${s}s`;
+  };
   const expansionMeta = result?.__meta?.spec_expansion;
   const expandedCharDelta = Math.max(0, (expansionMeta?.expanded_chars || 0) - (expansionMeta?.original_chars || 0));
   const inferredBoostCount = Math.max(0, expansionMeta?.inferred_count || 0);
 
   // Stage insights — show live analysis counts on completion using real spec fields
-  const dbTables = (result as unknown as Record<string, unknown>)?.database as { tables?: unknown[] } | undefined;
   const specEndpoints = (result as unknown as Record<string, unknown>)?.endpoints as unknown[] | undefined;
   const specAuth = (result as unknown as Record<string, unknown>)?.auth_strategy as { method?: string } | undefined;
   const specStack = (result as unknown as Record<string, unknown>)?.tech_stack as { language?: string; framework?: string; database_engine?: string } | undefined;
-  const specBusinessRules = (result as unknown as Record<string, unknown>)?.business_rules as unknown[] | undefined;
+  // Backend result has no top-level "database" or "business_rules" keys — tables live
+  // under "entities" and business rules under "rules" (see `entities`/`rules` above).
+  const specBusinessRules = rules;
   const specAntiFragility = (result as unknown as Record<string, unknown>)?.anti_fragility as { chaos_scenarios?: unknown[]; hardening_checklist?: unknown[]; resilience_rating?: string } | undefined;
   const specDevOps = (result as unknown as Record<string, unknown>)?.devops as { environment_variables?: unknown[] } | undefined;
   const specSpice = (result as unknown as Record<string, unknown>)?.spice as { design_rationale?: string } | undefined;
@@ -774,7 +817,7 @@ function DashboardContent() {
       ? `Stack: ${specStack?.language || "Python"} / ${specStack?.framework || "FastAPI"} — ${(specBusinessRules || []).length} business rules captured`
       : "Analysing goals, constraints, and scope...",
     "Domain model": isCompletedRun
-      ? `Found ${(dbTables?.tables || entities).length} entities, ${relationships.length} relationships`
+      ? `Found ${entities.length} entities, ${relationships.length} relationships`
       : "Deriving entities and relationships...",
     "API surface": isCompletedRun
       ? `Generated ${(specEndpoints || endpoints).length} endpoints across resources`
@@ -785,7 +828,7 @@ function DashboardContent() {
         : `${(specBusinessRules || []).length} workflows & business rules defined`
       : "Mapping request workflows and state transitions...",
     "Data storage": isCompletedRun
-      ? `${(dbTables?.tables || []).length} tables · DB: ${specStack?.database_engine || "PostgreSQL"}`
+      ? `${entities.length} tables · DB: ${specStack?.database_engine || "PostgreSQL"}`
       : "Selecting storage engine, indexing, and retention...",
     "Security & compliance": isCompletedRun
       ? `Auth: ${specAuth?.method || "JWT"} · Token expiry: ${(result as unknown as Record<string, unknown>)?.auth_strategy ? "configured" : "default"}`
@@ -847,46 +890,25 @@ function DashboardContent() {
     : 0;
   const perProjectRunsAllowed = Math.max(1, plan?.runs_per_project_limit || approxRunsPerProject || 1);
   const activeIdeaCharLimit = plan?.idea_char_limit || 3000;
+  // The plan limit applies to the full submitted payload (system preamble + idea
+  // text), not just what's typed here — so the raw-text budget shown/enforced in
+  // this box has to be the plan limit minus that preamble overhead, or a spec that
+  // fills this box to "0 left" can still get rejected at submit time with no way
+  // to see why beforehand.
+  const { overhead: livePayloadOverhead } = buildSpecPayload("", ideaName, userPreference);
+  const effectiveIdeaCharLimit = Math.max(0, activeIdeaCharLimit - livePayloadOverhead);
   const ideaCharsUsed = specContent.length;
-  const ideaCharsRemaining = Math.max(0, activeIdeaCharLimit - ideaCharsUsed);
+  const ideaCharsRemaining = Math.max(0, effectiveIdeaCharLimit - ideaCharsUsed);
 
   const isGuideMode = viewMode === "guide";
   const isProMode = viewMode === "pro";
 
   const currentPlanCode = (plan?.plan_code || "").toLowerCase();
-  const tabEntitlements: Record<string, OutputTab[]> = {
-    starter: ["schema", "api", "resilience"],
-    creator: ["schema", "api", "sql", "rules", "resilience"],
-    studio: ["schema", "api", "code", "sql", "rules", "resilience"],
-    growth: ["schema", "api", "code", "sql", "rules", "resilience"],
-    enterprise: ["schema", "api", "code", "sql", "rules", "resilience"],
-  };
+  // Every plan sees the full output set — Baxel never gates generation depth by tier.
+  // Plans differ only in how often you can run the pipeline (see /pricing).
   const allTabs: OutputTab[] = ["schema", "api", "code", "sql", "rules", "resilience"];
-  const allowedTabs = currentPlanCode
-    ? (tabEntitlements[currentPlanCode] || tabEntitlements.starter)
-    : allTabs;
-  const lockedTabs = currentPlanCode ? allTabs.filter((tab) => !allowedTabs.includes(tab)) : [];
-  const isTabAllowed = (tab: OutputTab) => allowedTabs.includes(tab);
-  const showStarterLockedPreview = currentPlanCode === "starter" && lockedTabs.length > 0;
-  const starterLockedPreviewMessage = starterLockedPreviewMessages[starterLockedPreviewIndex] || starterLockedPreviewMessages[0];
-
-  useEffect(() => {
-    if (!showStarterLockedPreview) return;
-    const storageKey = "baxel:starter-locked-preview-index";
-    const raw = typeof window !== "undefined" ? window.localStorage.getItem(storageKey) : null;
-    const parsed = raw ? Number.parseInt(raw, 10) : -1;
-    const previousIndex = Number.isFinite(parsed) ? Math.max(-1, Math.min(parsed, starterLockedPreviewMessages.length - 1)) : -1;
-
-    let nextIndex = Math.floor(Math.random() * starterLockedPreviewMessages.length);
-    if (starterLockedPreviewMessages.length > 1 && nextIndex === previousIndex) {
-      nextIndex = (nextIndex + 1) % starterLockedPreviewMessages.length;
-    }
-
-    setStarterLockedPreviewIndex(nextIndex);
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(storageKey, String(nextIndex));
-    }
-  }, [showStarterLockedPreview, lastRunMeta?.runId]);
+  const allowedTabs = allTabs;
+  const isTabAllowed = (_tab: OutputTab) => true;
 
   useEffect(() => {
     if (!isTabAllowed(activeTab)) {
@@ -921,7 +943,7 @@ function DashboardContent() {
         }
 
         const resultMeta = runPayload?.result?.__meta || {};
-        setGenerationMeta({ source: resultMeta.source, model: resultMeta.model });
+        setGenerationMeta({ source: resultMeta.source, model: resultMeta.model, generationSeconds: resultMeta.generation_seconds });
       } catch {
         setStatus("Unable to open this saved output.");
       }
@@ -983,6 +1005,28 @@ function DashboardContent() {
     <AppShell>
       <div className="grid gap-6 lg:grid-cols-[1.35fr_0.65fr]">
         <main className="space-y-6">
+          {errorBanner ? (
+            <section className="rounded-2xl border border-red-400/40 bg-red-500/10 p-4 flex flex-wrap items-center justify-between gap-3 reveal">
+              <p className="text-sm text-red-100">{errorBanner.message}</p>
+              <div className="flex items-center gap-2 shrink-0">
+                {errorBanner.isPlanLimit ? (
+                  <Link
+                    href="/pricing"
+                    className="rounded-full bg-[#C2D68C] px-4 py-1.5 text-xs font-semibold text-[#1F261D] hover:scale-105 transition"
+                  >
+                    Upgrade
+                  </Link>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => setErrorBanner(null)}
+                  className="rounded-full border border-white/20 px-3 py-1.5 text-xs text-white/70 hover:bg-white/10"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </section>
+          ) : null}
           <section className="glass rounded-3xl p-8 reveal">
             <p className="text-sm uppercase tracking-[0.22em] text-white/60">Generation status</p>
             <div className="mt-4 rounded-2xl border border-white/20 bg-white/5 p-5">
@@ -1021,6 +1065,7 @@ function DashboardContent() {
               {isCompletedRun && generationMeta?.source ? (
                 <p className="mt-2 text-xs text-white/60">
                   Generated by {generationMeta.source}{generationMeta.model ? ` (${generationMeta.model})` : ""}
+                  {typeof generationMeta.generationSeconds === "number" ? ` · Took ${formatDuration(generationMeta.generationSeconds)}` : ""}
                 </p>
               ) : null}
             </div>
@@ -1129,19 +1174,6 @@ function DashboardContent() {
                     <p className="mb-3 rounded-xl border border-emerald-300/70 bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
                       Intelligence boost active: +{inferredBoostCount} inferred backend hints, +{expandedCharDelta} internal expansion chars.
                     </p>
-                  ) : null}
-                  {lockedTabs.length ? (
-                    <p className="mb-3 rounded-xl border border-white/25 bg-white/10 px-3 py-2 text-xs text-white/60">
-                      Advanced output hidden on this plan: {lockedTabs.map((tab) => tab.toUpperCase()).join(" • ")}. Upgrade to unlock.
-                    </p>
-                  ) : null}
-                  {showStarterLockedPreview ? (
-                    <div className="mb-4 rounded-xl border border-white/20 bg-white/5 p-3">
-                      <p className="text-[11px] uppercase tracking-[0.14em] text-white/60">Preview (Locked)</p>
-                      <div className="mt-2 rounded-lg border border-white/20 bg-white/10 p-3 text-xs text-white blur-[2px] select-none">
-                        {starterLockedPreviewMessage}
-                      </div>
-                    </div>
                   ) : null}
                   {activeTab === "schema" ? (
                     <div className="grid gap-4 md:grid-cols-2">
@@ -1408,12 +1440,12 @@ function DashboardContent() {
                   <textarea
                     className="mt-2 h-40 w-full rounded-2xl border border-white/20 bg-white/5 px-4 py-3 text-sm text-white"
                     value={specContent}
-                    onChange={(event) => setSpecContent(event.target.value.slice(0, activeIdeaCharLimit))}
-                    maxLength={activeIdeaCharLimit}
+                    onChange={(event) => setSpecContent(event.target.value.slice(0, effectiveIdeaCharLimit))}
+                    maxLength={effectiveIdeaCharLimit}
                     placeholder="A ride-sharing app where drivers accept trips, riders track ETAs, and payments settle after each ride..."
                   />
                   <p className="mt-2 text-xs text-white/60">Hint: write this like you are explaining the product to a teammate.</p>
-                  <p className="mt-1 text-xs text-white/60">{ideaCharsUsed}/{activeIdeaCharLimit} characters used ({ideaCharsRemaining} left).</p>
+                  <p className="mt-1 text-xs text-white/60">{ideaCharsUsed}/{effectiveIdeaCharLimit} characters used ({ideaCharsRemaining} left).</p>
                 </div>
                 <button
                   className={`min-h-[56px] w-full rounded-2xl px-4 py-3 text-base font-semibold ${isGenerateBlocked ? "cursor-not-allowed bg-white/10 text-white" : "bg-[#C2D68C] text-[#1F261D]"}`}

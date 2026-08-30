@@ -248,7 +248,7 @@ export default function Home() {
             </Link>
           </div>
 
-          <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+          <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {pricingPlans.map((plan) => (
               <div key={plan.code} className={`rounded-3xl border bg-white/5 p-6 ${plan.featured ? "border-[#C2D68C]/50 shadow-[0_0_30px_rgba(194,214,140,0.1)]" : "border-white/5"}`}>
                 <p className="text-xs uppercase tracking-[0.2em] text-white/50">{plan.name}</p>

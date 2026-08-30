@@ -439,7 +439,14 @@ function ChatbotContent() {
       });
 
       if (!res.ok) {
-        throw new Error(await res.text() || "Chat failure");
+        let detail = "Chat failure";
+        try {
+          const body = await res.json();
+          detail = body?.detail || detail;
+        } catch {
+          detail = (await res.text().catch(() => "")) || detail;
+        }
+        throw new Error(detail);
       }
 
       const payload = await res.json();

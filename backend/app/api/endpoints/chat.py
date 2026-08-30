@@ -1,6 +1,7 @@
 import os
 import logging
 import uuid
+import datetime
 from typing import Dict, Any
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from pydantic import BaseModel, Field
@@ -12,6 +13,7 @@ from app.core.db import get_db
 from app.models.spec_db import SpecModel, PipelineRunModel, ChatMessageModel
 from app.core.auth import get_current_user
 from app.services.agents.generation import LLM_REVIEW_MODEL, LLM_MODEL, LLM_SAGE_MODEL
+from app.api.endpoints.dashboard_api import get_user_plan
 
 from pathlib import Path
 
@@ -102,23 +104,25 @@ def classify_query_intent(client: Any, message: str) -> str:
         return "business"
 
     try:
-        classifier_prompt = f"""
-        Classify the following user message into either 'technical' or 'business'.
-        
-        - 'technical': If the question asks for specific code implementation, table schemas, relationships, database columns, API routes, pagination, or technical scaling limits (e.g., 'Will this scale to 1 million users?').
-        - 'business': If the question asks for pitch summaries, AWS running costs, business metrics, or high-level non-technical descriptions.
-        
-        User Message: "{message}"
-        
-        Response MUST be exactly one word: 'technical' or 'business'.
-        """
+        classifier_system = """You are an intent classifier for a spec-aware chatbot. Classify the user's message into exactly one of two categories:
+
+- 'technical': the question asks for code implementation, table schemas, relationships, database columns, API routes, pagination, or technical scaling limits (e.g. "Will this scale to 1 million users?").
+- 'business': the question asks for pitch summaries, hosting/running costs, business metrics, or high-level non-technical descriptions.
+
+Respond with exactly one word — 'technical' or 'business' — and nothing else. No punctuation, no explanation."""
         response = client.chat.completions.create(
             model=os.getenv("LLM_REVIEW_MODEL", LLM_REVIEW_MODEL),
-            messages=[{"role": "user", "content": classifier_prompt}],
+            messages=[
+                {"role": "system", "content": classifier_system},
+                {"role": "user", "content": message}
+            ],
             temperature=0.0,
-            max_tokens=5
+            max_tokens=700  # LLM_REVIEW_MODEL reasons before answering — 5 tokens (enough for the old non-reasoning 8B model) truncates before it ever writes 'technical'/'business'
         )
-        intent = response.choices[0].message.content.strip().lower()
+        content = response.choices[0].message.content
+        if not content:
+            raise ValueError("Classifier returned no content (likely truncated mid-reasoning)")
+        intent = content.strip().lower()
         if "technical" in intent:
             return "technical"
         return "business"
@@ -136,7 +140,19 @@ async def chat_with_spec(
 ):
     uid = user.get("sub")
     spec_id_str = str(request.spec_id)
-    
+
+    plan = get_user_plan(db, uid)
+    day_start = datetime.datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    messages_used_today = db.query(ChatMessageModel).filter(
+        ChatMessageModel.user_id == uid,
+        ChatMessageModel.created_at >= day_start
+    ).count()
+    if messages_used_today >= plan["chat_daily_limit"]:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Daily SAGE message limit reached ({messages_used_today}/{plan['chat_daily_limit']}) for the {plan['plan_name']}. Upgrade or try again tomorrow."
+        )
+
     # Retrieve the architecture spec from the DB
     spec_record = db.query(SpecModel).filter(SpecModel.id == spec_id_str).first()
     if not spec_record:

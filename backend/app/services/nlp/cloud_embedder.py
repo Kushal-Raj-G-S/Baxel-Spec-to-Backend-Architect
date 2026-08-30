@@ -6,8 +6,15 @@ from typing import List, Optional
 
 logger = logging.getLogger(__name__)
 
-# Winner from benchmark: 0.75s avg latency per batch, dim=2048
-NVIDIA_EMBED_MODEL = "nvidia/llama-nemotron-embed-1b-v2"
+# nvidia/llama-nemotron-embed-1b-v2 (the original benchmark winner, 0.75s avg
+# latency, dim=2048) was deprecated by NVIDIA NIM on 2026-08-25 and now returns
+# HTTP 410. Verified live against this account's NIM key on 2026-08-27:
+# llama-nemotron-embed-vl-1b-v2 is the closest working successor — same 2048-dim
+# output (no Faiss index rebuild needed), accepts both 'query' and 'passage'
+# input_type. Other same-family candidates (nemotron-3-embed-1b, embed-qa-4,
+# nv-embedqa-mistral-7b-v2, arctic-embed-l) either timed out or 404'd as
+# not-entitled on this account.
+NVIDIA_EMBED_MODEL = "nvidia/llama-nemotron-embed-vl-1b-v2"
 NVIDIA_EMBED_DIM = 2048
 
 
