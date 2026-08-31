@@ -571,6 +571,23 @@ async def _generate_database_spec_single(
     )
 
 
+def _should_chunk_database_spec(entities: List[str], spec_excerpt: str) -> bool:
+    """
+    Shared decision used both to pick Phase 1A's generation path AND (in
+    run_architect_agent) to decide whether DevOps/Spice can safely start early
+    alongside Phase 1A — see the "early DevOps/Spice" comment there for why.
+
+    Chunking needs BOTH a size signal (the actual driver of Phase 1A latency) AND
+    enough named entities to split into more than one useful chunk. Keying this off
+    entity count alone is unreliable — the NLP entity-extraction step has its own
+    fallback chain (LLM extraction -> GLiNER -> regex) and can under-extract on a
+    long, dense spec, leaving too few named entities to trigger chunking even though
+    the spec itself is exactly the large/complex case chunking exists for.
+    """
+    size_signal = max(len(spec_excerpt), len(entities) * 400)
+    return size_signal > 2200 and len(entities) >= 4
+
+
 async def _generate_database_spec(
     client: Any,
     loop: Any,
@@ -580,15 +597,7 @@ async def _generate_database_spec(
     feedback_history: List[str] = None
 ) -> _DatabaseSpec:
     entities = ir.entities or []
-    # Chunking needs BOTH a size signal (the actual driver of Phase 1A latency) AND
-    # enough named entities to split into more than one useful chunk. Keying this off
-    # entity count alone is unreliable — the NLP entity-extraction step has its own
-    # fallback chain (LLM extraction -> GLiNER -> regex) and can under-extract on a
-    # long, dense spec, leaving too few named entities to trigger chunking even though
-    # the spec itself is exactly the large/complex case chunking exists for.
-    size_signal = max(len(spec_excerpt), len(entities) * 400)
-    should_chunk = size_signal > 2200 and len(entities) >= 4
-    if not should_chunk:
+    if not _should_chunk_database_spec(entities, spec_excerpt):
         return await _generate_database_spec_single(client, loop, spec_excerpt, ir, rules, feedback_history)
     return await _generate_database_spec_chunked(client, loop, spec_excerpt, ir, rules, feedback_history)
 
@@ -1007,6 +1016,45 @@ async def run_architect_agent(
     spec_excerpt = _truncate_spec_excerpt(prompt_used)
     loop = asyncio.get_running_loop()
     phase_1a_timeout, phase_1b_timeout = _compute_phase_timeouts(ir, prompt_used)
+    entities = ir.entities or []
+
+    # DevOps and Spice generation (unlike Endpoints/BusinessRules/Resilience) don't
+    # actually need the finished table list — they only read project_name/tech_stack
+    # (see _generate_devops_spec / _generate_spice_spec). On large specs (the same ones
+    # that trigger chunked Phase 1A), that metadata is already produced by a small, fast
+    # call (_generate_project_meta) independent of the schema-chunk calls — but the
+    # previous code waited for the ENTIRE Phase 1A (schema chunks + merge) to finish
+    # before starting DevOps/Spice anyway, adding their ~10-40s on top of Phase 1A's
+    # own duration instead of hiding it inside it. Starting them the moment that
+    # lightweight metadata is known — concurrently with the schema chunks still
+    # generating — costs nothing (same calls, same model, same output) and just
+    # changes *when* they run. Small/typical specs are untouched: devops_task/spice_task
+    # stay None and Phase 1B generates them exactly as before.
+    devops_task = None
+    spice_task = None
+    if _should_chunk_database_spec(entities, spec_excerpt):
+        try:
+            early_meta = await asyncio.wait_for(
+                _generate_project_meta(client, loop, spec_excerpt, ir, feedback_history),
+                timeout=60.0
+            )
+            stub_db_spec = _DatabaseSpec(
+                project_name=early_meta.project_name,
+                tech_stack=early_meta.tech_stack,
+                auth_strategy=early_meta.auth_strategy,
+                database=DatabaseSchema(tables=[])
+            )
+            devops_task = asyncio.create_task(
+                _generate_devops_spec(client, loop, spec_excerpt, ir, stub_db_spec, rules, feedback_history)
+            )
+            spice_task = asyncio.create_task(
+                _generate_spice_spec(client, loop, spec_excerpt, ir, stub_db_spec, feedback_history)
+            )
+            logger.info("[Swarm] Large spec — starting DevOps/Spice generation early, concurrently with Phase 1A.")
+        except Exception as e:
+            logger.warning(f"[Swarm] Early DevOps/Spice kickoff failed ({e}); will generate them normally in Phase 1B.")
+            devops_task = None
+            spice_task = None
 
     # ── Phase 1A: Core Database Spec (Call 1)
     # Own timeout budget, separate from Phase 1B, and now SCALED to spec size instead
@@ -1022,6 +1070,10 @@ async def run_architect_agent(
             timeout=phase_1a_timeout
         )
     except asyncio.TimeoutError:
+        if devops_task:
+            devops_task.cancel()
+        if spice_task:
+            spice_task.cancel()
         raise asyncio.TimeoutError(f"Phase 1A (database schema) timed out after {phase_1a_timeout:.0f}s")
     logger.info("[Swarm] Phase 1A complete — core Database spec received.")
 
@@ -1030,8 +1082,8 @@ async def run_architect_agent(
     tasks = [
         _generate_endpoints_spec(client, loop, spec_excerpt, ir, db_spec, rules, feedback_history),
         _generate_business_rules_spec(client, loop, spec_excerpt, ir, db_spec, rules, feedback_history),
-        _generate_devops_spec(client, loop, spec_excerpt, ir, db_spec, rules, feedback_history),
-        _generate_spice_spec(client, loop, spec_excerpt, ir, db_spec, feedback_history),
+        devops_task if devops_task is not None else _generate_devops_spec(client, loop, spec_excerpt, ir, db_spec, rules, feedback_history),
+        spice_task if spice_task is not None else _generate_spice_spec(client, loop, spec_excerpt, ir, db_spec, feedback_history),
         _generate_resilience_spec(client, loop, spec_excerpt, ir, db_spec, rules, feedback_history)
     ]
 

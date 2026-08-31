@@ -113,6 +113,25 @@ every pricing tier with progressively larger/more complex specs:
     previously took 12m38s: the improved prompt + smaller chunks succeeded on the first
     attempt this time, no retry or fallback needed, output correct (15 tables for 14
     named entities), total time 7m31s.
+- **Overlap DevOps/Spice generation with Phase 1A on large specs.** DevOps and Spice
+  generation (unlike Endpoints/BusinessRules/Resilience) only read `project_name`/
+  `tech_stack` — they never touch the table list — but were waiting for the ENTIRE
+  Phase 1A (schema chunks + merge) to finish before starting anyway, adding their
+  ~10-40s on top of Phase 1A's own duration instead of hiding it inside it. On large
+  specs (the same ones that trigger chunked Phase 1A), that metadata is already
+  produced by a small, fast, independent call (`_generate_project_meta`). Now: as soon
+  as that call resolves, DevOps and Spice start immediately as background tasks,
+  running concurrently with the schema chunks still generating; Phase 1B later just
+  gathers their already-in-flight (often already-finished) results instead of starting
+  them fresh. Small/typical specs are untouched — this only activates on the same size
+  threshold that triggers chunking. Verified live: Phase 1B's "starting" log only
+  showed 3 fresh calls (Endpoints/BusinessRules/Resilience) instead of 5, confirming
+  DevOps/Spice were already running. One run hit a Phase 1B timeout (500 error)
+  immediately after an unrelated entity-extraction call took 275s (vs. its normal
+  1.7s) — independent evidence the NVIDIA API was degraded at that moment. An
+  identical retry succeeded cleanly seconds later with Phase 1B well under budget,
+  so this was treated as transient API-side flakiness coinciding with the change,
+  not a defect in it — kept live rather than reverted.
 - **Tried and correctly rejected** (tested per an explicit "only if it doesn't cost
   quality" request, kept here so this isn't retried blindly later):
   - `reasoning_effort: "low"` for the Endpoints and Business Rules calls. Unlike entity
