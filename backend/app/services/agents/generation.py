@@ -290,7 +290,11 @@ def get_instructor_client() -> Tuple[Any, bool]:
 # already do — wall-clock time becomes ~the slowest chunk, not the sum of all of them,
 # with no reduction in the number of tables/columns actually produced. See
 # _generate_database_spec below for the chunking trigger condition.
-DATABASE_CHUNK_SIZE = 6
+# Was 6 — smaller chunks give the model less to track per call, which should make full
+# coverage of the assigned entities easier to reliably hit (see the completeness-check
+# comment in _generate_database_spec_chunked for why coverage sometimes fell short at
+# size 6).
+DATABASE_CHUNK_SIZE = 4
 
 
 async def _generate_project_meta(
@@ -352,7 +356,9 @@ async def _generate_database_chunk(
     foreign-key context so it can reference tables owned by other concurrent chunks by
     name, without redefining them itself."""
     all_entities = ", ".join(ir.entities) if ir.entities else "none"
-    assigned = ", ".join(entity_subset)
+    assigned_list = list(entity_subset)
+    assigned = ", ".join(assigned_list)
+    assigned_checklist = "\n".join([f"  {i+1}. {e}" for i, e in enumerate(assigned_list)])
     actor_list = ", ".join(ir.actors[:10]) if ir.actors else "none"
     integration_list = ", ".join(ir.implied_integrations[:10]) if ir.implied_integrations else "none"
 
@@ -372,7 +378,14 @@ async def _generate_database_chunk(
     Rules:
     {chr(10).join([f'- {r}' for r in rules])}
 
-    Task: Design database tables ONLY for these assigned entities: {assigned}
+    Task: Design database tables for EXACTLY these {len(assigned_list)} assigned entities
+    — no more, no fewer:
+    {assigned_checklist}
+
+    Before answering, verify your `tables` array has at least {len(assigned_list)} entries,
+    one per assigned entity above (you may add a small extra junction/support table if a
+    relationship genuinely needs one, but every listed entity must have its own table —
+    do not skip, merge, or omit any of them).
     (This is chunk {chunk_index + 1} of {total_chunks}.)
     """
     if feedback_history:
@@ -395,18 +408,26 @@ async def _generate_database_chunk(
     )
 
 
-async def _generate_database_spec_chunked(
+async def _try_database_spec_chunked_once(
     client: Any,
     loop: Any,
     spec_excerpt: str,
     ir: IntermediateRepresentation,
     rules: List[str],
     feedback_history: List[str] = None
-) -> _DatabaseSpec:
+):
+    """
+    One independent attempt at chunked generation. Returns a complete _DatabaseSpec, or
+    None if this attempt was incomplete/failed (an exception in any chunk, or fewer
+    tables than named entities — see _generate_database_spec_chunked for why both are
+    treated as failures). Returning None (rather than falling back internally) lets the
+    caller retry with a second independent attempt before paying for the much slower
+    single-call path.
+    """
     entities = ir.entities
     chunks = [entities[i:i + DATABASE_CHUNK_SIZE] for i in range(0, len(entities), DATABASE_CHUNK_SIZE)]
     logger.info(
-        f"[Swarm] Large spec ({len(entities)} entities) — splitting Phase 1A into "
+        f"[Swarm] Large spec ({len(entities)} entities) — attempting Phase 1A as "
         f"{len(chunks)} concurrent chunk calls instead of one monolithic call."
     )
 
@@ -420,29 +441,22 @@ async def _generate_database_spec_chunked(
     meta_result, chunk_results = results[0], results[1:]
 
     if isinstance(meta_result, Exception):
-        logger.warning(f"[Swarm] Chunked project-meta call failed ({meta_result}); falling back to single-call generation.")
-        return await _generate_database_spec_single(client, loop, spec_excerpt, ir, rules, feedback_history)
+        logger.warning(f"[Swarm] Chunked project-meta call failed ({meta_result}).")
+        return None
 
-    # ANY chunk failure — not just all of them — falls back to the single-call path.
-    # Observed live: one chunk hit the model's known "lazy truncation placeholder" bug
-    # (emitting a literal "{...}" instead of a full table object) even after its own
-    # 3 retries, and the previous behavior here (skip the failed chunk, keep the rest)
-    # silently shipped a schema missing the Project and Task tables — the two most
-    # important tables in a project-management app — while the pipeline still reported
-    # success. A partial schema is a correctness failure regardless of how many other
-    # chunks succeeded, so any failure here means "chunking didn't work this time,"
-    # not "ship what we have." The single-call path already has its own max_retries=3
-    # and has been reliable throughout testing — this trades away the speed win only on
-    # the rare run where a chunk fails, in exchange for guaranteed completeness.
+    # ANY chunk failure — not just all of them — fails this attempt. Observed live: one
+    # chunk hit the model's known "lazy truncation placeholder" bug (emitting a literal
+    # "{...}" instead of a full table object) even after its own 3 retries, and skipping
+    # just that chunk's entities once silently shipped a schema missing the Project and
+    # Task tables — the two most important tables in a project-management app — while
+    # the pipeline still reported success. A partial schema is a correctness failure
+    # regardless of how many other chunks succeeded.
     all_tables: List[TableSchema] = []
     seen_names = set()
     for chunk_result in chunk_results:
         if isinstance(chunk_result, Exception):
-            logger.warning(
-                f"[Swarm] A database chunk call failed ({chunk_result}); falling back "
-                "to single-call generation rather than shipping an incomplete schema."
-            )
-            return await _generate_database_spec_single(client, loop, spec_excerpt, ir, rules, feedback_history)
+            logger.warning(f"[Swarm] A database chunk call failed ({chunk_result}).")
+            return None
         for table in chunk_result.tables:
             if table.name in seen_names:
                 logger.warning(f"[Swarm] Duplicate table '{table.name}' returned by multiple chunks; keeping the first.")
@@ -458,15 +472,13 @@ async def _generate_database_spec_chunked(
     # both chunk calls "succeeded." A real schema for N named entities always has AT
     # LEAST N tables in practice (schemas add junction/support tables, they don't merge
     # named entities together), so fewer tables than entities is a reliable signal of
-    # silent incompleteness — fall back to the single-call path, which has been
-    # consistently complete throughout testing.
+    # silent incompleteness.
     if not all_tables or len(all_tables) < len(entities):
         logger.warning(
             f"[Swarm] Chunked generation produced only {len(all_tables)} tables for "
-            f"{len(entities)} named entities — looks incomplete. Falling back to "
-            "single-call generation rather than shipping a partial schema."
+            f"{len(entities)} named entities — looks incomplete."
         )
-        return await _generate_database_spec_single(client, loop, spec_excerpt, ir, rules, feedback_history)
+        return None
 
     return _DatabaseSpec(
         project_name=meta_result.project_name,
@@ -474,6 +486,35 @@ async def _generate_database_spec_chunked(
         auth_strategy=meta_result.auth_strategy,
         database=DatabaseSchema(tables=all_tables)
     )
+
+
+async def _generate_database_spec_chunked(
+    client: Any,
+    loop: Any,
+    spec_excerpt: str,
+    ir: IntermediateRepresentation,
+    rules: List[str],
+    feedback_history: List[str] = None
+) -> _DatabaseSpec:
+    # One retry of the (fast) chunked path before falling back to the (slow) single-call
+    # path. Observed live: a failed/incomplete chunked attempt used to fall straight back
+    # to a full single-call regeneration, effectively paying for Phase 1A TWICE — once
+    # for the chunked attempt (~200s) and again for the single-call fallback (~200s+),
+    # stretching one generation to 12+ minutes. A second independent chunked attempt is
+    # still much faster than the single-call path when it succeeds, and chunking has
+    # succeeded more often than not across live testing — so it's worth one more fast
+    # try before paying the expensive, guaranteed-complete fallback.
+    result = await _try_database_spec_chunked_once(client, loop, spec_excerpt, ir, rules, feedback_history)
+    if result is not None:
+        return result
+
+    logger.warning("[Swarm] First chunked attempt was incomplete — retrying chunked generation once more before falling back.")
+    result = await _try_database_spec_chunked_once(client, loop, spec_excerpt, ir, rules, feedback_history)
+    if result is not None:
+        return result
+
+    logger.warning("[Swarm] Second chunked attempt also incomplete — falling back to single-call generation.")
+    return await _generate_database_spec_single(client, loop, spec_excerpt, ir, rules, feedback_history)
 
 
 async def _generate_database_spec_single(
@@ -941,7 +982,11 @@ def _compute_phase_timeouts(ir: IntermediateRepresentation, prompt_used: str) ->
     entity_count = len(ir.entities) if ir and getattr(ir, "entities", None) else 0
     size_signal = max(chars, entity_count * 400)
 
-    phase_1a_timeout = min(900.0, max(150.0, 150.0 + size_signal * 0.12))
+    # Cap raised 900s -> 1200s: on a large spec, Phase 1A can now internally spend a
+    # chunked attempt, a chunked retry, AND a single-call fallback in the worst case
+    # (see _generate_database_spec_chunked) — needs enough combined room for all three
+    # rather than just one single-call-sized budget.
+    phase_1a_timeout = min(1200.0, max(150.0, 150.0 + size_signal * 0.12))
     phase_1b_timeout = min(480.0, max(120.0, 90.0 + size_signal * 0.06))
     return phase_1a_timeout, phase_1b_timeout
 
@@ -1228,10 +1273,10 @@ async def run_agent_swarm(
         spec = await asyncio.wait_for(
             run_architect_agent(client, ir, rules, prompt_used, feedback_history=[]),
             # run_architect_agent now scales its own per-phase budgets to spec size
-            # (see _compute_phase_timeouts — up to 900s for Phase 1A + 480s for Phase
+            # (see _compute_phase_timeouts — up to 1200s for Phase 1A + 480s for Phase
             # 1B on the largest specs). This outer wait_for is just a safety net above
-            # that worst-case 1380s combined, with margin for scheduling overhead.
-            timeout=1450.0
+            # that worst-case 1680s combined, with margin for scheduling overhead.
+            timeout=1750.0
         )
         logger.info("[Swarm] Phase 1 complete — Architect spec received.")
     except asyncio.TimeoutError as e:
@@ -1291,9 +1336,9 @@ async def run_agent_swarm(
                 revised_spec = await asyncio.wait_for(
                     run_architect_agent(client, ir, rules, prompt_used, feedback_history=review_issues),
                     # Must exceed run_architect_agent's own internal scaled phase
-                    # budgets (up to 900s + 480s on the largest specs), or this outer
+                    # budgets (up to 1200s + 480s on the largest specs), or this outer
                     # wait_for cuts it off first.
-                    timeout=1450.0
+                    timeout=1750.0
                 )
                 revised_table_count = len(revised_spec.database.tables)
                 # A full revision re-derives the ENTIRE schema from the raw prompt in one

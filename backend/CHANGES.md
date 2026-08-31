@@ -101,6 +101,27 @@ every pricing tier with progressively larger/more complex specs:
     result has fewer tables than named entities, that's now treated as an incomplete
     result and falls back to the single-call path. Verified live afterward: the same spec
     correctly produced 10/10 tables with all entities present.
+  - **Reliability + speed fix #3**: even with the guard above, a genuinely incomplete
+    chunked attempt used to fall straight back to a full single-call regeneration —
+    paying for Phase 1A TWICE (a ~210s chunked attempt, then a ~230s single-call
+    fallback), stretching one Enterprise-tier generation to 12m38s total. Fixed three
+    ways: (1) chunk size reduced 6→4 entities so each call has less to track, (2) the
+    chunk prompt now gives an explicit numbered checklist of assigned entities and
+    demands the model verify full coverage before answering, (3) a failed/incomplete
+    chunked attempt now gets ONE independent retry (still much faster than the
+    single-call path) before falling back. Verified live on the same spec that
+    previously took 12m38s: the improved prompt + smaller chunks succeeded on the first
+    attempt this time, no retry or fallback needed, output correct (15 tables for 14
+    named entities), total time 7m31s.
+- **Tried and correctly rejected** (tested per an explicit "only if it doesn't cost
+  quality" request, kept here so this isn't retried blindly later):
+  - `reasoning_effort: "low"` for the Endpoints and Business Rules calls. Unlike entity
+    extraction, these are real design/reasoning tasks, not simple extraction — verified
+    live it cut output almost in half (57→32 endpoints, missing 9+ tables' worth of
+    endpoints entirely; 18→10 business rules). Left at default reasoning.
+  - Reducing DevOps `max_tokens`. 3 live samples at 8192 vs. 16384 showed no reliable
+    speed trend either direction, and output completeness (env var count) already
+    varied 1-8 independent of the token budget — not enough signal to call it safe.
 - **GLiNER pre-warmed at server startup** (`app/main.py`) — it was only ever initialized
   lazily, mid-request, on the entity-extraction fallback path, costing ~7s of model-load
   time inside a live request. Moved to the startup pre-warm alongside the other NLP
