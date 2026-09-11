@@ -63,7 +63,7 @@ This project was built with a **product-first engineering mindset**:
 # ✨ Features
 
 ## 🧠 Multi-Agent Architecture Swarm
-- **Principal Architect Agent** (70B LLM) drafts a complete system design with 8+ tables and 15+ endpoints
+- **Principal Architect Agent** (`gpt-oss-20b`) drafts a complete system design — schema, endpoints, business rules, DevOps, resilience
 - **DBA Agent** reviews schema for normalization, foreign keys, and tenant isolation
 - **Security Agent** audits API endpoints for authentication coverage
 - **PM Agent** validates the spec matches the original product requirements
@@ -124,7 +124,7 @@ graph TD
 
     subgraph Pipeline["🤖 Generation Pipeline"]
         API --> NLP[NLP Pipeline]
-        NLP --> EntityExtractor[LLM Entity Extractor - 8B]
+        NLP --> EntityExtractor[LLM Entity Extractor - 20B]
         NLP --> SemanticRouter[Semantic Router]
         NLP --> Clustering[Semantic Clustering]
         NLP --> RAG[RAG Blueprint Retriever]
@@ -132,12 +132,12 @@ graph TD
         RAG --> Blueprints[(10 Archetype Blueprints)]
 
         API --> Swarm[Agent Swarm]
-        Swarm --> Architect[Architect Agent - 70B]
+        Swarm --> Architect[Architect Agent - 20B]
         Architect --> Reviews[Concurrent Review Panel]
-        Reviews --> DBA[DBA Agent - 8B]
-        Reviews --> Security[Security Agent - 8B]
-        Reviews --> PM[PM Agent - 8B]
-        Reviews --> AntiFragility[Anti-Fragility Agent - 8B]
+        Reviews --> DBA[DBA Agent - 20B]
+        Reviews --> Security[Security Agent - 20B]
+        Reviews --> PM[PM Agent - 20B]
+        Reviews --> AntiFragility[Anti-Fragility Agent - 20B]
     end
 
     subgraph Storage["🗄️ PostgreSQL - Supabase"]
@@ -154,15 +154,13 @@ graph TD
     SAGE --> API
 
     subgraph LLM["⚡ NVIDIA NIM API"]
-        Model70B[meta/llama-3.3-70b-instruct]
         Model20B[openai/gpt-oss-20b]
-        Model8B[meta/llama-3.1-8b-instruct]
         EmbedModel[nvidia/llama-nemotron-embed-1b-v2]
     end
 
-    Architect --> Model70B
-    Reviews --> Model8B
-    EntityExtractor --> Model8B
+    Architect --> Model20B
+    Reviews --> Model20B
+    EntityExtractor --> Model20B
     NLP --> EmbedModel
     SAGE --> Model20B
 ```
@@ -180,23 +178,23 @@ The generation pipeline runs in three phases:
 
 ### Phase 2 — Architect Agent (~60-90s)
 The **Principal Architect Agent** receives the full IR + rules and generates a `GeneratedArchitectureSpec` Pydantic object enforced by `instructor.Mode.JSON`:
-- Minimum 8 database tables (supports up to 24 tables for rich architectures)
-- Minimum 15 REST API endpoints
-- Production-grade tech stack, auth strategy, DevOps config, and SpiceLayer
+- A normalized database schema, generated in chunks so large table sets stay within the token budget
+- A REST API surface with auth strategy per endpoint
+- Production-grade tech stack, DevOps config, resilience spec, and SpiceLayer
 
-**Model**: `meta/llama-3.3-70b-instruct` via NVIDIA NIM  
-**Parameters**: `max_tokens = 16384` (generous token limits to support large reasoning traces), `temperature = 1.00`, `top_p = 1.00`  
+**Model**: `openai/gpt-oss-20b` via NVIDIA NIM (`LLM_MODEL` in `app/services/agents/generation.py`)  
+**Parameters**: `max_tokens` sized per call — `1024` for project meta, `8192` for table chunks, `16384` for the full spec — with `temperature = 1.00`, `top_p = 1.00`  
 **Timeout**: 360s (6 minutes) — real generation, no mock fallback
 
 ### Phase 3 — Review Panel (concurrent, ~2-5s)
-Four agents run simultaneously against the Architect's draft:
+Four agents run simultaneously against the Architect's draft, all on `LLM_REVIEW_MODEL`:
 
 | Agent | Model | Checks |
 |---|---|---|
-| DBA Agent | 8B | Schema normalization, foreign keys, tenant isolation |
-| Security Agent | 8B | Unprotected write endpoints, auth coverage |
-| PM Agent | 8B | Spec completeness vs. user requirements |
-| Anti-Fragility Agent | 8B | Chaos scenarios, resilience rating, hardening checklist |
+| DBA Agent | `gpt-oss-20b` | Schema normalization, foreign keys, tenant isolation |
+| Security Agent | `gpt-oss-20b` | Unprotected write endpoints, auth coverage |
+| PM Agent | `gpt-oss-20b` | Spec completeness vs. user requirements |
+| Anti-Fragility Agent | `gpt-oss-20b` | Chaos scenarios, resilience rating, hardening checklist |
 
 ---
 
@@ -225,7 +223,7 @@ It is a spec-aware AI assistant that:
 | **Pydantic + instructor** | Structured LLM output enforcement with JSON Mode parsing |
 | **SQLAlchemy** | ORM for all database models |
 | **Supabase (PgBouncer)** | Direct database URLs automatically upgraded from port `5432` to transaction pooler port `6543` to ensure safe concurrent cloud scaling |
-| **NVIDIA NIM API** | LLM inference — 70B Architect + 20B SAGE Chat + 8B review agents |
+| **NVIDIA NIM API** | LLM inference — `openai/gpt-oss-20b` shared by the Architect, the four review agents, and SAGE Chat |
 | **Faiss** | Vector similarity search for RAG blueprint retrieval |
 | **CloudEmbedder** | Cloud-native RAG embedding via `nvidia/llama-nemotron-embed-1b-v2` (0.75s latency) |
 | **GLiNER** | Zero-shot NLP entity extraction |
@@ -238,12 +236,18 @@ It is a spec-aware AI assistant that:
 Forcing LLM output into a strongly-typed Pydantic schema (`GeneratedArchitectureSpec`) removes all post-processing and hallucination cleanup. Every field — tables, columns, endpoints, business rules, chaos scenarios — is type-validated before it reaches the frontend.
 
 ## Why NVIDIA NIM?
-NVIDIA NIM provides access to large open-weight models (70B, 20B, 8B) via an OpenAI-compatible API with high throughput. The 70B models produce dramatically richer architecture specs than smaller models.
+NVIDIA NIM serves large open-weight models behind an OpenAI-compatible API with high throughput, so the same client code works across models and switching model is a one-constant change.
 
-## Why separate 8B and 20B/70B models?
-- **70B** (Architect Swarm): High-capacity models with deep reasoning across spec schemas, API surfaces, database normalization, and domain constraints.
-- **20B** (SAGE Chatbot): Optimized for fast, accurate text responses that return under 2 seconds.
-- **8B** (review agents + entity extraction): Short, structured JSON checks that complete in under 2 seconds, maintaining sub-second user responsiveness.
+## Why one shared model instead of a tiered 8B/20B/70B split?
+It started as a tiered design — a large model for the Architect and `meta/llama-3.1-8b-instruct` for the cheap, short, structured review checks. **NVIDIA NIM deprecated that 8B model on 2026-08-26; it now returns `HTTP 410 Gone` and is not callable at all.** Rather than re-tier onto another small model that could be deprecated the same way, the Architect, the four review agents, entity extraction, and SAGE were consolidated onto a single endpoint:
+
+```python
+LLM_MODEL        = "openai/gpt-oss-20b"   # Architect
+LLM_REVIEW_MODEL = "openai/gpt-oss-20b"   # DBA, Security, PM, Anti-Fragility, entity extraction
+LLM_SAGE_MODEL   = "openai/gpt-oss-20b"   # SAGE chatbot
+```
+
+One consequence is worth calling out, because it is not a latency problem and looks like one: **`gpt-oss-20b` emits hidden chain-of-thought before its JSON answer.** Every call site therefore budgets `max_tokens` well above the values that were tuned for the 8B — a tight budget raises `IncompleteOutputException` rather than simply responding slowly. SAGE keeps its sub-2s target by pruning ~70% of irrelevant context (verbose DevOps scripts and chaos logs) instead of by using a smaller model.
 
 ## Why PgBouncer in Production?
 Connecting directly to PostgreSQL (port 5432) under serverless or high-concurrency cloud scaling risks exhausting connection limits instantly. Direct connections are dynamically intercepted and routed through PgBouncer's Transaction Pooler (port 6543) with explicit connection pools (`pool_size=5`, `max_overflow=10`).
@@ -447,9 +451,12 @@ SUPABASE_DB_URL=postgresql://postgres.your-project:password@aws-1-ap-south-1.poo
 NVIDIA_API_KEY=nvapi-xxxxxxxxxxxxxxxxxxxx
 LLM_BASE_URL=https://integrate.api.nvidia.com/v1
 
-# Models configurations
-ARCHITECT_LLM_MODEL=meta/llama-3.3-70b-instruct
-LLM_REVIEW_MODEL=meta/llama-3.1-8b-instruct
+# Models configuration (optional)
+# Only LLM_REVIEW_MODEL is read from the environment (app/api/endpoints/chat.py);
+# it defaults to the value in generation.py, so leave it unset unless overriding.
+# Do NOT set meta/llama-3.1-8b-instruct here — NVIDIA NIM deprecated it on
+# 2026-08-26 and it now returns HTTP 410 Gone.
+# LLM_REVIEW_MODEL=openai/gpt-oss-20b
 
 # Server
 AUTH_ENABLED=true
