@@ -45,7 +45,7 @@ def _load_api_key() -> str:
 class CloudEmbedder:
     """
     Drop-in replacement for SentenceTransformer that calls the Nvidia NIM
-    embedding API (nvidia/llama-nemotron-embed-1b-v2) instead of loading
+    embedding API (NVIDIA_EMBED_MODEL) instead of loading
     local model weights.
 
     Interface is intentionally identical to SentenceTransformer.encode():

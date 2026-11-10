@@ -121,19 +121,15 @@ def _normalize_generated_spec(spec: GeneratedArchitectureSpec) -> GeneratedArchi
 
 # LLM Configurations
 LLM_BASE_URL = os.getenv("LLM_BASE_URL", "https://integrate.api.nvidia.com/v1")
-LLM_MODEL = "openai/gpt-oss-20b"
+# openai/gpt-oss-20b stopped responding within 240s on NVIDIA's shared endpoint in Nov 2026.
+LLM_MODEL = "nvidia/nemotron-3-ultra-550b-a55b"
 # Review agents (DBA, Security, PM, Anti-Fragility), entity extraction, and the SAGE
 # intent classifier all use this model.
-# NOTE: meta/llama-3.1-8b-instruct (the previous value here) was deprecated by NVIDIA NIM
-# on 2026-08-26 and now returns HTTP 410 Gone — it is no longer callable at all. Moved to
-# openai/gpt-oss-20b (same model as the Architect/SAGE). That model emits hidden
-# chain-of-thought reasoning before its JSON answer, so every call site using this
-# constant has its max_tokens sized generously above the old 8B-tuned values to leave
-# room for that reasoning — a tight budget here means IncompleteOutputException, not a
-# slow response.
-LLM_REVIEW_MODEL = "openai/gpt-oss-20b"
+# Reasoning models emit hidden chain-of-thought before their JSON answer, so call sites size
+# max_tokens generously: a tight budget means IncompleteOutputException, not a slow response.
+LLM_REVIEW_MODEL = "nvidia/nemotron-3-ultra-550b-a55b"
 # SAGE Chatbot model configuration
-LLM_SAGE_MODEL = "openai/gpt-oss-20b"
+LLM_SAGE_MODEL = "nvidia/nemotron-3-ultra-550b-a55b"
 
 # -------------------------------------------------------------
 # System Prompts (Agent Swarm)
@@ -1122,7 +1118,7 @@ async def run_dba_agent(client: Any, database: DatabaseSchema, rules: List[str])
         lambda: client.chat.completions.create(
             model=LLM_REVIEW_MODEL,
             response_model=ReviewResult,
-            max_tokens=3000,  # ReviewResult itself is small, but gpt-oss-20b spends most of this on hidden reasoning before the JSON answer
+            max_tokens=3000,  # ReviewResult itself is small, but the model spends most of this on hidden reasoning before the JSON answer
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT_DBA_REVIEWER},
                 {"role": "user", "content": prompt}
@@ -1146,7 +1142,7 @@ async def run_security_agent(client: Any, endpoints: List[EndpointSchema], rules
         lambda: client.chat.completions.create(
             model=LLM_REVIEW_MODEL,
             response_model=ReviewResult,
-            max_tokens=3000,  # ReviewResult itself is small, but gpt-oss-20b spends most of this on hidden reasoning before the JSON answer
+            max_tokens=3000,  # ReviewResult itself is small, but the model spends most of this on hidden reasoning before the JSON answer
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT_SECURITY_REVIEWER},
                 {"role": "user", "content": prompt}
@@ -1173,7 +1169,7 @@ Generated endpoints: {endpoint_paths}"""
         lambda: client.chat.completions.create(
             model=LLM_REVIEW_MODEL,
             response_model=ReviewResult,
-            max_tokens=3000,  # ReviewResult itself is small, but gpt-oss-20b spends most of this on hidden reasoning before the JSON answer
+            max_tokens=3000,  # ReviewResult itself is small, but the model spends most of this on hidden reasoning before the JSON answer
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT_PM_REVIEWER},
                 {"role": "user", "content": prompt}
@@ -1218,7 +1214,7 @@ Tasks:
             model=LLM_REVIEW_MODEL,
             response_model=AntiFragilityHardening,
             max_retries=2,
-            max_tokens=4000,  # 3 chaos scenarios + checklist, plus gpt-oss-20b's hidden reasoning before the JSON answer
+            max_tokens=4000,  # 3 chaos scenarios + checklist, plus the model's hidden reasoning before the JSON answer
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT_ANTI_FRAGILITY},
                 {"role": "user", "content": prompt}
@@ -1312,7 +1308,7 @@ async def run_agent_swarm(
                 run_anti_fragility_agent(client, current_spec, ir),
                 return_exceptions=True
             ),
-            timeout=120.0  # gpt-oss-20b's hidden reasoning makes these slower than the old non-reasoning 8B model
+            timeout=120.0  # Hidden reasoning makes these slower than a non-reasoning model
         )
         dba_res, sec_res, pm_res, anti_frag_res = results
         logger.info("[Swarm] Phase 2 complete — all concurrent agents returned.")

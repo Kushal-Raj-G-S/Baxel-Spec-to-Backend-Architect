@@ -298,7 +298,7 @@ async def chat_with_spec(
         raise HTTPException(status_code=500, detail=f"LLM Chat Error: {str(e)}")
 
 
-@router.get("/history")
+@router.get("/chat/history")
 async def get_chat_history(
     spec_id: uuid.UUID,
     db: Session = Depends(get_db),

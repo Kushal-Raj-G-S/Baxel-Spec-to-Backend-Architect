@@ -3,6 +3,17 @@
 This documents everything changed on top of the existing Baxel codebase, grouped by
 what problem each change solves. File paths are relative to `backend/` unless noted.
 
+## November 2026 update
+
+- **Model:** `LLM_MODEL`, `LLM_REVIEW_MODEL` and `LLM_SAGE_MODEL` moved from `openai/gpt-oss-20b` (no response
+  within 240s on NVIDIA's shared endpoint) to `nvidia/nemotron-3-ultra-550b-a55b`.
+- **Scaffold generator:** `app/services/scaffold.py` replaces the generators in `dashboard_api.py`. SQL is quoted,
+  dependency-ordered and idempotent. NestJS and FastAPI projects now build and boot, with JWT auth, bcrypt, owner-scoped
+  CRUD and a random secret per download. Runs stored by older generators are rebuilt on download.
+- **Database:** `db/schema.sql` recreates the full Supabase project. The project moved to a new Supabase instance.
+- **Setup:** added `requirements.txt` and `.env.example` files. `semantic-router` is pinned to the 0.1 API that the code uses.
+- **SAGE:** chat history now loads; the route was `/api/history` while the frontend called `/api/chat/history`.
+
 ## 1. Fixed two live production outages (deprecated NVIDIA models)
 
 - **`app/services/agents/generation.py`** — `LLM_MODEL` / `LLM_REVIEW_MODEL` / `LLM_SAGE_MODEL`

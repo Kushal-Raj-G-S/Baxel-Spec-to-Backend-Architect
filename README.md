@@ -63,44 +63,42 @@ This project was built with a **product-first engineering mindset**:
 # ✨ Features
 
 ## 🧠 Multi-Agent Architecture Swarm
-- **Principal Architect Agent** (`gpt-oss-20b`) drafts a complete system design — schema, endpoints, business rules, DevOps, resilience
+- **Principal Architect Agent** (`nemotron-3-ultra-550b`) drafts a complete system design — schema, endpoints, business rules, DevOps, resilience
 - **DBA Agent** reviews schema for normalization, foreign keys, and tenant isolation
 - **Security Agent** audits API endpoints for authentication coverage
 - **PM Agent** validates the spec matches the original product requirements
 - **Anti-Fragility Agent** simulates chaos scenarios and generates a hardening checklist
-- All review agents run **concurrently** after the Architect draft — total Phase 2 time ≈ 2-5s
+- All review agents run **concurrently** after the Architect draft
 
 ## 🔍 Cloud-Native NLP Pipeline (Flow A + Flow B)
-- **Semantic Router** classifies the input prompt into an intent category
+- **Intent gate** rejects prompts that are not software specs. A keyword check makes this call today: the `semantic-router` integration loads, but its index is not synced, and forcing it on rejected valid specs in testing
 - **GLiNER / LLM-based Entity Extractor** pulls actors, domain entities, and integration names
 - **Semantic Clustering** merges synonym entities (e.g. "Customer", "Client" → canonical form)
 - **RAG Blueprint Retriever** (Faiss + CloudEmbedder) matches your system to the best-fit archetype blueprint
-- **0.75s Latency Embeddings**: Employs `nvidia/llama-nemotron-embed-1b-v2` cloud embeddings and pre-loaded indices on boot, slashing pre-processing time from **16s to under 3s**.
+- **0.75s Latency Embeddings**: Employs `nvidia/llama-nemotron-embed-vl-1b-v2` cloud embeddings and pre-loaded indices on boot, slashing pre-processing time from **16s to under 3s**.
 
 ## 💬 SAGE — Specification Answering & Guidance Engine
 - A dedicated spec-aware AI chatbot embedded in the platform
 - Automatically loads your latest generated spec as context
-- **70% Context-Pruning Optimization**: Excludes verbose DevOps scripts and Chaos logs unless relevant to keep chatbot generation times under **2 seconds**.
+- **70% Context-Pruning Optimization**: Excludes verbose DevOps scripts and Chaos logs unless relevant, which keeps the prompt small.
 - **Grounding & Consistency Checkers**: Automatically audits query premises against both the Original User Prompt and the output JSON schema, flagging mismatches as the first line of responses.
 - Maintains **5-turn conversation memory** persisted in the database.
 
-## 📦 One-Click ZIP Scaffold Downloader
-- Downloads a fully-structured backend project directory directly from the browser:
-  ```bash
-  workspace.zip/
-  ├── main.py
-  ├── Dockerfile
-  ├── docker-compose.yml
-  ├── requirements.txt
-  ├── .env
-  ├── app/
-  │   ├── core/db.py
-  │   ├── models/spec_models.py
-  │   └── routes/endpoints.py
-  └── migrations/
-      └── schema.sql
-  ```
-- Integrates custom Docker configurations and PostgreSQL migrations out of the box.
+## 📦 One-Click Runnable Scaffold
+Downloads a NestJS or FastAPI project that matches the generated spec, ready to install and start:
+```bash
+scaffold.zip/
+├── Dockerfile, docker-compose.yml
+├── .env                     # random JWT secret generated per download
+├── migrations/schema.sql    # idempotent, applied automatically on startup
+├── NestJS:  src/main.ts, app.module.ts, app.controller.ts, crud.service.ts, auth/, entities/
+└── FastAPI: app/main.py, app/core/{db,crud,auth}.py, app/models/, app/routes/
+```
+- **Implemented for you**: register, login and refresh (bcrypt hashes, access + refresh JWTs), plus list/get/create/update/delete for resources, including `/me` and nested routes
+- **Safe by default**: password hashes are never returned or writable, `id` and timestamps can't be set from a request body, and rows that belong to an account are filtered to that account
+- **Left for you**: business actions such as payments, refunds and status changes return `501` with their request and response notes as comments
+- **How much is implemented depends on the spec**: 19 of 41 to 38 of 43 endpoints across the projects tested
+- **Tested end to end**: generated NestJS and FastAPI apps passed 63 checks using their real startup code against PostgreSQL. Docker builds have not been tested
 
 ## 💎 Pricing & Spec-Detail Gating (Zero Throttling)
 - Tiers are configured on **project count** and **prompt spec complexity** (character limits):
@@ -154,8 +152,8 @@ graph TD
     SAGE --> API
 
     subgraph LLM["⚡ NVIDIA NIM API"]
-        Model20B[openai/gpt-oss-20b]
-        EmbedModel[nvidia/llama-nemotron-embed-1b-v2]
+        Model20B[nemotron-3-ultra-550b]
+        EmbedModel[nvidia/llama-nemotron-embed-vl-1b-v2]
     end
 
     Architect --> Model20B
@@ -172,7 +170,7 @@ graph TD
 The generation pipeline runs in three phases:
 
 ### Phase 1 — Cloud-Native NLP & RAG (concurrent)
-*   **Flow A**: Entity extraction → Semantic clustering via `nvidia/llama-nemotron-embed-1b-v2` → builds Intermediate Representation (IR).
+*   **Flow A**: Entity extraction → Semantic clustering via `nvidia/llama-nemotron-embed-vl-1b-v2` → builds Intermediate Representation (IR).
 *   **Flow B**: Semantic routing → RAG archetype retrieval → builds architectural rules set.
 *   **Startup Pre-Warming**: Utilizes a FastAPI `lifespan` context manager to pre-warm the cloud embedder and Faiss vector index on boot, eliminating cold start delays.
 
@@ -182,19 +180,19 @@ The **Principal Architect Agent** receives the full IR + rules and generates a `
 - A REST API surface with auth strategy per endpoint
 - Production-grade tech stack, DevOps config, resilience spec, and SpiceLayer
 
-**Model**: `openai/gpt-oss-20b` via NVIDIA NIM (`LLM_MODEL` in `app/services/agents/generation.py`)  
+**Model**: `nvidia/nemotron-3-ultra-550b-a55b` via NVIDIA NIM (`LLM_MODEL` in `app/services/agents/generation.py`)  
 **Parameters**: `max_tokens` sized per call — `1024` for project meta, `8192` for table chunks, `16384` for the full spec — with `temperature = 1.00`, `top_p = 1.00`  
 **Timeout**: 360s (6 minutes) — real generation, no mock fallback
 
-### Phase 3 — Review Panel (concurrent, ~2-5s)
+### Phase 3 — Review Panel (concurrent)
 Four agents run simultaneously against the Architect's draft, all on `LLM_REVIEW_MODEL`:
 
 | Agent | Model | Checks |
 |---|---|---|
-| DBA Agent | `gpt-oss-20b` | Schema normalization, foreign keys, tenant isolation |
-| Security Agent | `gpt-oss-20b` | Unprotected write endpoints, auth coverage |
-| PM Agent | `gpt-oss-20b` | Spec completeness vs. user requirements |
-| Anti-Fragility Agent | `gpt-oss-20b` | Chaos scenarios, resilience rating, hardening checklist |
+| DBA Agent | `nemotron-3-ultra-550b` | Schema normalization, foreign keys, tenant isolation |
+| Security Agent | `nemotron-3-ultra-550b` | Unprotected write endpoints, auth coverage |
+| PM Agent | `nemotron-3-ultra-550b` | Spec completeness vs. user requirements |
+| Anti-Fragility Agent | `nemotron-3-ultra-550b` | Chaos scenarios, resilience rating, hardening checklist |
 
 ---
 
@@ -208,8 +206,7 @@ It is a spec-aware AI assistant that:
 - Maintains 5-turn conversation memory (stored in `chat_messages` table).
 - Classifies user intent before answering (technical, cost, general).
 
-**Model**: `openai/gpt-oss-20b` (hardcoded for SAGE completions)  
-**Performance**: Fast structured JSON completions that return in under 2 seconds.
+**Model**: `nvidia/nemotron-3-ultra-550b-a55b` (`LLM_SAGE_MODEL`)
 
 ---
 
@@ -217,15 +214,15 @@ It is a spec-aware AI assistant that:
 
 | Technology | Purpose |
 |---|---|
-| **Next.js 14** (App Router) | Frontend framework with SSR and client components |
+| **Next.js 16** (App Router) | Frontend framework with SSR and client components |
 | **TypeScript** | Type-safe frontend development |
 | **FastAPI** | Async Python REST API backend |
 | **Pydantic + instructor** | Structured LLM output enforcement with JSON Mode parsing |
 | **SQLAlchemy** | ORM for all database models |
 | **Supabase (PgBouncer)** | Direct database URLs automatically upgraded from port `5432` to transaction pooler port `6543` to ensure safe concurrent cloud scaling |
-| **NVIDIA NIM API** | LLM inference — `openai/gpt-oss-20b` shared by the Architect, the four review agents, and SAGE Chat |
+| **NVIDIA NIM API** | LLM inference — `nvidia/nemotron-3-ultra-550b-a55b` shared by the Architect, the four review agents, and SAGE Chat |
 | **Faiss** | Vector similarity search for RAG blueprint retrieval |
-| **CloudEmbedder** | Cloud-native RAG embedding via `nvidia/llama-nemotron-embed-1b-v2` (0.75s latency) |
+| **CloudEmbedder** | Cloud-native RAG embedding via `nvidia/llama-nemotron-embed-vl-1b-v2` (0.75s latency) |
 | **GLiNER** | Zero-shot NLP entity extraction |
 
 ---
@@ -242,12 +239,14 @@ NVIDIA NIM serves large open-weight models behind an OpenAI-compatible API with 
 It started as a tiered design — a large model for the Architect and `meta/llama-3.1-8b-instruct` for the cheap, short, structured review checks. **NVIDIA NIM deprecated that 8B model on 2026-08-26; it now returns `HTTP 410 Gone` and is not callable at all.** Rather than re-tier onto another small model that could be deprecated the same way, the Architect, the four review agents, entity extraction, and SAGE were consolidated onto a single endpoint:
 
 ```python
-LLM_MODEL        = "openai/gpt-oss-20b"   # Architect
-LLM_REVIEW_MODEL = "openai/gpt-oss-20b"   # DBA, Security, PM, Anti-Fragility, entity extraction
-LLM_SAGE_MODEL   = "openai/gpt-oss-20b"   # SAGE chatbot
+LLM_MODEL        = "nvidia/nemotron-3-ultra-550b-a55b"   # Architect
+LLM_REVIEW_MODEL = "nvidia/nemotron-3-ultra-550b-a55b"   # DBA, Security, PM, Anti-Fragility, entity extraction
+LLM_SAGE_MODEL   = "nvidia/nemotron-3-ultra-550b-a55b"   # SAGE chatbot
 ```
 
-One consequence is worth calling out, because it is not a latency problem and looks like one: **`gpt-oss-20b` emits hidden chain-of-thought before its JSON answer.** Every call site therefore budgets `max_tokens` well above the values that were tuned for the 8B — a tight budget raises `IncompleteOutputException` rather than simply responding slowly. SAGE keeps its sub-2s target by pruning ~70% of irrelevant context (verbose DevOps scripts and chaos logs) instead of by using a smaller model.
+In November 2026 `openai/gpt-oss-20b`, the model these constants pointed at, stopped answering on NVIDIA's shared endpoint within 240 seconds, so all three moved to `nvidia/nemotron-3-ultra-550b-a55b`. It gave the most detailed answer among the fast models when the 57 chat models NVIDIA listed were compared on one short prompt, so treat that as a snapshot. Full generations on the free tier took roughly 3.5 to 9 minutes.
+
+One consequence is worth calling out, because it is not a latency problem and looks like one: **these models emit hidden chain-of-thought before their JSON answer.** Every call site therefore budgets `max_tokens` well above the values that were tuned for the 8B — a tight budget raises `IncompleteOutputException` rather than simply responding slowly.
 
 ## Why PgBouncer in Production?
 Connecting directly to PostgreSQL (port 5432) under serverless or high-concurrency cloud scaling risks exhausting connection limits instantly. Direct connections are dynamically intercepted and routed through PgBouncer's Transaction Pooler (port 6543) with explicit connection pools (`pool_size=5`, `max_overflow=10`).
@@ -259,6 +258,8 @@ Connecting directly to PostgreSQL (port 5432) under serverless or high-concurren
 ```bash
 .
 ├── backend/
+│   ├── requirements.txt
+│   ├── db/schema.sql              # Full Supabase schema
 │   ├── app/
 │   │   ├── main.py                    # FastAPI app entry — all routers registered
 │   │   ├── api/
@@ -273,6 +274,7 @@ Connecting directly to PostgreSQL (port 5432) under serverless or high-concurren
 │   │   ├── schemas/
 │   │   │   └── spec.py                # Pydantic schemas (GeneratedArchitectureSpec etc.)
 │   │   └── services/
+│   │       ├── scaffold.py            # Turns a spec into a runnable NestJS/FastAPI project
 │   │       ├── generation_service.py  # Pipeline orchestrator (NLP → Swarm → DB save)
 │   │       ├── agents/
 │   │       │   └── generation.py      # Architect, DBA, Security, PM, Anti-Fragility agents
@@ -388,8 +390,8 @@ All tables auto-created via SQLAlchemy `Base.metadata.create_all()` on server st
 
 ## 1️⃣ Clone
 ```bash
-git clone https://github.com/your-username/baxel.git
-cd baxel
+git clone https://github.com/Kushal-Raj-G-S/Baxel-Spec-to-Backend-Architect.git
+cd Baxel-Spec-to-Backend-Architect
 ```
 
 ---
@@ -420,6 +422,13 @@ uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 
 ---
 
+### Database
+Run [`backend/db/schema.sql`](backend/db/schema.sql) once in the Supabase SQL editor. It creates every table, the plan rows, the private `avatars` bucket and row-level security.
+
+`gliner` is optional and left out of `requirements.txt` because it pulls in PyTorch (about 2 GB). Without it, entity extraction falls back to rule-based and LLM extraction.
+
+---
+
 ## 3️⃣ Frontend Setup
 ```bash
 cd frontend
@@ -444,6 +453,7 @@ Backend API at **http://localhost:8000**
 ```env
 # Supabase
 SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 SUPABASE_DB_URL=postgresql://postgres.your-project:password@aws-1-ap-south-1.pooler.supabase.com:6543/postgres
 
@@ -456,7 +466,7 @@ LLM_BASE_URL=https://integrate.api.nvidia.com/v1
 # it defaults to the value in generation.py, so leave it unset unless overriding.
 # Do NOT set meta/llama-3.1-8b-instruct here — NVIDIA NIM deprecated it on
 # 2026-08-26 and it now returns HTTP 410 Gone.
-# LLM_REVIEW_MODEL=openai/gpt-oss-20b
+# LLM_REVIEW_MODEL=nvidia/nemotron-3-ultra-550b-a55b
 
 # Server
 AUTH_ENABLED=true
