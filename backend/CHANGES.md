@@ -11,7 +11,8 @@ what problem each change solves. File paths are relative to `backend/` unless no
   dependency-ordered and idempotent. NestJS and FastAPI projects now build and boot, with JWT auth, bcrypt, owner-scoped
   CRUD and a random secret per download. Runs stored by older generators are rebuilt on download.
 - **Database:** `db/schema.sql` recreates the full Supabase project. The project moved to a new Supabase instance.
-- **Setup:** added `requirements.txt` and `.env.example` files. `semantic-router` is pinned to the 0.1 API that the code uses.
+- **Setup:** added `requirements.txt` and `.env.example` files. `semantic-router` is pinned to the 0.1 API that the code uses. Its index is not synced, so the intent check still falls back to keywords; forcing the index on rejected valid specs.
+- **Plans:** `pricing_plans.price_usd` now matches `frontend/src/lib/pricing-plans.ts`.
 - **SAGE:** chat history now loads; the route was `/api/history` while the frontend called `/api/chat/history`.
 
 ## 1. Fixed two live production outages (deprecated NVIDIA models)

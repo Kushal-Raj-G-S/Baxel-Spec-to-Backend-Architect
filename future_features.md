@@ -9,7 +9,7 @@ This document outlines high-value features planned for subsequent iteration cycl
 *   **User Flow**: 
     1. A developer double-clicks a database column name or data type inside the entities panel to modify it directly.
     2. Toggles nullable flags or changes foreign key targets via dropdowns.
-    3. The frontend immediately updates the React `result` state, dynamically recalculating the migration SQL and FastAPI boilerplate stub files in real-time, bypassing any LLM round-trip costs.
+    3. The frontend immediately updates the React `result` state, dynamically recalculating the migration SQL and generated project files in real-time, bypassing any LLM round-trip costs.
 
 ## 2. 🔍 Generation Version Diff Tracker
 *   **Concept**: View a visual Git-style diff highlighting the delta changes between the current run and previous iterations.

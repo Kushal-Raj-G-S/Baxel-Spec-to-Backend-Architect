@@ -30,5 +30,9 @@ These features differentiate Baxel without confusing the user:
 - **Dockerfile Content**: Generates a basic `Dockerfile` to run the generated backend locally.
 - **Docker Compose**: Generates `docker-compose.yml` for spinning up the DB alongside the backend.
 
+## 5. What Gets Stored and Downloaded
+- **Stored result**: `pipeline_runs.result` holds a flattened form for the UI: `entities`, `relationships`, `endpoints`, `rules`, `code_skeleton`, `migration_sql`, `devops`, `anti_fragility` and `__meta`. `__meta.scaffold_version` records which generator wrote the code.
+- **Scaffold zip**: Built by `app/services/scaffold.py` as a NestJS or FastAPI project. The zip uses a tested `Dockerfile` rather than the generated one, and `docker-compose.yml` comes from the spec with a random JWT secret filled in.
+
 ---
 *Note: This entire structure is strictly enforced by Pydantic schemas (`backend/app/schemas/spec.py`) to guarantee the Next.js frontend always receives a perfect JSON payload.*

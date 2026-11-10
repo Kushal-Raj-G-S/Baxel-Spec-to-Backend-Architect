@@ -18,7 +18,7 @@
   <img src="https://img.shields.io/badge/Supabase-Auth%20%26%20DB-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white"/>
   <img src="https://img.shields.io/badge/NVIDIA%20NIM-LLM%20API-76B900?style=for-the-badge&logo=nvidia&logoColor=white"/>
   <img src="https://img.shields.io/badge/PostgreSQL-SQLAlchemy-4169E1?style=for-the-badge&logo=postgresql&logoColor=white"/>
-  <img src="https://img.shields.io/badge/Python-3.11-3776AB?style=for-the-badge&logo=python&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Python-3.12-3776AB?style=for-the-badge&logo=python&logoColor=white"/>
   <img src="https://img.shields.io/badge/TypeScript-Strict-3178C6?style=for-the-badge&logo=typescript&logoColor=white"/>
 </p>
 
@@ -48,7 +48,7 @@ Baxel compresses that into minutes by running your idea through a full multi-age
 - 📚 **RAG archetype matching** — retrieves the best design blueprint for your system type
 - 🤖 **Agent swarm** — Architect, DBA, Security, PM, and Anti-Fragility agents debate the design
 - 💬 **SAGE chatbot** — a spec-aware AI assistant that answers questions about your generated architecture
-- 📦 **ZIP Scaffold Export** — download a fully-structured, dockerized FastAPI boilerplate to start coding instantly
+- 📦 **ZIP Scaffold Export** — download a NestJS or FastAPI project, with working auth and CRUD, that installs and starts
 
 This project was built with a **product-first engineering mindset**:
 
@@ -100,14 +100,17 @@ scaffold.zip/
 - **How much is implemented depends on the spec**: 19 of 41 to 38 of 43 endpoints across the projects tested
 - **Tested end to end**: generated NestJS and FastAPI apps passed 63 checks using their real startup code against PostgreSQL. Docker builds have not been tested
 
-## 💎 Pricing & Spec-Detail Gating (Zero Throttling)
-- Tiers are configured on **project count** and **prompt spec complexity** (character limits):
-  * **Starter ($0)**: 3 active projects | Up to 3,000 character prompt specs
-  * **Creator ($8)**: 7 active projects | Up to 4,500 character prompt specs
-  * **Studio ($20)**: 15 active projects | Up to 6,500 character prompt specs
-  * **Growth ($50)**: 30 active projects | Up to 9,000 character prompt specs
-  * **Enterprise ($158)**: 60 active projects | Up to 15,000 character prompt specs
-- **Performance Disclaimer**: Baxel never limits generation details or throttles the swarm engine based on your plan. Every tier gets full code/SQL generation. The output complexity scales dynamically with the depth and detail of your input prompt spec.
+## 💎 Plans
+Plans limit how much you can run, not the quality of the output. Every tier uses the same model and the full agent swarm.
+
+| Plan | Price | Runs / month | Projects | Prompt length | SAGE messages |
+|---|---|---|---|---|---|
+| **Free** | $0 | 3 | 3 | 3,000 characters | 15 / day |
+| **Pro** | $14 | 25 | 15 | 6,000 characters | Unlimited |
+| **Team** | $45 | 100 | 50 | 10,000 characters | Unlimited |
+| **Enterprise** | Custom | Custom | Custom | 100,000 characters | Unlimited |
+
+Limits are enforced by `PLAN_LIMITS` in `app/api/endpoints/dashboard_api.py`. The `pricing_plans` table only overrides display names. Profiles still holding the older `starter`, `creator`, `studio` or `growth` codes are mapped onto these tiers.
 
 ---
 
@@ -122,20 +125,20 @@ graph TD
 
     subgraph Pipeline["🤖 Generation Pipeline"]
         API --> NLP[NLP Pipeline]
-        NLP --> EntityExtractor[LLM Entity Extractor - 20B]
-        NLP --> SemanticRouter[Semantic Router]
+        NLP --> EntityExtractor[GLiNER or LLM Entity Extractor]
+        NLP --> SemanticRouter[Intent Check]
         NLP --> Clustering[Semantic Clustering]
         NLP --> RAG[RAG Blueprint Retriever]
         RAG --> Faiss[(Faiss Index)]
         RAG --> Blueprints[(10 Archetype Blueprints)]
 
         API --> Swarm[Agent Swarm]
-        Swarm --> Architect[Architect Agent - 20B]
+        Swarm --> Architect[Architect Agent]
         Architect --> Reviews[Concurrent Review Panel]
-        Reviews --> DBA[DBA Agent - 20B]
-        Reviews --> Security[Security Agent - 20B]
-        Reviews --> PM[PM Agent - 20B]
-        Reviews --> AntiFragility[Anti-Fragility Agent - 20B]
+        Reviews --> DBA[DBA Agent]
+        Reviews --> Security[Security Agent]
+        Reviews --> PM[PM Agent]
+        Reviews --> AntiFragility[Anti-Fragility Agent]
     end
 
     subgraph Storage["🗄️ PostgreSQL - Supabase"]
@@ -145,6 +148,8 @@ graph TD
         DB4[(chat_messages)]
         DB5[(profiles)]
         DB6[(pricing_plans)]
+        DB7[(workspaces)]
+        DB8[(user_preferences)]
     end
 
     API --> Storage
@@ -152,15 +157,15 @@ graph TD
     SAGE --> API
 
     subgraph LLM["⚡ NVIDIA NIM API"]
-        Model20B[nemotron-3-ultra-550b]
+        LLMModel[nemotron-3-ultra-550b]
         EmbedModel[nvidia/llama-nemotron-embed-vl-1b-v2]
     end
 
-    Architect --> Model20B
-    Reviews --> Model20B
-    EntityExtractor --> Model20B
+    Architect --> LLMModel
+    Reviews --> LLMModel
+    EntityExtractor --> LLMModel
     NLP --> EmbedModel
-    SAGE --> Model20B
+    SAGE --> LLMModel
 ```
 
 ---
@@ -169,12 +174,13 @@ graph TD
 
 The generation pipeline runs in three phases:
 
-### Phase 1 — Cloud-Native NLP & RAG (concurrent)
-*   **Flow A**: Entity extraction → Semantic clustering via `nvidia/llama-nemotron-embed-vl-1b-v2` → builds Intermediate Representation (IR).
-*   **Flow B**: Semantic routing → RAG archetype retrieval → builds architectural rules set.
+### Phase 1 — Intent check, then NLP & RAG (concurrent)
+An intent check rejects prompts that are not software specs, then two flows run at once:
+*   **Flow A**: Entity extraction (GLiNER when installed, otherwise LLM and rule-based) → semantic clustering via `nvidia/llama-nemotron-embed-vl-1b-v2` → builds the Intermediate Representation (IR).
+*   **Flow B**: The prompt embedding is compared against the 10 archetype blueprints in an in-memory Faiss index. The top 2 above 0.60 similarity supply the architectural rules; otherwise it falls back to General SaaS.
 *   **Startup Pre-Warming**: Utilizes a FastAPI `lifespan` context manager to pre-warm the cloud embedder and Faiss vector index on boot, eliminating cold start delays.
 
-### Phase 2 — Architect Agent (~60-90s)
+### Phase 2 — Architect Agent
 The **Principal Architect Agent** receives the full IR + rules and generates a `GeneratedArchitectureSpec` Pydantic object enforced by `instructor.Mode.JSON`:
 - A normalized database schema, generated in chunks so large table sets stay within the token budget
 - A REST API surface with auth strategy per endpoint
@@ -194,6 +200,10 @@ Four agents run simultaneously against the Architect's draft, all on `LLM_REVIEW
 | PM Agent | `nemotron-3-ultra-550b` | Spec completeness vs. user requirements |
 | Anti-Fragility Agent | `nemotron-3-ultra-550b` | Chaos scenarios, resilience rating, hardening checklist |
 
+The panel has a 120-second budget. If it times out, the spec is kept and a fallback resilience report is attached. If a reviewer flags problems, one revision pass runs: schema issues redraft the whole spec, while security or PM issues regenerate only what was flagged.
+
+A full generation, all phases included, took roughly 3.5 to 9 minutes on NVIDIA's free tier in November 2026.
+
 ---
 
 # 💬 SAGE Chatbot
@@ -203,8 +213,8 @@ SAGE stands for **Specification Answering & Guidance Engine**.
 It is a spec-aware AI assistant that:
 - Loads the latest generated spec as system context.
 - **Smart Context Pruning**: Strips out verbose DevOps Dockerfiles and Resilience scenario logs unless explicitly asked in the query, cutting context payload size by **70%**.
-- Maintains 5-turn conversation memory (stored in `chat_messages` table).
-- Classifies user intent before answering (technical, cost, general).
+- Sends the last 5 exchanges as conversation memory (stored in the `chat_messages` table), and reloads the full history when the page opens.
+- Classifies each question as `technical` (gets the full spec) or `business` (gets a short summary) before answering.
 
 **Model**: `nvidia/nemotron-3-ultra-550b-a55b` (`LLM_SAGE_MODEL`)
 
@@ -219,11 +229,11 @@ It is a spec-aware AI assistant that:
 | **FastAPI** | Async Python REST API backend |
 | **Pydantic + instructor** | Structured LLM output enforcement with JSON Mode parsing |
 | **SQLAlchemy** | ORM for all database models |
-| **Supabase (PgBouncer)** | Direct database URLs automatically upgraded from port `5432` to transaction pooler port `6543` to ensure safe concurrent cloud scaling |
+| **Supabase (PgBouncer)** | Pooler URLs on port `5432` are automatically switched to transaction pooler port `6543` for safe concurrent scaling |
 | **NVIDIA NIM API** | LLM inference — `nvidia/nemotron-3-ultra-550b-a55b` shared by the Architect, the four review agents, and SAGE Chat |
 | **Faiss** | Vector similarity search for RAG blueprint retrieval |
 | **CloudEmbedder** | Cloud-native RAG embedding via `nvidia/llama-nemotron-embed-vl-1b-v2` (0.75s latency) |
-| **GLiNER** | Zero-shot NLP entity extraction |
+| **GLiNER** (optional) | Zero-shot NLP entity extraction; falls back to LLM and rule-based extraction when not installed |
 
 ---
 
@@ -249,7 +259,7 @@ In November 2026 `openai/gpt-oss-20b`, the model these constants pointed at, sto
 One consequence is worth calling out, because it is not a latency problem and looks like one: **these models emit hidden chain-of-thought before their JSON answer.** Every call site therefore budgets `max_tokens` well above the values that were tuned for the 8B — a tight budget raises `IncompleteOutputException` rather than simply responding slowly.
 
 ## Why PgBouncer in Production?
-Connecting directly to PostgreSQL (port 5432) under serverless or high-concurrency cloud scaling risks exhausting connection limits instantly. Direct connections are dynamically intercepted and routed through PgBouncer's Transaction Pooler (port 6543) with explicit connection pools (`pool_size=5`, `max_overflow=10`).
+Holding one PostgreSQL connection per worker under serverless or high-concurrency scaling risks exhausting connection limits. Any `*.pooler.supabase.com:5432` URL is switched to PgBouncer's Transaction Pooler (port 6543) with explicit connection pools (`pool_size=5`, `max_overflow=10`). Direct `db.*.supabase.co` URLs are left as they are.
 
 ---
 
@@ -259,15 +269,17 @@ Connecting directly to PostgreSQL (port 5432) under serverless or high-concurren
 .
 ├── backend/
 │   ├── requirements.txt
+│   ├── .env.example
 │   ├── db/schema.sql              # Full Supabase schema
 │   ├── app/
 │   │   ├── main.py                    # FastAPI app entry — all routers registered
 │   │   ├── api/
 │   │   │   └── endpoints/
-│   │   │       ├── generate.py        # POST /api/specs — triggers generation pipeline
-│   │   │       ├── chat.py            # POST /api/chat — SAGE chatbot endpoint
-│   │   │       └── dashboard_api.py   # Projects, Specs, Pipelines, Profile, Plans routers
+│   │   │       ├── generate.py        # POST /api/generate, GET /api/status/{id}
+│   │   │       ├── chat.py            # POST /api/chat, GET /api/chat/history (SAGE)
+│   │   │       └── dashboard_api.py   # Projects, specs, POST /pipelines/run (used by the UI), zip download, share links, plans
 │   │   ├── core/
+│   │   │   ├── auth.py                # Supabase token verification
 │   │   │   └── db.py                  # SQLAlchemy engine + session factory (PgBouncer enabled)
 │   │   ├── models/
 │   │   │   └── spec_db.py             # All SQLAlchemy table models
@@ -298,9 +310,9 @@ Connecting directly to PostgreSQL (port 5432) under serverless or high-concurren
         │   │   ├── projects/          # Saved projects history
         │   │   ├── pipelines/         # Saved conversations history
         │   │   └── settings/          # User settings and profile
-        │   └── auth/                  # Supabase auth pages
-        ├── components/
-        │   └── app-shell.tsx          # Shared navigation sidebar
+        │   ├── auth/                  # Supabase auth pages
+        │   └── components/
+        │       └── app-shell.tsx      # Shared navigation sidebar
         └── lib/
             ├── supabase-browser.ts    # Supabase browser client
             └── pricing-plans.ts       # Plans list with character & projects limits
@@ -310,71 +322,89 @@ Connecting directly to PostgreSQL (port 5432) under serverless or high-concurren
 
 # 🗄 Database Schema
 
-All tables auto-created via SQLAlchemy `Base.metadata.create_all()` on server startup.
+[`backend/db/schema.sql`](backend/db/schema.sql) is the source of truth. The backend also runs SQLAlchemy `create_all` on startup, but that only adds missing tables, with looser column types and no foreign keys, so run `schema.sql` first.
+
+## `workspaces`
+| Column | Type | Description |
+|---|---|---|
+| id | uuid | Primary key |
+| name | text | Workspace name |
+| owner_id | uuid | Owner, nullable |
+| created_at / updated_at | timestamptz | Timestamps |
 
 ## `projects`
 | Column | Type | Description |
 |---|---|---|
-| id | UUID | Primary key |
-| name | String | Project display name |
-| description | Text | Optional description |
-| user_id | String | Supabase auth user ID |
-| created_at / updated_at | DateTime | Timestamps |
+| id | uuid | Primary key |
+| workspace_id | uuid | FK → workspaces, nullable |
+| name | text | Display name, unique per user (case-insensitive) |
+| description | text | Optional description |
+| user_id | uuid | FK → auth.users |
+| created_at / updated_at | timestamptz | Timestamps |
 
 ## `specs`
 | Column | Type | Description |
 |---|---|---|
-| id | UUID | Primary key |
-| project_id | UUID | FK → projects |
-| title | String | Spec display title |
-| content | Text | Raw user-provided spec text |
-| source_type | String | `api` or `manual` |
-| user_id | String | Supabase auth user ID |
-| created_at / updated_at | DateTime | Timestamps |
+| id | uuid | Primary key |
+| project_id | uuid | FK → projects (cascade delete) |
+| title | text | Spec display title |
+| content | text | Raw user-provided spec text |
+| source_type | text | Defaults to `paste` |
+| user_id | uuid | FK → auth.users |
+| created_at / updated_at | timestamptz | Timestamps |
 
 ## `pipeline_runs`
 | Column | Type | Description |
 |---|---|---|
-| id | UUID | Primary key |
-| project_id | UUID | FK → projects |
-| spec_id | UUID | FK → specs |
-| status | String | `processing` / `completed` / `failed` |
-| stages | JSON | Stage metadata |
-| result | JSON | Full `GeneratedArchitectureSpec` output (with code_skeleton and devops content) |
-| completed_at | DateTime | Completion timestamp |
-| user_id | String | Supabase auth user ID |
+| id | uuid | Primary key |
+| project_id | uuid | FK → projects (cascade delete) |
+| spec_id | uuid | FK → specs, nullable |
+| status | text | Run status, e.g. `completed` |
+| stages | jsonb | Stage metadata |
+| result | jsonb | Output shown in the UI: entities, endpoints, rules, `code_skeleton`, `migration_sql`, `devops` |
+| completed_at | timestamptz | Completion timestamp |
+| user_id | uuid | FK → auth.users |
 
 ## `chat_messages`
 | Column | Type | Description |
 |---|---|---|
-| id | UUID | Primary key |
-| spec_id | UUID | FK → specs (context source) |
-| user_id | String | Supabase auth user ID |
-| query | Text | User's question |
-| response | Text | SAGE's response |
-| intent | String | Classified intent (technical / cost / general) |
-| created_at | DateTime | Message timestamp |
+| id | varchar(36) | Primary key |
+| spec_id | varchar(36) | Spec the conversation is about |
+| user_id | varchar(36) | Supabase auth user ID |
+| query | text | User's question |
+| response | text | SAGE's response |
+| intent | varchar(50) | `technical` or `business` |
+| created_at | timestamp | Message timestamp |
 
 ## `profiles`
 | Column | Type | Description |
 |---|---|---|
-| id | UUID | Matches Supabase auth `user.id` |
-| email | String | User email |
-| username | String | Display username |
-| full_name | String | Full name |
-| avatar_url | String | Storage path for avatar |
-| plan_code | String | Active plan: `starter` / `creator` / `studio` / `growth` / `enterprise` |
+| id | uuid | FK → auth.users |
+| email | text | User email |
+| username | text | Unique display username |
+| full_name | text | Full name |
+| avatar_url | text | Storage path for the avatar |
+| plan_code | text | FK → pricing_plans.code, defaults to `starter` |
+
+## `user_preferences`
+| Column | Type | Description |
+|---|---|---|
+| user_id | uuid | Primary key, FK → auth.users |
+| role / intent / experience | text | Onboarding answers |
+| heard_about | text | `linkedin`, `product_hunt`, `google` or `other` |
+| heard_about_other | text | Free-text answer, nullable |
+| created_at | timestamptz | Timestamp |
 
 ## `pricing_plans`
 | Column | Type | Description |
 |---|---|---|
-| id | UUID | Primary key |
-| code | String | Plan identifier |
-| display_name | String | Human-readable plan name |
-| price_usd | Integer | Price in USD cents |
-| monthly_project_limit | Integer | Max projects per month |
-| monthly_run_limit | Integer | Max pipeline runs per month (unlimited/9999 for Starter) |
-| is_active | Boolean | Plan availability flag |
+| id | uuid | Primary key |
+| code | text | Unique plan identifier |
+| display_name | text | Human-readable plan name |
+| price_usd | integer | Price in whole US dollars (0 for free and custom plans) |
+| monthly_project_limit | integer | Displayed project limit |
+| monthly_run_limit | integer | Displayed run limit |
+| is_active | boolean | Plan availability flag |
 
 ---
 
@@ -382,7 +412,7 @@ All tables auto-created via SQLAlchemy `Base.metadata.create_all()` on server st
 
 ## Prerequisites
 - Node.js 18+
-- Python 3.11+
+- Python 3.12 (the version tested)
 - A [Supabase](https://supabase.com) project
 - An [NVIDIA NIM API key](https://build.nvidia.com) (free tier available)
 
@@ -423,7 +453,10 @@ uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ---
 
 ### Database
-Run [`backend/db/schema.sql`](backend/db/schema.sql) once in the Supabase SQL editor. It creates every table, the plan rows, the private `avatars` bucket and row-level security.
+Run [`backend/db/schema.sql`](backend/db/schema.sql) once in the Supabase SQL editor, before starting the backend. It creates every table, the plan rows, the private `avatars` bucket and row-level security.
+
+### Authentication
+In the Supabase dashboard, enable the sign-in methods you want (email/password, email OTP, Google, GitHub) and add `http://localhost:3000/auth/callback` to the redirect URLs.
 
 `gliner` is optional and left out of `requirements.txt` because it pulls in PyTorch (about 2 GB). Without it, entity extraction falls back to rule-based and LLM extraction.
 
@@ -451,11 +484,10 @@ Backend API at **http://localhost:8000**
 
 ## Backend — `backend/.env`
 ```env
-# Supabase
+# Supabase (a new-style sb_publishable_ key also goes in SUPABASE_ANON_KEY)
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-SUPABASE_DB_URL=postgresql://postgres.your-project:password@aws-1-ap-south-1.pooler.supabase.com:6543/postgres
+SUPABASE_DB_URL=postgresql://postgres.your-project:password@your-region.pooler.supabase.com:6543/postgres
 
 # NVIDIA NIM (LLM API)
 NVIDIA_API_KEY=nvapi-xxxxxxxxxxxxxxxxxxxx
@@ -468,9 +500,8 @@ LLM_BASE_URL=https://integrate.api.nvidia.com/v1
 # 2026-08-26 and it now returns HTTP 410 Gone.
 # LLM_REVIEW_MODEL=nvidia/nemotron-3-ultra-550b-a55b
 
-# Server
+# Set to false only for local testing: every request becomes a fixed dev user
 AUTH_ENABLED=true
-LOG_LEVEL=INFO
 ```
 
 ## Frontend — `frontend/.env.local`
@@ -478,6 +509,7 @@ LOG_LEVEL=INFO
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+# Optional checkout links: NEXT_PUBLIC_BILLING_FREE_URL, _PRO_URL, _TEAM_URL, _ENTERPRISE_URL
 ```
 
 ---
@@ -489,7 +521,19 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 cd backend
 python test_api.py
 ```
-This script runs a full end-to-end pipeline: creates a project → submits a spec → polls generation status → validates output fields.
+This starts the API, submits a spec to `POST /api/generate`, polls `GET /api/status/{id}` for up to 15 minutes, and prints the generated tables. It sends no login token, so set `AUTH_ENABLED=false` in `backend/.env` while running it.
+
+---
+
+# ⚠️ Known Limitations
+
+- **Generation is slow on the free tier.** A full run took roughly 3.5 to 9 minutes in November 2026, depending on NVIDIA's load and the size of the spec.
+- **The intent check is keyword-based.** `semantic-router` loads, but its index is not synced, so routing falls back to keywords. Forcing the index on rejected valid specs in testing.
+- **Scaffolds are a starting point.** Business actions (payments, refunds, status changes) return `501`.
+- **Login needs an account table.** Auth is generated only for tables with a `password_hash` column. If a spec has none, its guarded routes can't be reached until you add one.
+- **Ownership filtering is limited.** Rows are filtered to the caller only when the table has a foreign key to the account table.
+- **Not yet tested:** scaffold Docker builds, avatar upload, and Google/GitHub sign-in.
+- **CORS is open.** `app/main.py` uses `allow_origins=["*"]`. Restrict it before deploying.
 
 ---
 

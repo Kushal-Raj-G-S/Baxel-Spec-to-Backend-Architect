@@ -9,17 +9,16 @@ This pipeline is designed to be highly modular, allowing LLM models to be swappe
 ## 🏗️ Phase 1: High-Speed Input Processing (The "Brain")
 *Goal: Normalize the messy prompt and drastically reduce the cognitive burden on the LLM.*
 
-1. **Semantic Routing (`semantic-router`)**: 
-   - The user prompt hits the FastAPI endpoint. A fast vector check confirms if the prompt is valid; spam is rejected in milliseconds.
+1. **Intent Check**:
+   - The user prompt hits the FastAPI endpoint and an intent check rejects anything that isn't a software spec. A keyword check makes this call today: `semantic-router` loads, but its index is not synced.
 2. **Concurrency Block (`asyncio.gather`)**:
    To minimize response times, the backend kicks off two independent asynchronous flows concurrently:
    - **Flow A (Entity Processing Pipeline)**:
-     - **Zero-Shot NER (`GLiNER`)**: Dynamically extracts raw nouns and actors from the prompt.
-     - **Semantic Clustering (`BGE-M3` + `Faiss`)**: Maps entities into high-dimensional space to cluster synonyms (e.g., merging "Admin" and "Superuser").
+     - **Zero-Shot NER (`GLiNER`, optional)**: Dynamically extracts raw nouns and actors from the prompt. Without it, LLM and rule-based extraction are used.
+     - **Semantic Clustering (`nvidia/llama-nemotron-embed-vl-1b-v2` + `Faiss`)**: Maps entities into high-dimensional space to cluster synonyms (e.g., merging "Admin" and "Superuser").
    - **Flow B (Architectural Retrieval Pipeline)**:
-     - **Archetype Classification**: Classifies the prompt's archetype.
-     - **Vector DB Query**: Queries the vector database for matching blueprints.
-3. **The Handoff**: 
+     - **Archetype Retrieval**: Embeds the prompt and finds the closest blueprints in an in-memory Faiss index.
+3. **The Handoff**:
    - Once both concurrent flows complete, the backend combines the structured entities and retrieved blueprints to compile the Intermediate Representation (IR).
 
 ---
@@ -27,11 +26,9 @@ This pipeline is designed to be highly modular, allowing LLM models to be swappe
 ## 🧠 Phase 2: Context Engineering (Architectural RAG)
 *Goal: Inject Principal Engineer knowledge into the context window to prevent junior-level hallucination.*
 
-1. **Archetype Classification & Caching**:
-   - The Semantic Router categorizes the project type (e.g., Video Streaming, E-commerce, B2B SaaS). To prevent cache-incoherency across multiple containerized Docker worker processes, caching is stored in **Redis** (as configured in `TechStack`). The system falls back to a local in-memory LRU cache only in single-process development environments.
-2. **Vector DB Query**:
-   - The backend queries our highly specialized Vector Database containing **Elite System Design Blueprints** (e.g., AWS Well-Architected frameworks) utilizing a strict relevance threshold (`min_similarity_score=0.6`) and falling back to a "General SaaS" template if needed.
-3. **Constraint Injection**:
+1. **Blueprint Retrieval**:
+   - The backend compares the prompt embedding against 10 curated **System Design Blueprints** held in an in-memory Faiss index, taking the top 2 (`top_k=2`) above a relevance threshold (`min_similarity_score=0.6`) and falling back to a "General SaaS" blueprint if none qualify. Retrieval is not cached.
+2. **Constraint Injection**:
    - The system retrieves strict architectural rules (e.g., *"Must use a message broker for async tasks"*) and injects them alongside the clean IR from Phase 1.
 
 ---
@@ -39,18 +36,20 @@ This pipeline is designed to be highly modular, allowing LLM models to be swappe
 ## 🤖 Phase 3: Agentic Output Generation (The "Engineering Team")
 *Goal: Generate the architecture using specialized roles and self-healing mechanisms.*
 
-Instead of a single LLM call, the prompt (IR + RAG constraints) enters a Multi-Agent Swarm (powered by a framework like LangGraph):
+Instead of a single LLM call, the prompt (IR + RAG constraints) enters a Multi-Agent Swarm, orchestrated with plain `asyncio` calls:
 
-1. **The Principal Architect Agent**: 
+1. **The Principal Architect Agent**:
    - Drafts the initial database schema and API routes based on the hard constraints.
-2. **The Review Panel (with Debate Caps & Timeouts)**:
+2. **The Review Panel (concurrent)**:
    - **DBA Agent**: Scans the draft for missing foreign keys or bad indexing.
-   - **Security Agent**: Rejects the draft if destructive endpoints lack authentication.
-   - **Debate Loop Escape Hatch**: To prevent infinite revision loops, we enforce a strict `max_review_cycles=2` cap on the debate cycle between the Architect and Review Agents. If unresolved, the draft moves to Stage 3 with warning metadata.
-   - **Per-Agent Timeout**: Each agent execution is bounded by a hard timeout (e.g., 10 seconds in LangGraph) to prevent hung requests.
+   - **Security Agent**: Flags destructive endpoints that lack authentication.
+   - **PM Agent**: Checks the draft covers the original requirements.
+   - **Anti-Fragility Agent**: Produces chaos scenarios and a hardening checklist.
+   - **One Revision Pass**: If reviewers flag issues, one revision runs. Schema issues redraft the whole spec; security or PM issues regenerate only what was flagged.
+   - **Timeout**: The panel shares a 120-second budget. If it runs out, the spec is kept and a fallback resilience report is attached.
 3. **The Self-Healing Compiler (`Instructor`)**:
-   - The approved draft is cast against our strict Pydantic schemas. 
-   - If a required field is missing, Pydantic throws a `ValidationError`. The backend catches this, passes the stack trace back to the LLM, and forces a fix until the JSON is mathematically flawless (up to 3 retries max before outputting a degraded partial spec).
+   - The approved draft is cast against our strict Pydantic schemas.
+   - If a required field is missing, Pydantic throws a `ValidationError`. The backend catches this, passes the stack trace back to the LLM, and forces a fix, with up to 3 retries depending on the call.
 
 ---
 
@@ -69,4 +68,4 @@ The final compiled JSON (defined in `backend/app/schemas/spec.py`) contains:
 ---
 
 ## 🔄 The Bonus Layer: "Chat with your Architecture"
-After the spec is generated, the UI presents a chatbot. To protect the LLM context window limits, the backend runs the user query through a lightweight LLM classifier to decide whether to inject the full JSON spec (for technical queries like "Will this scale?") or a lightweight summary (for general queries). Specs are persisted in a database schema supporting versioning (`parent_spec_id`, `version`) to enable seamless regeneration workflows (e.g. changing Postgres to MongoDB).
+After the spec is generated, the UI presents a chatbot. To protect the LLM context window limits, the backend runs the user query through a lightweight LLM classifier to decide whether to inject the full JSON spec (for technical queries like "Will this scale?") or a lightweight summary (for general queries). The spec metadata records `version` and `parent_spec_id` so a later run can be traced to the spec it iterated from.

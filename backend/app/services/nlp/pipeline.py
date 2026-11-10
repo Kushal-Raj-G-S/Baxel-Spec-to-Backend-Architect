@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 async def run_entity_processing_flow(prompt: str) -> Dict[str, List[str]]:
     """
     Flow A (Entity Processing Pipeline):
-    Runs GLiNER extraction, maps synonyms using SentenceTransformer + Faiss,
+    Runs GLiNER extraction, maps synonyms using cloud embeddings + Faiss,
     and enriches entities using the Implication Map.
     """
     logger.info("Starting Flow A: Entity processing...")

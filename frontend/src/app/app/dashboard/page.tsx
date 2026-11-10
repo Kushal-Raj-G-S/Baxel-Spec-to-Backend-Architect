@@ -763,12 +763,12 @@ function DashboardContent() {
   const processStageIndex = isCompletedRun
     ? pipelineStages.length - 1
     : isRunning
-      // 30s per stage → 10 stages = 300s ≈ 5 min. Matches real 70B generation time.
+      // 30s per stage → 10 stages = 300s ≈ 5 min. Real runs can take longer; the last stage waits.
       // Stage index is capped at last stage so it doesn't overflow while waiting for result.
       ? Math.min(Math.floor(elapsedSeconds / 30), pipelineStages.length - 1)
       : -1;
 
-  // True when all stages have ticked but the result hasn't come back yet (waiting on 70B)
+  // True when all stages have ticked but the result hasn't come back yet (waiting on the model)
   const isWaitingForResult = isRunning && processStageIndex === pipelineStages.length - 1 && !isCompletedRun;
 
   const progressPercent = isCompletedRun

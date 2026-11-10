@@ -18,7 +18,7 @@ export const pricingPlans: PricingPlan[] = [
     inrPriceLabel: "₹0",
     desc: "Experience the full swarm engine, no quality caps — just a small monthly run budget.",
     perks: [
-      "Full 70B swarm engine — no quality throttling",
+      "Full swarm engine — no quality throttling",
       "3 pipeline runs / month",
       "3 active projects",
       "Up to 3,000 character prompt specs",

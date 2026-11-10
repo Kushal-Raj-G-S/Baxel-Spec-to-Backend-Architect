@@ -52,7 +52,7 @@ def run_test():
         # Test 3: Poll status until complete (increased range for cold-start model downloads)
         print(f"\nPolling status for spec {spec_id}...")
         completed = False
-        for i in range(300):
+        for i in range(900):
             res = requests.get(f"{base_url}/api/status/{spec_id}")
             status_data = res.json()
             print(f"Poll #{i+1} status: {status_data['status']} | Stage: {status_data['current_stage']}")

@@ -18,7 +18,7 @@ export default function PricingPage() {
             <div>
               <p className="font-semibold text-white">Full Swarm Engine Access on Every Plan — Even Free</p>
               <p className="mt-1 text-xs text-white/60 leading-relaxed">
-                We never throttle output quality or generation details based on your tier — not even on Free. Every plan runs the exact same full-capacity 70B Architect swarm and review panel. What scales with your plan is how often you can run it each month, not how good the output is, so you can fully evaluate Baxel before you ever pay for it.
+                We never throttle output quality or generation details based on your tier — not even on Free. Every plan runs the exact same full-capacity Architect swarm and review panel. What scales with your plan is how often you can run it each month, not how good the output is, so you can fully evaluate Baxel before you ever pay for it.
               </p>
             </div>
           </div>

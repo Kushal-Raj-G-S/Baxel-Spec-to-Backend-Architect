@@ -30,10 +30,10 @@ Because the LLM has complete knowledge of the architecture, it acts as the Princ
   - *"Write the Prisma schema for this database."*
   - *"How should I paginate the `List Invoices` endpoint?"*
 
-## Implementation Plan
-1. **Persistence Layer (with Versioning)**: Define a `specs` table in our database to support iterative regeneration.
-   - Schema: `id (UUID)`, `user_id (UUID)`, `parent_spec_id (UUID, Nullable)`, `version (Integer)`, `prompt_used (Text)`, `generated_json (JSONB)`, `created_at (Timestamp)`.
-   - By capturing `parent_spec_id` and `version`, we support workflows like *"regenerate the spec but use MongoDB instead of Postgres"*.
-2. **New Schema**: Create a Pydantic schema for the Chat endpoint (`ChatRequest(message: str, spec_id: UUID)`).
-2. **New Endpoint**: `POST /api/chat` that retrieves the saved spec from Supabase and orchestrates the LLM call.
-3. **Frontend Integration**: A floating chat widget or a split-pane view next to the visual architecture blueprint.
+## Implementation
+- **Endpoints**: `POST /api/chat` answers a question about a spec. `GET /api/chat/history?spec_id=...` returns the saved conversation.
+- **Storage**: Each exchange is saved to `chat_messages`. The last 5 exchanges for that spec and user are sent as conversation memory.
+- **Intent**: `classify_query_intent` labels a question `technical` (full spec injected) or `business` (short summary injected).
+- **Model**: `LLM_SAGE_MODEL` answers; `LLM_REVIEW_MODEL` classifies.
+- **Limits**: Daily message limits come from the user's plan (15 a day on Free, unlimited on paid plans).
+- **Frontend**: A dedicated page at `/app/chatbot`, opened from the dashboard or the Conversations list.
